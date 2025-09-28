@@ -49,7 +49,7 @@ const Sidebar = ({ currentUser, activeSection, onSectionChange, open = true }) =
          
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
   <img 
-    src="/src/assets/logo2-removebg-preview.png" 
+    src="/assets/logo2-removebg-preview.png" 
     alt="Trendora" 
     style={{ width: '40%' }} 
     className="navbar-logo" 

@@ -163,7 +163,7 @@ const MainLayout = () => {
             <Toolbar>
               <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
                 <img
-                  src="/src/assets/logo2-removebg-preview.png"
+                  src="/assets/logo2-removebg-preview.png"
                   alt="Trendora Logo"
                   style={{ 
                     height: '40px', 

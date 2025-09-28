@@ -163,7 +163,7 @@ const LoginPage = () => {
               }}
             >
               <img
-                src="/src/assets/logo2-removebg-preview.png"
+                src="/assets/logo2-removebg-preview.png"
                 alt="Company Logo"
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
