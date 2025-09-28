@@ -17,6 +17,7 @@ import OperationDepartment from '../operation/OperationDepartment.styled';
 import AccountingDepartment from '../accounting/AccountingDepartment';
 import SalesDepartment from '../sales/SalesDepartment';
 import OverviewDashboard from '../dashboard/OverviewDashboard';
+import logoImage from '../../assets/logo2-removebg-preview.png';
 
 const drawerWidth = 280;
 
@@ -163,7 +164,7 @@ const MainLayout = () => {
             <Toolbar>
               <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
                 <img
-                  src="/assets/logo2-removebg-preview.png"
+                  src={logoImage}
                   alt="Trendora Logo"
                   style={{ 
                     height: '40px', 

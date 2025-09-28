@@ -15,6 +15,7 @@ import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import ComputerOutlinedIcon from '@mui/icons-material/ComputerOutlined';
 import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
+import logoImage from '../../assets/logo2-removebg-preview.png';
 
 const drawerWidth = 280;
 
@@ -49,7 +50,7 @@ const Sidebar = ({ currentUser, activeSection, onSectionChange, open = true }) =
          
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
   <img 
-    src="/assets/logo2-removebg-preview.png" 
+    src={logoImage} 
     alt="Trendora" 
     style={{ width: '40%' }} 
     className="navbar-logo" 

@@ -18,6 +18,7 @@ import {
   VisibilityOff
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import logoImage from '../../assets/logo2-removebg-preview.png';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -163,7 +164,7 @@ const LoginPage = () => {
               }}
             >
               <img
-                src="/assets/logo2-removebg-preview.png"
+                src={logoImage}
                 alt="Company Logo"
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
