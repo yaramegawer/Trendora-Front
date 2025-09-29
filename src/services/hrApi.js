@@ -232,9 +232,10 @@ export const departmentApi = {
       }
       
       // Fallback to direct response data (for backward compatibility)
-      console.log('API: Using fallback departments data:', response.data);
+      console.log('API: Using direct response data:', response.data);
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
+      console.error('API: Department fetch error:', error);
       const errorMessage = handleApiError(error, 'Failed to fetch departments');
       throw new Error(errorMessage);
     }

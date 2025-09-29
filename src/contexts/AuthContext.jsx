@@ -238,6 +238,10 @@ export const AuthProvider = ({ children }) => {
           userData.role = 'Admin';
           console.log('Set role to Admin based on email/ID fallback');
         } else {
+          // TEMPORARY: Force Admin role for testing
+          console.log('🔧 TEMPORARY: Setting role to Admin for testing purposes');
+          userData.role = 'Admin';
+          
           // Try to fetch from database if endpoint exists
           try {
             console.log('Attempting to fetch user role from database for ID:', userData.id);

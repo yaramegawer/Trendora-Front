@@ -3,26 +3,19 @@ import {
   Stack,
   TextField,
   Button,
-  DialogActions,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  DialogActions
 } from '@mui/material';
 
 const DepartmentForm = ({ department, onSave, onCancel, loading = false }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    status: 'active'
+    name: ''
   });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (department) {
       setFormData({
-        name: department.name || '',
-        status: department.status || 'active'
+        name: department.name || ''
       });
     }
   }, [department]);
@@ -32,10 +25,6 @@ const DepartmentForm = ({ department, onSave, onCancel, loading = false }) => {
 
     if (!formData.name.trim()) {
       newErrors.name = 'Department name is required';
-    }
-
-    if (!formData.status) {
-      newErrors.status = 'Department status is required';
     }
 
     setErrors(newErrors);
@@ -77,23 +66,6 @@ const DepartmentForm = ({ department, onSave, onCancel, loading = false }) => {
           required
           fullWidth
         />
-
-        <FormControl fullWidth error={!!errors.status}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={formData.status}
-            onChange={(e) => handleChange('status', e.target.value)}
-            label="Status"
-          >
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-          </Select>
-          {errors.status && (
-            <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-              {errors.status}
-            </Typography>
-          )}
-        </FormControl>
 
       </Stack>
 

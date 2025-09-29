@@ -18,8 +18,6 @@ const EmployeeStatus = {
   INACTIVE: 'inactive',
 };
 
-const Departments = ['HR', 'Accounting', 'IT', 'Administration', 'Operation'];
-
 const Roles = ['Admin', 'Manager', 'Accountant', 'IT Staff', 'Employee', 'HR'];
 
 const DocumentTypes = [
@@ -135,8 +133,12 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
     // department: must be one of valid values, required
     if (!formData.department) {
       newErrors.department = 'Department is required';
-    } else if (!Departments.includes(formData.department)) {
-      newErrors.department = 'Please select a valid department';
+    } else {
+      // Check if department exists in the passed departments array
+      const departmentNames = departments.map(dept => dept.name || dept.departmentName || dept);
+      if (!departmentNames.includes(formData.department)) {
+        newErrors.department = 'Please select a valid department';
+      }
     }
 
     // hireDate: required
@@ -260,11 +262,15 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
               onChange={(e) => handleChange('department', e.target.value)}
               label="Department"
             >
-              {Departments.map((dept) => (
-                <MenuItem key={dept} value={dept}>
-                  {dept}
-                </MenuItem>
-              ))}
+              {departments.map((dept, index) => {
+                const deptName = dept.name || dept.departmentName || dept;
+                const deptId = dept._id || dept.id || `dept-${index}`;
+                return (
+                  <MenuItem key={deptId} value={deptName}>
+                    {deptName}
+                  </MenuItem>
+                );
+              })}
             </Select>
             {errors.department && (
               <Typography variant="caption" color="error" className="mt-1 ml-3">

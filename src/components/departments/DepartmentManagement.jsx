@@ -42,17 +42,8 @@ const DepartmentManagement = () => {
     deleteDepartment 
   } = useDepartments();
 
-  // Fallback data for when backend is not connected
-  const fallbackDepartments = [
-    { _id: 1, name: 'HR', createdAt: new Date().toISOString() },
-    { _id: 2, name: 'IT', createdAt: new Date().toISOString() },
-    { _id: 3, name: 'Operations', createdAt: new Date().toISOString() },
-    { _id: 4, name: 'Accounting', createdAt: new Date().toISOString() },
-    { _id: 5, name: 'Sales', createdAt: new Date().toISOString() }
-  ];
-
-  // Use real data if available, otherwise use fallback
-  const currentDepartments = departments && departments.length > 0 ? departments : fallbackDepartments;
+  // Use only real data from database - no fallback
+  const currentDepartments = departments || [];
   
   
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -208,6 +199,30 @@ const DepartmentManagement = () => {
           }}
         />
       </Paper>
+
+      {/* Loading State */}
+      {loading && (
+        <Box display="flex" justifyContent="center" p={3}>
+          <CircularProgress />
+          <Typography variant="body2" sx={{ ml: 2 }}>
+            Loading departments...
+          </Typography>
+        </Box>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && currentDepartments.length === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          No departments found. Click "Add Department" to create your first department.
+        </Alert>
+      )}
 
       {/* Departments Table */}
       <Card>
