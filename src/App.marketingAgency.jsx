@@ -5,30 +5,64 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainLayout from './components/layout/MainLayout.fixed';
 import LoginPage from './components/auth/LoginPage';
 import theme from './theme';
-import { CircularProgress, Box } from '@mui/material';
+import { CircularProgress, Box, Typography, Button } from '@mui/material';
 
 const AppContent = () => {
-  const { isAuthenticated, loading } = useAuth();
+  try {
+    console.log('AppContent: Component starting to render');
+    
+    const { isAuthenticated, loading, user } = useAuth();
+    
+    console.log('AppContent: Auth state:', { isAuthenticated, loading, user });
 
-  if (loading) {
+    if (loading) {
+      console.log('AppContent: Showing loading state');
+      return (
+        <Box 
+          display="flex" 
+          justifyContent="center" 
+          alignItems="center" 
+          minHeight="100vh"
+          sx={{ backgroundColor: 'grey.50' }}
+        >
+          <CircularProgress sx={{ color: '#1c242e' }} />
+        </Box>
+      );
+    }
+
+    if (!isAuthenticated) {
+      console.log('AppContent: User not authenticated, showing login page');
+      return <LoginPage />;
+    }
+
+    console.log('AppContent: User authenticated, showing main layout');
+    return <MainLayout />;
+  } catch (error) {
+    console.error('AppContent: Error rendering component:', error);
     return (
       <Box 
         display="flex" 
+        flexDirection="column"
         justifyContent="center" 
         alignItems="center" 
         minHeight="100vh"
-        sx={{ backgroundColor: 'grey.50' }}
+        sx={{ backgroundColor: 'grey.50', p: 3 }}
       >
-        <CircularProgress sx={{ color: '#1c242e' }} />
+        <Typography variant="h5" color="error" gutterBottom>
+          Application Error
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+          There was an error loading the application.
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Error: {error.message}
+        </Typography>
+        <Button variant="contained" onClick={() => window.location.reload()}>
+          Refresh Page
+        </Button>
       </Box>
     );
   }
-
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
-  return <MainLayout />;
 };
 
 const App = () => {

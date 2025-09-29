@@ -1,6 +1,12 @@
 import React from 'react';
 import { Card, Typography, Stack } from '@mui/material';
-import { formatCurrency } from '../../data/mockData';
+// Utility function for currency formatting
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+};
 
 const StatsCard = ({ title, value, icon: IconComponent, color = 'primary', trend }) => {
   const formatValue = (val) => {

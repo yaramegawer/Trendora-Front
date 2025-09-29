@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton } from '@mui/material';
+import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton, CircularProgress } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,20 +17,33 @@ import OperationDepartment from '../operation/OperationDepartment.styled';
 import AccountingDepartment from '../accounting/AccountingDepartment';
 import SalesDepartment from '../sales/SalesDepartment';
 import OverviewDashboard from '../dashboard/OverviewDashboard';
+import EmployeeDashboard from '../dashboard/EmployeeDashboard';
 import logoImage from '../../assets/logo2-removebg-preview.png';
 
 const drawerWidth = 280;
 
-const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon },
-  { id: 'hr', label: 'HR Department', icon: PeopleAltOutlinedIcon },
-  { id: 'it', label: 'IT Department', icon: ComputerOutlinedIcon },
-  { id: 'operation', label: 'Operations Department', icon: BusinessCenterOutlinedIcon },
-  { id: 'accounting', label: 'Accounting Department', icon: AccountBalanceOutlinedIcon },
-  { id: 'sales', label: 'Sales Department', icon: TrendingUpOutlinedIcon },
-];
+const getMenuItems = (userRole) => {
+  if (userRole === 'Employee') {
+    return [
+      { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon },
+    ];
+  }
+  
+  return [
+    { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon },
+    { id: 'hr', label: 'HR Department', icon: PeopleAltOutlinedIcon },
+    { id: 'it', label: 'IT Department', icon: ComputerOutlinedIcon },
+    { id: 'operation', label: 'Operations Department', icon: BusinessCenterOutlinedIcon },
+    { id: 'accounting', label: 'Accounting Department', icon: AccountBalanceOutlinedIcon },
+    { id: 'sales', label: 'Sales Department', icon: TrendingUpOutlinedIcon },
+  ];
+};
 
-const getSectionTitle = (sectionId) => {
+const getSectionTitle = (sectionId, userRole) => {
+  if (userRole === 'Employee') {
+    return 'Employee Dashboard';
+  }
+  
   const titles = {
     dashboard: 'Dashboard',
     hr: 'HR Department',
@@ -42,7 +55,12 @@ const getSectionTitle = (sectionId) => {
   return titles[sectionId] || 'Dashboard';
 };
 
-const renderContent = (activeSection) => {
+const renderContent = (activeSection, userRole) => {
+  // For Employee role, always show EmployeeDashboard regardless of activeSection
+  if (userRole === 'Employee') {
+    return <EmployeeDashboard />;
+  }
+  
   switch (activeSection) {
     case 'dashboard':
       return <OverviewDashboard />;
@@ -62,9 +80,20 @@ const renderContent = (activeSection) => {
 };
 
 const MainLayout = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { logout } = useAuth();
+  try {
+    console.log('MainLayout: Component starting to render');
+    
+    const [activeSection, setActiveSection] = useState('dashboard');
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const { logout, user } = useAuth();
+    
+    console.log('MainLayout: User data:', user);
+    
+    const userRole = user?.role || 'Employee';
+    const menuItems = getMenuItems(userRole);
+    
+    console.log('MainLayout: User role:', userRole);
+    console.log('MainLayout: Menu items:', menuItems);
 
   const handleLogout = () => {
     logout();
@@ -173,7 +202,7 @@ const MainLayout = () => {
                   }}
                 />
                 <Typography variant="h6" sx={{ color: '#1e293b', fontWeight: 600, fontSize: '1rem' }}>
-                  {getSectionTitle(activeSection)}
+                  {getSectionTitle(activeSection, userRole)}
                 </Typography>
               </Box>
               <Box sx={{ flexGrow: 1 }} />
@@ -185,12 +214,31 @@ const MainLayout = () => {
 
           {/* Content Area */}
           <Box sx={{ flexGrow: 1, overflow: 'auto', backgroundColor: '#f8fafc' }}>
-            {renderContent(activeSection)}
+            {renderContent(activeSection, userRole)}
           </Box>
         </Box>
       </Box>
     </ThemeProvider>
   );
+  } catch (error) {
+    console.error('MainLayout: Error rendering component:', error);
+    return (
+      <Box sx={{ p: 3, backgroundColor: 'grey.50', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography variant="h5" color="error" gutterBottom>
+          Application Error
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+          There was an error loading the application. Please check the console for details.
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Error: {error.message}
+        </Typography>
+        <Button variant="contained" onClick={() => window.location.reload()}>
+          Refresh Page
+        </Button>
+      </Box>
+    );
+  }
 };
 
 export default MainLayout;

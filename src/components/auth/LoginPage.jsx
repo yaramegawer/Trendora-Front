@@ -18,6 +18,8 @@ import {
   VisibilityOff
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import ForgetPassword from './ForgetPassword';
+import ResetPassword from './ResetPassword';
 import logoImage from '../../assets/logo2-removebg-preview.png';
 
 const LoginPage = () => {
@@ -30,6 +32,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [currentView, setCurrentView] = useState('login'); // 'login', 'forget', 'reset'
+  const [resetEmail, setResetEmail] = useState('');
   
   // Check for errors in localStorage on component mount (fallback for component re-mounts)
   React.useEffect(() => {
@@ -126,6 +130,40 @@ const LoginPage = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  const handleForgetPassword = () => {
+    setCurrentView('forget');
+    setError('');
+    setSuccess(false);
+  };
+
+  const handleForgetPasswordSuccess = (email) => {
+    setResetEmail(email);
+    setCurrentView('reset');
+  };
+
+  const handleBackToLogin = () => {
+    setCurrentView('login');
+    setError('');
+    setSuccess(false);
+    setResetEmail('');
+  };
+
+  const handleResetPasswordSuccess = () => {
+    setCurrentView('login');
+    setError('');
+    setSuccess(true);
+    setResetEmail('');
+  };
+
+  // Render different views based on currentView state
+  if (currentView === 'forget') {
+    return <ForgetPassword onBack={handleBackToLogin} onSuccess={handleForgetPasswordSuccess} />;
+  }
+
+  if (currentView === 'reset') {
+    return <ResetPassword email={resetEmail} onBack={handleBackToLogin} onSuccess={handleResetPasswordSuccess} />;
+  }
 
   return (
     <Box
@@ -385,45 +423,63 @@ const LoginPage = () => {
                }}
              />
 
-             <Button
-               type="submit"
-               fullWidth
-               variant="contained"
-               disabled={loading}
-               sx={{
-                 mt: 3,
-                 mb: 2,
-                 py: 1.5,
-                 borderRadius: 2,
-                 textTransform: 'none',
-                 fontSize: '1rem',
-                 fontWeight: 600,
-                 backgroundColor: error ? '#dc2626' : success ? '#16a34a' : '#1c242e',
-                 '&:hover': {
-                   backgroundColor: error ? '#b91c1c' : success ? '#15803d' : '#334155',
-                   transform: 'translateY(-1px)',
-                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                 },
-                 '&:disabled': {
-                   backgroundColor: '#94a3b8',
-                   transform: 'none',
-                   boxShadow: 'none',
-                 },
-                 transition: 'all 0.2s ease-in-out',
-               }}
-             >
-               {loading ? (
-                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                   <CircularProgress size={20} color="inherit" />
-                   Signing in...
-                 </Box>
-               ) : success ? (
-                 'Login Successful!'
-               ) : (
-                 'Sign in'
-               )}
-             </Button>
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={loading}
+              sx={{
+                mt: 3,
+                mb: 1,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600,
+                backgroundColor: error ? '#dc2626' : success ? '#16a34a' : '#1c242e',
+                '&:hover': {
+                  backgroundColor: error ? '#b91c1c' : success ? '#15803d' : '#334155',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                },
+                '&:disabled': {
+                  backgroundColor: '#94a3b8',
+                  transform: 'none',
+                  boxShadow: 'none',
+                },
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              {loading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={20} color="inherit" />
+                  Signing in...
+                </Box>
+              ) : success ? (
+                'Login Successful!'
+              ) : (
+                'Sign in'
+              )}
+            </Button>
 
+            <Button
+              fullWidth
+              variant="text"
+              onClick={handleForgetPassword}
+              sx={{
+                mt: 1,
+                mb: 2,
+                textTransform: 'none',
+                color: '#64748b',
+                fontSize: '0.875rem',
+                '&:hover': {
+                  backgroundColor: '#f1f5f9',
+                  color: '#1c242e',
+                },
+              }}
+            >
+              Forgot Password?
+            </Button>
             
           </Box>
         </CardContent>

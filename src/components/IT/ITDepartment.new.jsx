@@ -45,14 +45,8 @@ const ITDepartment = () => {
   const { tickets, loading: ticketsLoading, error: ticketsError } = useITTickets();
   const { user } = useAuth();
 
-  // Mock data for IT systems (since there's no API for this yet)
-  const [systems] = useState([
-    { id: 1, name: 'Main Server', status: 'online', uptime: '99.9%', lastUpdate: '2 min ago' },
-    { id: 2, name: 'Database Server', status: 'online', uptime: '99.8%', lastUpdate: '5 min ago' },
-    { id: 3, name: 'Web Server', status: 'warning', uptime: '95.2%', lastUpdate: '1 hour ago' },
-    { id: 4, name: 'Email Server', status: 'online', uptime: '99.5%', lastUpdate: '10 min ago' },
-    { id: 5, name: 'Backup System', status: 'offline', uptime: '0%', lastUpdate: '2 hours ago' },
-  ]);
+  // IT systems data - empty until API is implemented
+  const [systems] = useState([]);
 
   const getStatusColor = (status) => {
     switch (status) {

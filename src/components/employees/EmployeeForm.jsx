@@ -130,15 +130,9 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
     }
 
 
-    // department: must be one of valid values, required
+    // department: required
     if (!formData.department) {
       newErrors.department = 'Department is required';
-    } else {
-      // Check if department exists in the passed departments array
-      const departmentNames = departments.map(dept => dept.name || dept.departmentName || dept);
-      if (!departmentNames.includes(formData.department)) {
-        newErrors.department = 'Please select a valid department';
-      }
     }
 
     // hireDate: required
@@ -192,7 +186,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
     e.preventDefault();
     
     if (validateForm()) {
-      // Send all fields including address and documents as backend now supports them
+      // Send only fields allowed by backend validation schema
       const dataToSend = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -202,7 +196,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         phone: formData.phone,
         status: formData.status,
         role: formData.role,
-        address: formData.address || undefined, // Only send if not empty
+        // address field removed as it's not allowed by backend validation
         submittedDocuments: formData.submittedDocuments.length > 0 ? formData.submittedDocuments : undefined,
         pendingDocuments: formData.pendingDocuments.length > 0 ? formData.pendingDocuments : undefined
       };

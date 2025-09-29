@@ -278,40 +278,6 @@ const ITDepartment = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">System Health</p>
-                <p className="text-3xl font-bold text-green-600">99.9%</p>
-                <p className="text-xs text-green-600 mt-1">All systems operational</p>
-              </div>
-              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            {/* Circular Progress */}
-            <div className="h-16 flex items-center justify-center">
-              <div className="relative w-12 h-12">
-                <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-gray-200"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-green-500"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    fill="none"
-                    strokeDasharray="99.9, 100"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Charts Section */}

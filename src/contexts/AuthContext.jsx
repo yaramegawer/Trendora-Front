@@ -14,27 +14,41 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  console.log('AuthProvider: Component starting to render');
+  
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  console.log('AuthProvider: Initial state:', { user, isAuthenticated, loading });
 
   useEffect(() => {
+    console.log('AuthProvider: useEffect running');
+    
     // Check if user is already logged in (from localStorage)
     const checkAuth = () => {
       try {
+        console.log('AuthProvider: Checking authentication from localStorage');
+        
         const storedUser = localStorage.getItem('user');
         const storedAuth = localStorage.getItem('isAuthenticated');
         
+        console.log('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
+        
         if (storedUser && storedAuth === 'true') {
+          console.log('AuthProvider: User found in localStorage, setting authenticated state');
           setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
+        } else {
+          console.log('AuthProvider: No valid user data in localStorage');
         }
       } catch (error) {
-        console.error('Error checking authentication:', error);
+        console.error('AuthProvider: Error checking authentication:', error);
         // Clear invalid data
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
       } finally {
+        console.log('AuthProvider: Setting loading to false');
         setLoading(false);
       }
     };

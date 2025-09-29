@@ -98,6 +98,16 @@ const EmployeeManagement = () => {
         // window.location.href = '/login';
       } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
         alert(`Permission Error: ${error.message}`);
+      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken'))) {
+        alert('Can\'t add this email because it already exists');
+      } else if (error.message && error.message.includes('E11000') && error.message.includes('duplicate key')) {
+        alert('Can\'t add this email because it already exists');
+      } else if (error.response && error.response.status === 409) {
+        alert('Can\'t add this email because it already exists');
+      } else if (error.response && error.response.status === 422 && error.response.data && error.response.data.message && error.response.data.message.includes('email')) {
+        alert('Can\'t add this email because it already exists');
+      } else if (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('E11000')) {
+        alert('Can\'t add this email because it already exists');
       } else {
         alert(`Error adding employee: ${error.message}`);
       }
@@ -137,6 +147,16 @@ const EmployeeManagement = () => {
         alert(`Permission Error: ${error.message}`);
       } else if (error.message && error.message.includes('Authentication required')) {
         alert('Authentication Error: Please log in again.');
+      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken'))) {
+        alert('Can\'t update this email because it already exists');
+      } else if (error.message && error.message.includes('E11000') && error.message.includes('duplicate key')) {
+        alert('Can\'t update this email because it already exists');
+      } else if (error.response && error.response.status === 409) {
+        alert('Can\'t update this email because it already exists');
+      } else if (error.response && error.response.status === 422 && error.response.data && error.response.data.message && error.response.data.message.includes('email')) {
+        alert('Can\'t update this email because it already exists');
+      } else if (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('E11000')) {
+        alert('Can\'t update this email because it already exists');
       } else {
         alert(`Error updating employee: ${error.message}`);
       }

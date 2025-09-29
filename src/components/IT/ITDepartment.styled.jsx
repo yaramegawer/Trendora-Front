@@ -607,54 +607,6 @@ const ITDepartment = () => {
             </div>
           </div>
 
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            border: '1px solid #f3f4f6',
-            padding: '24px',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = '0 20px 25px rgba(0,0,0,0.15)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-          }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div>
-                <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>System Health</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#10b981', margin: 0 }}>99.9%</p>
-                <p style={{ fontSize: '8px', color: '#10b981', marginTop: '4px', margin: 0 }}>All systems operational</p>
-              </div>
-              <div style={{
-                padding: '10px',
-                background: 'linear-gradient(135deg, #1c242e 0%, #334155 100%)',
-                borderRadius: '10px'
-              }}>
-                <Shield size={20} color="white" />
-              </div>
-            </div>
-            {/* Circular Progress */}
-            <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ position: 'relative', width: '48px', height: '48px' }}>
-                <svg style={{ width: '48px', height: '48px', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
-                  <path
-                    style={{ stroke: '#e5e7eb', strokeWidth: '3', fill: 'none' }}
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    style={{ stroke: '#10b981', strokeWidth: '3', fill: 'none', strokeDasharray: '99.9, 100' }}
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
         </div>
 
 

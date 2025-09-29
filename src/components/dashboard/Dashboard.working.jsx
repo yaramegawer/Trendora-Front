@@ -14,14 +14,20 @@ const WorkingDashboard = () => {
   const { payroll, loading: payrollLoading, error: payrollError } = usePayroll();
 
 
-  const monthlyHiringData = [
-    { month: 'Jan', hires: 12 },
-    { month: 'Feb', hires: 8 },
-    { month: 'Mar', hires: 15 },
-    { month: 'Apr', hires: 10 },
-    { month: 'May', hires: 18 },
-    { month: 'Jun', hires: 14 }
-  ];
+  // Calculate monthly hiring data based on real employee data
+  const monthlyHiringData = Array.isArray(employees) && employees.length > 0 ? 
+    employees.reduce((acc, employee) => {
+      if (employee.createdAt) {
+        const month = new Date(employee.createdAt).toLocaleDateString('en-US', { month: 'short' });
+        const existing = acc.find(item => item.month === month);
+        if (existing) {
+          existing.hires += 1;
+        } else {
+          acc.push({ month, hires: 1 });
+        }
+      }
+      return acc;
+    }, []) : [];
 
   // Calculate real data from backend
   const totalEmployees = Array.isArray(employees) ? employees.length : 0;
@@ -64,12 +70,24 @@ const WorkingDashboard = () => {
     },
   ];
 
-  const salaryRangeData = [
-    { range: '40-60k', count: 25 },
-    { range: '60-80k', count: 45 },
-    { range: '80-100k', count: 35 },
-    { range: '100k+', count: 15 }
-  ];
+  // Calculate salary range data based on real payroll data
+  const salaryRangeData = Array.isArray(payroll) && payroll.length > 0 ? 
+    payroll.reduce((acc, p) => {
+      const amount = p.amount || 0;
+      let range;
+      if (amount < 60000) range = '40-60k';
+      else if (amount < 80000) range = '60-80k';
+      else if (amount < 100000) range = '80-100k';
+      else range = '100k+';
+      
+      const existing = acc.find(item => item.range === range);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        acc.push({ range, count: 1 });
+      }
+      return acc;
+    }, []) : [];
 
   // Loading state
   if (employeesLoading || departmentsLoading || leavesLoading || payrollLoading) {
@@ -97,8 +115,8 @@ const WorkingDashboard = () => {
 
       {/* Error Alert */}
       {hasError && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          Some data may not be up to date. Using fallback data.
+        <Alert severity="error" sx={{ mb: 3 }}>
+          Some data may not be up to date. Please check your connection.
         </Alert>
       )}
 
@@ -158,23 +176,32 @@ const WorkingDashboard = () => {
             Monthly Hiring Trend
           </Typography>
           <Box sx={{ height: 300, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {monthlyHiringData.map((data, index) => (
-              <Box key={index} sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ minWidth: 40 }}>
-                  {data.month}:
-                </Typography>
-                <Box 
-                  sx={{ 
-                    width: `${(data.hires / 20) * 100}%`, 
-                    height: 20, 
-                    backgroundColor: '#3b82f6',
-                    mr: 2,
-                    borderRadius: 1
-                  }} 
-                />
-                <Typography variant="body2">{data.hires} hires</Typography>
-              </Box>
-            ))}
+            {monthlyHiringData.length > 0 ? (
+              monthlyHiringData.map((data, index) => {
+                const maxHires = Math.max(...monthlyHiringData.map(d => d.hires));
+                return (
+                  <Box key={index} sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ minWidth: 40 }}>
+                      {data.month}:
+                    </Typography>
+                    <Box 
+                      sx={{ 
+                        width: `${(data.hires / maxHires) * 100}%`, 
+                        height: 20, 
+                        backgroundColor: '#3b82f6',
+                        mr: 2,
+                        borderRadius: 1
+                      }} 
+                    />
+                    <Typography variant="body2">{data.hires} hires</Typography>
+                  </Box>
+                );
+              })
+            ) : (
+              <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
+                No hiring data available
+              </Typography>
+            )}
           </Box>
         </Paper>
       </Stack>
@@ -219,23 +246,32 @@ const WorkingDashboard = () => {
             Salary Range Distribution
           </Typography>
           <Box sx={{ height: 300, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {salaryRangeData.map((data, index) => (
-              <Box key={index} sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ minWidth: 60 }}>
-                  {data.range}:
-                </Typography>
-                <Box 
-                  sx={{ 
-                    width: `${(data.count / 50) * 100}%`, 
-                    height: 20, 
-                    backgroundColor: '#0891b2',
-                    mr: 2,
-                    borderRadius: 1
-                  }} 
-                />
-                <Typography variant="body2">{data.count} employees</Typography>
-              </Box>
-            ))}
+            {salaryRangeData.length > 0 ? (
+              salaryRangeData.map((data, index) => {
+                const maxCount = Math.max(...salaryRangeData.map(d => d.count));
+                return (
+                  <Box key={index} sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ minWidth: 60 }}>
+                      {data.range}:
+                    </Typography>
+                    <Box 
+                      sx={{ 
+                        width: `${(data.count / maxCount) * 100}%`, 
+                        height: 20, 
+                        backgroundColor: '#0891b2',
+                        mr: 2,
+                        borderRadius: 1
+                      }} 
+                    />
+                    <Typography variant="body2">{data.count} employees</Typography>
+                  </Box>
+                );
+              })
+            ) : (
+              <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
+                No salary data available
+              </Typography>
+            )}
           </Box>
         </Paper>
       </Stack>

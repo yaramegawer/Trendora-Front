@@ -65,24 +65,9 @@ const PayrollManagement = () => {
   const { employees } = useEmployees();
   const { user } = useAuth();
 
-  // Fallback data for when backend is not connected
-  const fallbackPayroll = [
-    { id: 1, employeeId: 1, grossSalary: 55000, deductions: 5500, netSalary: 49500, status: 'Paid', payPeriod: 'January 2024' },
-    { id: 2, employeeId: 2, grossSalary: 65000, deductions: 6500, netSalary: 58500, status: 'Paid', payPeriod: 'January 2024' },
-    { id: 3, employeeId: 3, grossSalary: 60000, deductions: 6000, netSalary: 54000, status: 'Paid', payPeriod: 'January 2024' },
-    { id: 4, employeeId: 4, grossSalary: 58000, deductions: 5800, netSalary: 52200, status: 'Pending', payPeriod: 'February 2024' }
-  ];
-
-  const fallbackEmployees = [
-    { id: 1, firstName: 'John', lastName: 'Doe' },
-    { id: 2, firstName: 'Jane', lastName: 'Smith' },
-    { id: 3, firstName: 'Mike', lastName: 'Johnson' },
-    { id: 4, firstName: 'Sarah', lastName: 'Wilson' }
-  ];
-
-  // Use real data if available, otherwise use fallback
-  const currentPayroll = payroll && payroll.length > 0 ? payroll : fallbackPayroll;
-  const currentEmployees = employees && employees.length > 0 ? employees : fallbackEmployees;
+  // Use only real data from database - no fallback
+  const currentPayroll = payroll || [];
+  const currentEmployees = employees || [];
   
   
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -458,10 +443,8 @@ const PayrollManagement = () => {
     <Box sx={{ p: 3 }}>
       {/* Error Alert */}
       {error && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          Backend connection failed. Displaying demo data for demonstration purposes.
-          <br />
-          <strong>Error details:</strong> {error}
+        <Alert severity="error" sx={{ mb: 3 }}>
+          <strong>Error:</strong> {error}
         </Alert>
       )}
 
