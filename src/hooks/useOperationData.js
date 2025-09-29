@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { operationEmployeeApi, operationCampaignApi, operationLeaveApi } from '../services/operationApi';
+import { operationEmployeeApi, operationCampaignApi, operationLeaveApi, operationTicketApi } from '../services/operationApi';
 
 // Custom hook for Operation employee data management
 export const useOperationEmployees = () => {
@@ -150,14 +150,46 @@ export const useOperationLeaves = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await operationLeaveApi.getAllLeaves();
-      if (response.success && Array.isArray(response.data)) {
-        setLeaves(response.data);
+      const response = await operationLeaveApi.getEmployeeLeaves();
+      console.log('Operation Employee Leaves API Response:', response);
+      
+      // Handle different response formats
+      let leavesData = [];
+      let userDepartment = null;
+      
+      if (Array.isArray(response)) {
+        leavesData = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        leavesData = response.data;
+        userDepartment = response.department;
+        console.log('🏢 User department from response:', userDepartment);
+      } else if (response && response.success && Array.isArray(response.data)) {
+        leavesData = response.data;
+        userDepartment = response.department;
+        console.log('🏢 User department from response:', userDepartment);
+      }
+      
+      // Only show leaves if user is in Operation department
+      if (userDepartment) {
+        const departmentLower = userDepartment.toLowerCase();
+        console.log('🔍 Operation Department: Checking department:', userDepartment, '->', departmentLower);
+        
+        if (departmentLower !== 'operation' && departmentLower !== 'operations') {
+          console.log('🚫 Operation Department: User is not in Operation department, not showing leaves');
+          console.log('🚫 Operation Department: User department:', userDepartment, 'Expected: Operation or Operations');
+          setLeaves([]);
+        } else {
+          console.log('✅ Operation Department: User is in Operation department, showing leaves');
+          console.log('📊 Operation Department: Processed employee leaves data:', leavesData);
+          console.log('📊 Operation Department: Number of leaves found:', leavesData.length);
+          setLeaves(leavesData);
+        }
       } else {
+        console.log('⚠️ Operation Department: No department info in response, not showing leaves');
         setLeaves([]);
-        setError(response.message || 'Failed to fetch Operation leaves');
       }
     } catch (err) {
+      console.warn('Operation Employee Leaves API Error, using empty array:', err.message);
       setError(err.message || 'Network Error');
       setLeaves([]);
     } finally {
@@ -171,15 +203,16 @@ export const useOperationLeaves = () => {
 
   const addLeave = async (leaveData) => {
     try {
-      const response = await operationLeaveApi.addLeave(leaveData);
-      if (response.success) {
-        fetchLeaves(); // Refresh data
-        return { success: true, data: response.data };
-      } else {
-        return { success: false, message: response.message };
-      }
+      console.log('Adding Operation employee leave:', leaveData);
+      const response = await operationLeaveApi.submitEmployeeLeave(leaveData);
+      console.log('Operation employee leave add response:', response);
+      
+      // Refresh leaves data
+      await fetchLeaves();
+      return { success: true, data: response.data || response };
     } catch (err) {
-      return { success: false, message: err.message || 'Failed to add leave' };
+      console.error('Error adding Operation employee leave:', err);
+      throw err;
     }
   };
 
@@ -212,4 +245,98 @@ export const useOperationLeaves = () => {
   };
 
   return { leaves, loading, error, fetchLeaves, addLeave, updateLeaveStatus, deleteLeave };
+};
+
+// Custom hook for Operation ticket data management
+export const useOperationTickets = () => {
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchTickets = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await operationTicketApi.getAllTickets();
+      console.log('Operation Tickets API Response:', response);
+      
+      // Handle different response formats
+      let ticketsData = [];
+      if (Array.isArray(response)) {
+        ticketsData = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        ticketsData = response.data;
+      } else if (response && response.success && Array.isArray(response.data)) {
+        ticketsData = response.data;
+      }
+      
+      console.log('Processed operation tickets data:', ticketsData);
+      setTickets(ticketsData);
+    } catch (err) {
+      console.warn('Operation Tickets API Error, using empty array:', err.message);
+      setError(err.message);
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addTicket = async (ticketData) => {
+    try {
+      console.log('Adding operation ticket:', ticketData);
+      const response = await operationTicketApi.addTicket(ticketData);
+      console.log('Operation ticket add response:', response);
+      
+      // Refresh tickets data
+      await fetchTickets();
+      return { success: true, data: response.data || response };
+    } catch (err) {
+      console.error('Error adding operation ticket:', err);
+      throw err;
+    }
+  };
+
+  const updateTicket = async (id, ticketData) => {
+    try {
+      console.log('Updating operation ticket:', id, ticketData);
+      const response = await operationTicketApi.updateTicket(id, ticketData);
+      console.log('Operation ticket update response:', response);
+      
+      // Refresh tickets data
+      await fetchTickets();
+      return { success: true, data: response.data || response };
+    } catch (err) {
+      console.error('Error updating operation ticket:', err);
+      throw err;
+    }
+  };
+
+  const deleteTicket = async (id) => {
+    try {
+      console.log('Deleting operation ticket:', id);
+      const response = await operationTicketApi.deleteTicket(id);
+      console.log('Operation ticket deletion response:', response);
+      
+      // Refresh tickets data
+      await fetchTickets();
+      return { success: true, data: response.data || response };
+    } catch (err) {
+      console.error('Error deleting operation ticket:', err);
+      throw err;
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  return {
+    tickets,
+    loading,
+    error,
+    fetchTickets,
+    addTicket,
+    updateTicket,
+    deleteTicket
+  };
 };

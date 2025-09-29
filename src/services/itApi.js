@@ -181,6 +181,46 @@ export const itLeaveApi = {
     }
   },
 
+  // Get leaves for specific employee (authenticated user)
+  getEmployeeLeaves: async () => {
+    try {
+      console.log('🌐 IT Employee Leaves API Call: /dashboard/leaves');
+      console.log('🔑 Token from localStorage:', localStorage.getItem('token') ? 'Present' : 'Missing');
+      console.log('👤 User from localStorage:', localStorage.getItem('user'));
+      
+      const response = await apiCall('/dashboard/leaves', {
+        method: 'GET',
+      });
+      console.log('📡 IT Employee Leaves API Response:', response);
+      console.log('📡 Response status:', response?.status);
+      console.log('📡 Response headers:', response?.headers);
+      return response;
+    } catch (error) {
+      console.error('❌ IT Employee Leaves API Error:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error data:', error.response?.data);
+      throw error;
+    }
+  },
+
+  // Submit leave for specific employee (authenticated user)
+  submitEmployeeLeave: async (leaveData) => {
+    try {
+      console.log('🌐 IT Employee Submit Leave API Call: /dashboard/leaves');
+      console.log('📤 IT Employee Leave Data:', leaveData);
+      const response = await apiCall('/dashboard/leaves', {
+        method: 'POST',
+        data: leaveData,
+      });
+      console.log('📡 IT Employee Submit Leave API Response:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ IT Employee Submit Leave API Error:', error);
+      throw error;
+    }
+  },
+
   // Add new IT leave
   addLeave: async (leaveData) => {
     try {

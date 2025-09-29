@@ -16,7 +16,17 @@ import {
   Grid,
   Avatar,
   Divider,
-  MenuItem
+  MenuItem,
+  Tabs,
+  Tab,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
 } from '@mui/material';
 import {
   EventNoteOutlined,
@@ -34,6 +44,10 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState(0);
+  const [leaves, setLeaves] = useState([]);
+  const [leavesLoading, setLeavesLoading] = useState(false);
+  const [leavesError, setLeavesError] = useState('');
 
 
   // Leave form state
@@ -281,15 +295,72 @@ const EmployeeDashboard = () => {
     }
   };
 
+  // Fetch leaves for the logged-in user
+  const fetchLeaves = async () => {
+    setLeavesLoading(true);
+    setLeavesError('');
+    try {
+      console.log('🔄 Fetching user leaves...');
+      const response = await api.get('/dashboard/leaves');
+      console.log('📡 User Leaves API Response:', response);
+      
+      let leavesData = [];
+      if (Array.isArray(response.data)) {
+        leavesData = response.data;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        leavesData = response.data.data;
+      } else if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        leavesData = response.data.data;
+      }
+      
+      console.log('📊 Processed user leaves data:', leavesData);
+      setLeaves(leavesData);
+    } catch (err) {
+      console.error('❌ User Leaves API Error:', err);
+      setLeavesError(err.message || 'Failed to fetch leaves');
+      setLeaves([]);
+    } finally {
+      setLeavesLoading(false);
+    }
+  };
+
+  // Fetch leaves when component mounts or when leaves tab is selected
+  React.useEffect(() => {
+    if (activeTab === 1) { // Leaves tab
+      fetchLeaves();
+    }
+  }, [activeTab]);
+
+  // Get status color for leave status
+  const getStatusColor = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'approved': return 'success';
+      case 'pending': return 'warning';
+      case 'rejected': return 'error';
+      default: return 'default';
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
   return (
     <Box sx={{ 
       p: 3, 
       backgroundColor: 'grey.50', 
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center'
+      minHeight: '100vh'
     }}>
       {/* Header */}
       <Box sx={{ mb: 6, textAlign: 'center' }}>
@@ -313,8 +384,23 @@ const EmployeeDashboard = () => {
         </Alert>
       )}
 
-      {/* Action Cards */}
-      <Grid container spacing={3} sx={{ maxWidth: 800, justifyContent: 'center' }}>
+      {/* Tabs */}
+      <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          sx={{ mb: 3 }}
+          centered
+        >
+          <Tab label="Submit Requests" />
+          <Tab label="My Leaves" />
+        </Tabs>
+
+        {/* Tab Content */}
+        {activeTab === 0 && (
+          <Box>
+            {/* Action Cards */}
+            <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
         {/* Submit Leave Card */}
         <Grid item xs={12} md={9} sx={{ display: 'flex' }}>
           <Card sx={{ 
@@ -429,8 +515,77 @@ const EmployeeDashboard = () => {
             </CardContent>
           </Card>
         </Grid>
-      </Grid>
+            </Grid>
+          </Box>
+        )}
 
+        {activeTab === 1 && (
+          <Box>
+            {/* My Leaves Tab */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  My Leave Requests
+                </Typography>
+                
+                {leavesLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : leavesError ? (
+                  <Alert severity="error">
+                    {leavesError}
+                  </Alert>
+                ) : leaves.length === 0 ? (
+                  <Typography color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
+                    No leave requests found.
+                  </Typography>
+                ) : (
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Leave Type</TableCell>
+                          <TableCell>Start Date</TableCell>
+                          <TableCell>End Date</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Duration</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {leaves.map((leave, index) => (
+                          <TableRow key={leave._id || leave.id || index}>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                {leave.type || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>{formatDate(leave.startDate)}</TableCell>
+                            <TableCell>{formatDate(leave.endDate)}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={leave.status || 'Unknown'}
+                                color={getStatusColor(leave.status)}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {leave.startDate && leave.endDate ? 
+                                Math.ceil((new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24)) + 1 + ' days' : 
+                                'N/A'
+                              }
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </CardContent>
+            </Card>
+          </Box>
+        )}
+      </Box>
 
       {/* Leave Request Dialog */}
       {leaveDialogOpen && (

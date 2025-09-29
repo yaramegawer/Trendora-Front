@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Stack, Typography, Tabs, Tab, Box } from '@mui/material';
 import EmployeeManagement from '../employees/EmployeeManagement.new';
-import DepartmentManagement from '../departments/DepartmentManagement';
 import LeaveManagement from '../leaves/LeaveManagement.new';
 import PayrollManagement from '../payroll/PayrollManagement.new';
 
@@ -27,9 +26,7 @@ const HRDepartment = () => {
   };
 
   const tabs = [
-    
     { label: 'Employees', component: <EmployeeManagement /> },
-    { label: 'Departments', component: <DepartmentManagement /> },
     { label: 'Leaves', component: <LeaveManagement /> },
     { label: 'Payroll', component: <PayrollManagement /> }
   ];

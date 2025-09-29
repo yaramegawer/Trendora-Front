@@ -374,9 +374,15 @@ const ITDepartment = () => {
                           <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
                             {ticket.title || ticket.name || 'Untitled Ticket'}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                             Assigned to: {ticket.assignee || ticket.assignedTo || 'Unassigned'}
                           </Typography>
+                          {ticket.employee && (
+                            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                              Submitted by: {ticket.employee.firstName} {ticket.employee.lastName}
+                              {ticket.employee.email && ` (${ticket.employee.email})`}
+                            </Typography>
+                          )}
                         </Box>
                         <Stack direction="row" spacing={1}>
                           <Chip

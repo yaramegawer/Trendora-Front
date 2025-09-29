@@ -227,7 +227,7 @@ const PayrollManagement = () => {
           </div>
           <div class="info-row">
             <span class="info-label">Pay Period:</span>
-            <span>${payroll.payDate || 'N/A'}</span>
+            <span>${formatPayDate(payroll.payDate) || 'N/A'}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Status:</span>
@@ -384,6 +384,26 @@ const PayrollManagement = () => {
     
     // Fallback to ID lookup if name is not available
     return getEmployeeName(employee._id);
+  };
+
+  // Format date for display
+  const formatPayDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      // Format as "Jul 31, 2025" (Month Day, Year)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
 
   const filteredPayroll = currentPayroll.filter(pay => {
@@ -644,7 +664,7 @@ const PayrollManagement = () => {
                     </Box>
                   </Stack>
                 </TableCell>
-                  <TableCell>{pay.payDate}</TableCell>
+                  <TableCell>{formatPayDate(pay.payDate)}</TableCell>
                   <TableCell>${pay.baseSalary?.toLocaleString() || 0}</TableCell>
                   <TableCell>${pay.deductions?.toLocaleString() || 0}</TableCell>
                   <TableCell>

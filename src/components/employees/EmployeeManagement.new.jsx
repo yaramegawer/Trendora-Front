@@ -28,7 +28,9 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Add,
@@ -65,6 +67,8 @@ const EmployeeManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [userError, setUserError] = useState('');
+  const [userSuccess, setUserSuccess] = useState('');
 
   const handleAddEmployee = async (employeeData) => {
     console.log('Debug - handleAddEmployee called with data:', employeeData);
@@ -83,33 +87,35 @@ const EmployeeManagement = () => {
     }
 
     try {
+      setUserError('');
+      setUserSuccess('');
       console.log('Debug - Calling addEmployee API...');
       await addEmployee(employeeData);
       console.log('Debug - Add successful, closing dialog...');
+      setUserSuccess('Employee added successfully!');
       setShowAddDialog(false);
       console.log('Debug - Dialog closed, refreshing data...');
     } catch (error) {
       console.error('Error adding employee:', error);
+      console.error('Error message:', error.message);
+      console.error('Error response:', error.response);
+      
+      // Clear any existing error first
+      setUserError('');
       
       // Check for authentication errors
       if (error.message && (error.message.includes('Authentication required') || error.message.includes('sign_in') || error.message.includes('token'))) {
-        alert('Authentication Error: Please log in first to add employees.');
+        setUserError('Authentication Error: Please log in first to add employees.');
         // Optionally redirect to login
         // window.location.href = '/login';
       } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
-        alert(`Permission Error: ${error.message}`);
-      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken'))) {
-        alert('Can\'t add this email because it already exists');
-      } else if (error.message && error.message.includes('E11000') && error.message.includes('duplicate key')) {
-        alert('Can\'t add this email because it already exists');
-      } else if (error.response && error.response.status === 409) {
-        alert('Can\'t add this email because it already exists');
-      } else if (error.response && error.response.status === 422 && error.response.data && error.response.data.message && error.response.data.message.includes('email')) {
-        alert('Can\'t add this email because it already exists');
-      } else if (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('E11000')) {
-        alert('Can\'t add this email because it already exists');
+        setUserError(`Permission Error: ${error.message}`);
+      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t add this email because it already exists'))) {
+        setUserError(error.message);
+      } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
+        setUserError('Can\'t add this email because it already exists');
       } else {
-        alert(`Error adding employee: ${error.message}`);
+        setUserError(`Error adding employee: ${error.message}`);
       }
     }
   };
@@ -123,6 +129,8 @@ const EmployeeManagement = () => {
     }
 
     try {
+      setUserError('');
+      setUserSuccess('');
       const employeeId = editingEmployee.id || editingEmployee._id;
       console.log('Debug - editingEmployee:', editingEmployee);
       console.log('Debug - employeeId extracted:', employeeId);
@@ -130,35 +138,35 @@ const EmployeeManagement = () => {
       
       if (!employeeId) {
         console.error('No employee ID found for update');
-        alert('Error: No employee ID found for update');
+        setUserError('Error: No employee ID found for update');
         return;
       }
       
       await updateEmployee(employeeId, employeeData);
+      setUserSuccess('Employee updated successfully!');
       setShowEditDialog(false);
       setEditingEmployee(null);
     } catch (error) {
       console.error('Error updating employee:', error);
+      console.error('Error message:', error.message);
+      console.error('Error response:', error.response);
+      
+      // Clear any existing error first
+      setUserError('');
       
       // Check for specific error types
       if (error.message && error.message.includes('Invalid objectId')) {
-        alert('Error: Invalid employee ID. Please refresh the page and try again.');
+        setUserError('Error: Invalid employee ID. Please refresh the page and try again.');
       } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
-        alert(`Permission Error: ${error.message}`);
+        setUserError(`Permission Error: ${error.message}`);
       } else if (error.message && error.message.includes('Authentication required')) {
-        alert('Authentication Error: Please log in again.');
-      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken'))) {
-        alert('Can\'t update this email because it already exists');
-      } else if (error.message && error.message.includes('E11000') && error.message.includes('duplicate key')) {
-        alert('Can\'t update this email because it already exists');
-      } else if (error.response && error.response.status === 409) {
-        alert('Can\'t update this email because it already exists');
-      } else if (error.response && error.response.status === 422 && error.response.data && error.response.data.message && error.response.data.message.includes('email')) {
-        alert('Can\'t update this email because it already exists');
-      } else if (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('E11000')) {
-        alert('Can\'t update this email because it already exists');
+        setUserError('Authentication Error: Please log in again.');
+      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t update this email because it already exists'))) {
+        setUserError(error.message);
+      } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
+        setUserError('Can\'t update this email because it already exists');
       } else {
-        alert(`Error updating employee: ${error.message}`);
+        setUserError(`Error updating employee: ${error.message}`);
       }
     }
   };
@@ -343,6 +351,28 @@ const EmployeeManagement = () => {
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
+        </Alert>
+      )}
+
+      {/* User Error Alert */}
+      {userError && (
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          onClose={() => setUserError('')}
+        >
+          {userError}
+        </Alert>
+      )}
+
+      {/* User Success Alert */}
+      {userSuccess && (
+        <Alert 
+          severity="success" 
+          sx={{ mb: 3 }}
+          onClose={() => setUserSuccess('')}
+        >
+          {userSuccess}
         </Alert>
       )}
 

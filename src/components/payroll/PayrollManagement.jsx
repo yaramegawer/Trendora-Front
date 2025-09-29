@@ -71,6 +71,26 @@ const PayrollManagement = () => {
     return employee ? `${employee.firstName || employee.first_name || ''} ${employee.lastName || employee.last_name || ''}`.trim() : 'Unknown Employee';
   };
 
+  // Format date for display
+  const formatPayDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      // Format as "Jul 31, 2025" (Month Day, Year)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
   // Helper function to calculate net pay
   const calculateNetPay = (payrollItem) => {
     const baseSalary = Number(payrollItem.baseSalary || payrollItem.base_salary || 0);
@@ -387,10 +407,7 @@ const PayrollManagement = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    {item.payDate || item.pay_date ? 
-                      new Date(item.payDate || item.pay_date).toLocaleDateString() : 
-                      'N/A'
-                    }
+                    {formatPayDate(item.payDate || item.pay_date)}
                   </TableCell>
                   <TableCell align="right">
                     <IconButton

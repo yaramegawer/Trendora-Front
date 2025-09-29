@@ -591,9 +591,15 @@ const ITDepartment = () => {
                             <h3 className="text-lg font-semibold text-gray-900 mb-2">
                               {ticket.title || ticket.name || 'Untitled Ticket'}
                             </h3>
-                            <p className="text-gray-600 mb-3">
+                            <p className="text-gray-600 mb-2">
                               Assigned to: {ticket.assignee || ticket.assignedTo || 'Unassigned'}
                             </p>
+                            {ticket.employee && (
+                              <p className="text-sm text-gray-500 mb-3 italic">
+                                Submitted by: {ticket.employee.firstName} {ticket.employee.lastName}
+                                {ticket.employee.email && ` (${ticket.employee.email})`}
+                              </p>
+                            )}
                             <div className="flex items-center space-x-3">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${priority.color}`}>
                                 <PriorityIcon className="w-3 h-3 mr-1" />

@@ -140,17 +140,18 @@ export const employeeApi = {
       }
       
       // Handle duplicate email error specifically
-      if (error.response?.data?.message && error.response.data.message.includes('E11000 duplicate key error')) {
-        throw new Error('This email already exists for another user');
+      const errorMessage = error.response?.data?.message || error.message || '';
+      if (errorMessage.includes('E11000') && errorMessage.includes('duplicate key')) {
+        throw new Error('Can\'t add this email because it already exists');
       }
       
       // Handle other specific error messages from backend
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      if (errorMessage) {
+        throw new Error(errorMessage);
       }
       
-      const errorMessage = handleApiError(error, 'Failed to add employee');
-      throw new Error(errorMessage);
+      const fallbackErrorMessage = handleApiError(error, 'Failed to add employee');
+      throw new Error(fallbackErrorMessage);
     }
   },
 
@@ -185,12 +186,18 @@ export const employeeApi = {
       }
       
       // Handle duplicate email error specifically
-      if (error.response?.data?.message && error.response.data.message.includes('E11000 duplicate key error')) {
-        throw new Error('This email already exists for another user');
+      const errorMessage = error.response?.data?.message || error.message || '';
+      if (errorMessage.includes('E11000') && errorMessage.includes('duplicate key')) {
+        throw new Error('Can\'t update this email because it already exists');
       }
       
-      const errorMessage = handleApiError(error, 'Failed to update employee');
-      throw new Error(errorMessage);
+      // Handle other specific error messages from backend
+      if (errorMessage) {
+        throw new Error(errorMessage);
+      }
+      
+      const fallbackErrorMessage = handleApiError(error, 'Failed to update employee');
+      throw new Error(fallbackErrorMessage);
     }
   },
 

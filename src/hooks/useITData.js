@@ -277,23 +277,61 @@ export const useITLeaves = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await itLeaveApi.getAllLeaves();
-      console.log('IT Leaves API Response:', response);
+      console.log('🔄 Fetching IT employee leaves...');
+      const response = await itLeaveApi.getEmployeeLeaves();
+      console.log('📡 IT Employee Leaves API Response:', response);
+      console.log('📡 Response type:', typeof response);
+      console.log('📡 Response keys:', response ? Object.keys(response) : 'No response');
       
       // Handle different response formats
       let leavesData = [];
+      let userDepartment = null;
+      
       if (Array.isArray(response)) {
         leavesData = response;
+        console.log('✅ Response is array, using directly');
       } else if (response && response.data && Array.isArray(response.data)) {
         leavesData = response.data;
-      } else if (response && Array.isArray(response)) {
-        leavesData = response;
+        userDepartment = response.department;
+        console.log('✅ Response has data array, using response.data');
+        console.log('🏢 User department from response:', userDepartment);
+      } else if (response && response.success && response.data && Array.isArray(response.data)) {
+        leavesData = response.data;
+        userDepartment = response.department;
+        console.log('✅ Response has success and data array, using response.data');
+        console.log('🏢 User department from response:', userDepartment);
+      } else if (response && response.leaves && Array.isArray(response.leaves)) {
+        leavesData = response.leaves;
+        userDepartment = response.department;
+        console.log('✅ Response has leaves array, using response.leaves');
+        console.log('🏢 User department from response:', userDepartment);
+      } else {
+        console.log('❌ No valid leaves data found in response');
+        console.log('❌ Response structure:', JSON.stringify(response, null, 2));
       }
       
-      console.log('Processed leaves data:', leavesData);
-      setLeaves(leavesData);
+      // Only show leaves if user is in IT department
+      if (userDepartment) {
+        const departmentLower = userDepartment.toLowerCase();
+        console.log('🔍 IT Department: Checking department:', userDepartment, '->', departmentLower);
+        
+        if (departmentLower !== 'it' && departmentLower !== 'information technology') {
+          console.log('🚫 IT Department: User is not in IT department, not showing leaves');
+          console.log('🚫 IT Department: User department:', userDepartment, 'Expected: IT or Information Technology');
+          setLeaves([]);
+        } else {
+          console.log('✅ IT Department: User is in IT department, showing leaves');
+          console.log('📊 IT Department: Processed employee leaves data:', leavesData);
+          console.log('📊 IT Department: Number of leaves found:', leavesData.length);
+          setLeaves(leavesData);
+        }
+      } else {
+        console.log('⚠️ IT Department: No department info in response, not showing leaves');
+        setLeaves([]);
+      }
     } catch (err) {
-      console.warn('IT Leaves API Error, using empty array:', err.message);
+      console.error('❌ IT Employee Leaves API Error:', err);
+      console.error('❌ Error details:', err.response?.data || err.message);
       setError(err.message);
       setLeaves([]);
     } finally {
@@ -303,15 +341,15 @@ export const useITLeaves = () => {
 
   const addLeave = async (leaveData) => {
     try {
-      console.log('Adding IT leave:', leaveData);
-      const response = await itLeaveApi.addLeave(leaveData);
-      console.log('IT leave add response:', response);
+      console.log('Adding IT employee leave:', leaveData);
+      const response = await itLeaveApi.submitEmployeeLeave(leaveData);
+      console.log('IT employee leave add response:', response);
       
       // Refresh leaves data
       await fetchLeaves();
       return { success: true, data: response.data || response };
     } catch (err) {
-      console.error('Error adding IT leave:', err);
+      console.error('Error adding IT employee leave:', err);
       throw err;
     }
   };

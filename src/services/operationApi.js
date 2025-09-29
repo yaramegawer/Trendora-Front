@@ -77,6 +77,38 @@ export const operationLeaveApi = {
     return await apiCall(API_CONFIG.ENDPOINTS.OPERATION.LEAVES);
   },
 
+  // Get leaves for specific employee (authenticated user)
+  getEmployeeLeaves: async () => {
+    try {
+      console.log('🌐 Operation Employee Leaves API Call: /dashboard/leaves');
+      const response = await apiCall('/dashboard/leaves', {
+        method: 'GET',
+      });
+      console.log('📡 Operation Employee Leaves API Response:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Operation Employee Leaves API Error:', error);
+      throw error;
+    }
+  },
+
+  // Submit leave for specific employee (authenticated user)
+  submitEmployeeLeave: async (leaveData) => {
+    try {
+      console.log('🌐 Operation Employee Submit Leave API Call: /dashboard/leaves');
+      console.log('📤 Operation Employee Leave Data:', leaveData);
+      const response = await apiCall('/dashboard/leaves', {
+        method: 'POST',
+        data: leaveData,
+      });
+      console.log('📡 Operation Employee Submit Leave API Response:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Operation Employee Submit Leave API Error:', error);
+      throw error;
+    }
+  },
+
   // Add new leave
   addLeave: async (leaveData) => {
     return await apiCall(API_CONFIG.ENDPOINTS.OPERATION.LEAVES, {

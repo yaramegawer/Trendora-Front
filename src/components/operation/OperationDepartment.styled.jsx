@@ -37,7 +37,7 @@ const OperationDepartment = () => {
   // Use real API data
   const { employees, loading: employeesLoading, error: employeesError, updateEmployeeRating, fetchEmployees } = useOperationEmployees();
   const { campaigns, loading: campaignsLoading, error: campaignsError, createCampaign, updateCampaign, deleteCampaign } = useOperationCampaigns();
-  const { addLeave } = useOperationLeaves();
+  const { leaves, loading: leavesLoading, error: leavesError, addLeave } = useOperationLeaves();
   const { user } = useAuth();
 
   // State for forms
@@ -528,7 +528,8 @@ const OperationDepartment = () => {
           {[
             { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
             { id: 'employees', label: 'Employees', icon: Users },
-            { id: 'campaigns', label: 'Campaigns', icon: Megaphone }
+            { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
+            { id: 'leaves', label: 'Leaves', icon: Clock }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1135,6 +1136,134 @@ const OperationDepartment = () => {
           </div>
         )}
 
+        {/* Leaves Tab */}
+        {activeTab === 'leaves' && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            border: '1px solid #f3f4f6',
+            padding: '24px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>Leave Requests</h2>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                  Operations Department leave requests
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateOperationLeave(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#047857'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#059669'}
+              >
+                <Plus size={16} />
+                Submit Leave
+              </button>
+            </div>
+            
+            {leavesLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading leaves...</div>
+              </div>
+            ) : Array.isArray(leaves) && leaves.length > 0 ? (
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {leaves.map((leave) => {
+                  const getStatusColor = (status) => {
+                    switch ((status || '').toLowerCase()) {
+                      case 'approved': return { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', badge: '#10b981' };
+                      case 'pending': return { bg: '#fffbeb', border: '#fed7aa', text: '#92400e', badge: '#f59e0b' };
+                      case 'rejected': return { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', badge: '#ef4444' };
+                      default: return { bg: '#f8fafc', border: '#e2e8f0', text: '#6b7280', badge: '#6b7280' };
+                    }
+                  };
+                  
+                  const statusColors = getStatusColor(leave.status);
+                  
+                  return (
+                    <div key={leave.id || leave._id} style={{
+                      backgroundColor: statusColors.bg,
+                      borderRadius: '12px',
+                      padding: '20px',
+                      border: `1px solid ${statusColors.border}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
+                          {leave.employee?.firstName} {leave.employee?.lastName}
+                        </h3>
+                        <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 4px 0' }}>
+                          {leave.employee?.email}
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            backgroundColor: '#dcfce7',
+                            color: '#166534'
+                          }}>
+                            {leave.type || leave.leaveType || 'Leave'}
+                          </span>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            backgroundColor: statusColors.badge,
+                            color: 'white'
+                          }}>
+                            {leave.status || 'Unknown'}
+                          </span>
+                        </div>
+                        <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                          <span style={{ marginRight: '16px' }}>
+                            📅 Start: {leave.startDate ? new Date(leave.startDate).toLocaleDateString() : 'N/A'}
+                          </span>
+                          <span>
+                            📅 End: {leave.endDate ? new Date(leave.endDate).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                          Duration
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                          {leave.startDate && leave.endDate ? 
+                            Math.ceil((new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24)) + 1 : 
+                            'N/A'
+                          } days
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>No leaves found</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Create Campaign Modal */}
         {showCreateCampaign && (

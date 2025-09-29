@@ -68,10 +68,6 @@ const LeaveManagement = () => {
   
   // Debug logging
   console.log('HR Leave Management - Leaves data:', currentLeaves);
-  if (currentLeaves.length > 0) {
-    console.log('First leave structure:', currentLeaves[0]);
-    console.log('First leave employee:', currentLeaves[0]?.employee);
-  }
   
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -245,7 +241,23 @@ const LeaveManagement = () => {
   const filteredLeaves = currentLeaves.filter(leave => {
     const matchesSearch = getEmployeeName(leave).toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (leave.leaveType || leave.type || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || leave.status === statusFilter;
+    
+    // Handle different status formats and cases
+    let matchesStatus = false;
+    if (statusFilter === 'all') {
+      matchesStatus = true;
+    } else {
+      // Check for exact match first
+      if (leave.status === statusFilter) {
+        matchesStatus = true;
+      } else {
+        // Check for case-insensitive match
+        const leaveStatusLower = (leave.status || '').toLowerCase();
+        const filterStatusLower = statusFilter.toLowerCase();
+        matchesStatus = leaveStatusLower === filterStatusLower;
+      }
+    }
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -304,9 +316,9 @@ const LeaveManagement = () => {
                   label="Status Filter"
                 >
                   <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value={LeaveStatus.PENDING}>Pending</MenuItem>
-                  <MenuItem value={LeaveStatus.APPROVED}>Approved</MenuItem>
-                  <MenuItem value={LeaveStatus.REJECTED}>Rejected</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
