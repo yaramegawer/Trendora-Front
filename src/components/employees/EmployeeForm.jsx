@@ -168,10 +168,24 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
 
   const addDocument = (type, document) => {
     if (document && !formData[type].includes(document)) {
-      setFormData(prev => ({
-        ...prev,
-        [type]: [...prev[type], document]
-      }));
+      setFormData(prev => {
+        const newFormData = {
+          ...prev,
+          [type]: [...prev[type], document]
+        };
+        
+        // If adding to submitted documents, remove from pending documents
+        if (type === 'submittedDocuments') {
+          newFormData.pendingDocuments = prev.pendingDocuments.filter(doc => doc !== document);
+        }
+        
+        // If adding to pending documents, remove from submitted documents
+        if (type === 'pendingDocuments') {
+          newFormData.submittedDocuments = prev.submittedDocuments.filter(doc => doc !== document);
+        }
+        
+        return newFormData;
+      });
     }
   };
 
@@ -402,7 +416,10 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
               onChange={(e) => addDocument('submittedDocuments', e.target.value)}
               label="Add Submitted Document"
             >
-              {DocumentTypes.filter(doc => !formData.submittedDocuments.includes(doc)).map((doc) => (
+              {DocumentTypes.filter(doc => 
+                !formData.submittedDocuments.includes(doc) && 
+                !formData.pendingDocuments.includes(doc)
+              ).map((doc) => (
                 <MenuItem key={doc} value={doc}>
                   {doc}
                 </MenuItem>
@@ -475,7 +492,10 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
               onChange={(e) => addDocument('pendingDocuments', e.target.value)}
               label="Add Pending Document"
             >
-              {DocumentTypes.filter(doc => !formData.pendingDocuments.includes(doc)).map((doc) => (
+              {DocumentTypes.filter(doc => 
+                !formData.pendingDocuments.includes(doc) && 
+                !formData.submittedDocuments.includes(doc)
+              ).map((doc) => (
                 <MenuItem key={doc} value={doc}>
                   {doc}
                 </MenuItem>
