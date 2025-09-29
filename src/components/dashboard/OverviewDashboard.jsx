@@ -136,7 +136,7 @@ const OverviewDashboard = memo(() => {
     pendingLeads
   } = statistics;
   
-  // Memoized recent activities calculation
+  // Memoized recent activities calculation - limited to 4 activities
   const recentActivities = useMemo(() => {
     const activities = [];
     
@@ -146,6 +146,7 @@ const OverviewDashboard = memo(() => {
         type: 'employees',
         message: `${totalEmployees} employees currently in the system`,
         timestamp: 'Updated just now',
+        timestampValue: new Date(),
         color: 'primary.main'
       });
     }
@@ -156,6 +157,7 @@ const OverviewDashboard = memo(() => {
         type: 'leaves',
         message: `${pendingLeaves} leave requests pending approval`,
         timestamp: 'Requires attention',
+        timestampValue: new Date(),
         color: 'warning.main'
       });
     }
@@ -165,6 +167,7 @@ const OverviewDashboard = memo(() => {
         type: 'leaves',
         message: `${approvedLeaves} leave requests approved this period`,
         timestamp: 'Recent approvals',
+        timestampValue: new Date(),
         color: 'success.main'
       });
     }
@@ -175,15 +178,7 @@ const OverviewDashboard = memo(() => {
         type: 'projects',
         message: `${totalITProjects} IT projects in progress`,
         timestamp: 'Active development',
-        color: 'info.main'
-      });
-    }
-    
-    if (activeITProjects > 0) {
-      activities.push({
-        type: 'projects',
-        message: `${activeITProjects} IT projects currently active`,
-        timestamp: 'In development',
+        timestampValue: new Date(),
         color: 'info.main'
       });
     }
@@ -194,15 +189,7 @@ const OverviewDashboard = memo(() => {
         type: 'campaigns',
         message: `${totalOperationCampaigns} operation campaigns running`,
         timestamp: 'Business operations',
-        color: 'success.main'
-      });
-    }
-    
-    if (activeOperationCampaigns > 0) {
-      activities.push({
-        type: 'campaigns',
-        message: `${activeOperationCampaigns} campaigns currently active`,
-        timestamp: 'Ongoing operations',
+        timestampValue: new Date(),
         color: 'success.main'
       });
     }
@@ -213,16 +200,8 @@ const OverviewDashboard = memo(() => {
         type: 'payroll',
         message: `${totalTransactions} payroll transactions processed`,
         timestamp: 'Financial management',
+        timestampValue: new Date(),
         color: 'warning.main'
-      });
-    }
-    
-    if (completedTransactions > 0) {
-      activities.push({
-        type: 'payroll',
-        message: `${completedTransactions} payroll transactions completed`,
-        timestamp: 'Recent completions',
-        color: 'success.main'
       });
     }
     
@@ -232,105 +211,114 @@ const OverviewDashboard = memo(() => {
         type: 'departments',
         message: `${totalDepartments} departments actively managed`,
         timestamp: 'System status',
+        timestampValue: new Date(),
         color: 'info.main'
       });
     }
     
-    return activities;
-  }, [totalEmployees, pendingLeaves, approvedLeaves, totalITProjects, activeITProjects, totalOperationCampaigns, activeOperationCampaigns, totalTransactions, completedTransactions, totalDepartments]);
-  
-  // Add operation-specific recent activities with real timestamps
-  const recentOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
-    .filter(campaign => campaign.createdAt || campaign.created_at)
-    .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
-    .slice(0, 3) : [];
-  
-  recentOperationCampaigns.forEach(campaign => {
-    const createdAt = new Date(campaign.createdAt || campaign.created_at);
-    const timeAgo = getTimeAgo(createdAt);
-    const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Untitled Campaign';
+    // Add operation-specific recent activities with real timestamps
+    const recentOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
+      .filter(campaign => campaign.createdAt || campaign.created_at)
+      .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
+      .slice(0, 2) : [];
     
-    recentActivities.push({
-      type: 'operation',
-      message: `New campaign created: ${campaignName}`,
-      timestamp: timeAgo,
-      color: 'success.main'
+    recentOperationCampaigns.forEach(campaign => {
+      const createdAt = new Date(campaign.createdAt || campaign.created_at);
+      const timeAgo = getTimeAgo(createdAt);
+      const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Untitled Campaign';
+      
+      activities.push({
+        type: 'operation',
+        message: `New campaign created: ${campaignName}`,
+        timestamp: timeAgo,
+        timestampValue: createdAt,
+        color: 'success.main'
+      });
     });
-  });
-  
-  // Add operation employee rating activities with real timestamps and employee names
-  const recentOperationLeaves = Array.isArray(operationLeaves) ? operationLeaves
-    .filter(leave => leave.updatedAt || leave.updated_at)
-    .sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at))
-    .slice(0, 2) : [];
-  
-  recentOperationLeaves.forEach(leave => {
-    const updatedAt = new Date(leave.updatedAt || leave.updated_at);
-    const timeAgo = getTimeAgo(updatedAt);
     
-    // Try to find employee name from operation employees data
-    let employeeName = 'Employee';
-    if (leave.employeeId && Array.isArray(operationEmployees)) {
-      const employee = operationEmployees.find(emp => emp._id === leave.employeeId || emp.id === leave.employeeId);
-      if (employee) {
-        employeeName = employee.firstName && employee.lastName 
-          ? `${employee.firstName} ${employee.lastName}`
-          : employee.name || employee.firstName || employee.lastName || 'Employee';
+    // Add operation employee rating activities with real timestamps and employee names
+    const recentOperationLeaves = Array.isArray(operationLeaves) ? operationLeaves
+      .filter(leave => leave.updatedAt || leave.updated_at)
+      .sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at))
+      .slice(0, 1) : [];
+    
+    recentOperationLeaves.forEach(leave => {
+      const updatedAt = new Date(leave.updatedAt || leave.updated_at);
+      const timeAgo = getTimeAgo(updatedAt);
+      
+      // Try to find employee name from operation employees data
+      let employeeName = 'Employee';
+      if (leave.employeeId && Array.isArray(operationEmployees)) {
+        const employee = operationEmployees.find(emp => emp._id === leave.employeeId || emp.id === leave.employeeId);
+        if (employee) {
+          employeeName = employee.firstName && employee.lastName 
+            ? `${employee.firstName} ${employee.lastName}`
+            : employee.name || employee.firstName || employee.lastName || 'Employee';
+        }
+      } else {
+        employeeName = leave.employeeName || leave.employee?.name || leave.employeeName || 'Employee';
       }
-    } else {
-      employeeName = leave.employeeName || leave.employee?.name || leave.employeeName || 'Employee';
+      
+      activities.push({
+        type: 'operation',
+        message: `Employee rating updated: ${employeeName}`,
+        timestamp: timeAgo,
+        timestampValue: updatedAt,
+        color: 'primary.main'
+      });
+    });
+    
+    // Add operation task completion activities with real timestamps
+    const recentlyCompletedOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
+      .filter(campaign => 
+        (campaign.status === 'completed' || campaign.status === 'done' || campaign.status === 'finished') &&
+        (campaign.updatedAt || campaign.updated_at)
+      )
+      .sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at))
+      .slice(0, 1) : [];
+    
+    recentlyCompletedOperationCampaigns.forEach(campaign => {
+      const updatedAt = new Date(campaign.updatedAt || campaign.updated_at);
+      const timeAgo = getTimeAgo(updatedAt);
+      const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Campaign Task';
+      
+      activities.push({
+        type: 'operation',
+        message: `Task completed: ${campaignName}`,
+        timestamp: timeAgo,
+        timestampValue: updatedAt,
+        color: 'success.main'
+      });
+    });
+    
+    // Add operation leave activities
+    const pendingOperationLeaves = Array.isArray(operationLeaves) ? operationLeaves.filter(leave => leave.status === 'pending').length : 0;
+    if (pendingOperationLeaves > 0) {
+      activities.push({
+        type: 'operation',
+        message: `${pendingOperationLeaves} operation leave requests pending`,
+        timestamp: 'Requires attention',
+        timestampValue: new Date(),
+        color: 'warning.main'
+      });
     }
     
-    recentActivities.push({
-      type: 'operation',
-      message: `Employee rating updated: ${employeeName}`,
-      timestamp: timeAgo,
-      color: 'primary.main'
-    });
-  });
-  
-  // Add operation task completion activities with real timestamps
-  const recentlyCompletedOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
-    .filter(campaign => 
-      (campaign.status === 'completed' || campaign.status === 'done' || campaign.status === 'finished') &&
-      (campaign.updatedAt || campaign.updated_at)
-    )
-    .sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at))
-    .slice(0, 2) : [];
-  
-  recentlyCompletedOperationCampaigns.forEach(campaign => {
-    const updatedAt = new Date(campaign.updatedAt || campaign.updated_at);
-    const timeAgo = getTimeAgo(updatedAt);
-    const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Campaign Task';
+    const approvedOperationLeaves = Array.isArray(operationLeaves) ? operationLeaves.filter(leave => leave.status === 'approved').length : 0;
+    if (approvedOperationLeaves > 0) {
+      activities.push({
+        type: 'operation',
+        message: `${approvedOperationLeaves} operation leave requests approved`,
+        timestamp: 'Recent approvals',
+        timestampValue: new Date(),
+        color: 'success.main'
+      });
+    }
     
-    recentActivities.push({
-      type: 'operation',
-      message: `Task completed: ${campaignName}`,
-      timestamp: timeAgo,
-      color: 'success.main'
-    });
-  });
-  
-  // Add operation leave activities
-  const pendingOperationLeaves = Array.isArray(operationLeaves) ? operationLeaves.filter(leave => leave.status === 'pending').length : 0;
-  if (pendingOperationLeaves > 0) {
-    recentActivities.push({
-      type: 'operation',
-      message: `${pendingOperationLeaves} operation leave requests pending`,
-      timestamp: 'Requires attention',
-      color: 'warning.main'
-    });
-  }
-  
-  const approvedOperationLeaves = Array.isArray(operationLeaves) ? operationLeaves.filter(leave => leave.status === 'approved').length : 0;
-  if (approvedOperationLeaves > 0) {
-    recentActivities.push({
-      type: 'operation',
-      message: `${approvedOperationLeaves} operation leave requests approved`,
-      timestamp: 'Recent approvals',
-      color: 'success.main'
-    });
-  }
+    // Sort all activities by timestamp (most recent first) and limit to 4
+    return activities
+      .sort((a, b) => (b.timestampValue || new Date()) - (a.timestampValue || new Date()))
+      .slice(0, 4);
+  }, [totalEmployees, pendingLeaves, approvedLeaves, totalITProjects, totalOperationCampaigns, totalTransactions, totalDepartments, operationCampaigns, operationLeaves, operationEmployees]);
 
   // Calculate growth percentage (mock calculation for now)
   const growthPercentage = totalEmployees > 0 ? Math.round((totalEmployees / 100) * 12) : 0;
