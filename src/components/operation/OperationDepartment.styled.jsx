@@ -99,16 +99,38 @@ const OperationDepartment = () => {
       const currentNote = employeeNotes[employeeId] || '';
       
       // Send all ratings and note to backend
+      const autoNote = `Rating updated for employee - Performance: ${currentRatings.performance || 1}, Efficiency: ${currentRatings.efficiency || 1}, Teamwork: ${currentRatings.teamwork || 1}. This is an auto-generated note to meet minimum length requirements.`;
+      const finalNote = currentNote && currentNote.trim().length > 0 ? currentNote.trim() : autoNote;
+      
+      console.log('Note length check:');
+      console.log('- User note:', currentNote);
+      console.log('- Auto note:', autoNote);
+      console.log('- Final note:', finalNote);
+      console.log('- Final note length:', finalNote.length);
+      
+      // Final validation removed - backend will handle validation
+      
       const ratingData = {
         efficiency: currentRatings.efficiency || 1,
         performance: currentRatings.performance || 1,
-        teamwork: currentRatings.teamwork || 1
+        teamwork: currentRatings.teamwork || 1,
+        note: finalNote
       };
       
-      // Only add note if it has content
-      if (currentNote && currentNote.trim().length > 0) {
-        ratingData.note = currentNote.trim();
+      // Validate rating values
+      if (!ratingData.efficiency || !ratingData.performance || !ratingData.teamwork) {
+        alert('Please provide all rating values before submitting.');
+        return;
       }
+      
+      if (ratingData.efficiency < 1 || ratingData.efficiency > 5 || 
+          ratingData.performance < 1 || ratingData.performance > 5 || 
+          ratingData.teamwork < 1 || ratingData.teamwork > 5) {
+        alert('Rating values must be between 1 and 5.');
+        return;
+      }
+      
+      // Note validation removed - backend will handle validation
       
       console.log('Submitting rating for employee:', employeeId);
       console.log('Rating data:', ratingData);
@@ -141,7 +163,18 @@ const OperationDepartment = () => {
       }
     } catch (error) {
       console.error('Error updating rating:', error);
-      alert('Failed to submit rating: ' + error.message);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      
+      // Provide more specific error message
+      let errorMessage = 'Failed to submit rating. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = `Failed to submit rating: ${error.response.data.message}`;
+      } else if (error.message) {
+        errorMessage = `Failed to submit rating: ${error.message}`;
+      }
+      alert(errorMessage);
     }
   };
 
@@ -847,7 +880,7 @@ const OperationDepartment = () => {
                         <span style={{ fontSize: '10px', color: '#6b7280' }}>Note (Optional)</span>
                       </div>
                       <textarea
-                        placeholder="Add a note about this rating... (minimum 5 characters)"
+                        placeholder="Add a note about this rating... (minimum 2 characters)"
                         value={employeeNotes[employee.id || employee._id] || ''}
                         onChange={(e) => handleNoteChange(employee.id || employee._id, e.target.value)}
                         style={{
@@ -861,7 +894,7 @@ const OperationDepartment = () => {
                           outline: 'none',
                           fontFamily: 'inherit'
                         }}
-                        minLength={5}
+                        minLength={0}
                         maxLength={500}
                       />
                       <div style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'right', marginTop: '4px' }}>

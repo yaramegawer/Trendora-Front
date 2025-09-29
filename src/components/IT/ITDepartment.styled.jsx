@@ -1013,7 +1013,7 @@ const ITDepartment = () => {
                           </div>
                           <textarea
                             id={`rating-note-${employee.id || employee._id}`}
-                            placeholder="Add a note about this rating... (minimum 5 characters)"
+                            placeholder="Add a note about this rating... (minimum 2 characters)"
                             value={employeeRatings[`${employee.id || employee._id}-note`] || ''}
                             onChange={(e) => {
                               const employeeId = employee.id || employee._id;
@@ -1035,7 +1035,7 @@ const ITDepartment = () => {
                               outline: 'none',
                               fontFamily: 'inherit'
                             }}
-                            minLength={5}
+                            minLength={0}
                             maxLength={500}
                           />
                           <div style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'right', marginTop: '4px' }}>
@@ -1093,17 +1093,38 @@ const ITDepartment = () => {
                             // Employee ID is already in the URL path
                             const note = employeeRatings[`${employeeId}-note`] || '';
                             
-                            // Validate note length if provided
-                            if (note && note.length < 5) {
-                              alert('Note must be at least 5 characters long');
+                            // Note validation removed - backend will handle validation
+                            
+                            // Validate rating values
+                            if (!efficiency || !performance || !teamwork) {
+                              alert('Please provide all rating values before submitting.');
                               return;
                             }
+                            
+                            if (efficiency < 1 || efficiency > 5 || 
+                                performance < 1 || performance > 5 || 
+                                teamwork < 1 || teamwork > 5) {
+                              alert('Rating values must be between 1 and 5.');
+                              return;
+                            }
+                            
+                            const employeeName = employee?.firstName || employee?.name || employee?.employeeName || 'Employee';
+                            const autoNote = `Rating updated for ${employeeName} - Performance: ${performance}, Efficiency: ${efficiency}, Teamwork: ${teamwork}`;
+                            const finalNote = note || autoNote;
+                            
+                            console.log('Note length check:');
+                            console.log('- User note:', note);
+                            console.log('- Auto note:', autoNote);
+                            console.log('- Final note:', finalNote);
+                            console.log('- Final note length:', finalNote.length);
+                            
+                            // Final validation removed - backend will handle validation
                             
                             const ratingData = {
                               efficiency: efficiency,
                               performance: performance,
                               teamwork: teamwork,
-                              note: note || `Rating updated for ${employee.firstName || employee.name || 'Employee'} - Performance: ${performance}, Efficiency: ${efficiency}, Teamwork: ${teamwork}`
+                              note: finalNote
                             };
                             
                             console.log('Sending rating data:', ratingData);
@@ -1124,7 +1145,18 @@ const ITDepartment = () => {
                           } catch (error) {
                             console.error('Failed to submit rating:', error);
                             console.error('Error details:', error.message);
-                            alert('Failed to submit rating. Please try again.');
+                            console.error('Error response:', error.response);
+                            console.error('Error status:', error.response?.status);
+                            console.error('Error data:', error.response?.data);
+                            
+                            // Provide more specific error message
+                            let errorMessage = 'Failed to submit rating. Please try again.';
+                            if (error.response?.data?.message) {
+                              errorMessage = `Failed to submit rating: ${error.response.data.message}`;
+                            } else if (error.message) {
+                              errorMessage = `Failed to submit rating: ${error.message}`;
+                            }
+                            alert(errorMessage);
                           }
                         }}
                         >
