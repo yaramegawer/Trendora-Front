@@ -908,6 +908,7 @@ const ITDepartment = () => {
                             </span>
                           </div>
                           <input
+                            id={`performance-rating-${employee.id || employee._id}`}
                             type="range"
                             min="1"
                             max="5"
@@ -942,6 +943,7 @@ const ITDepartment = () => {
                             </span>
                           </div>
                           <input
+                            id={`efficiency-rating-${employee.id || employee._id}`}
                             type="range"
                             min="1"
                             max="5"
@@ -976,6 +978,7 @@ const ITDepartment = () => {
                             </span>
                           </div>
                           <input
+                            id={`teamwork-rating-${employee.id || employee._id}`}
                             type="range"
                             min="1"
                             max="5"
@@ -1007,6 +1010,7 @@ const ITDepartment = () => {
                             <span style={{ fontSize: '10px', color: '#6b7280' }}>Note (Optional)</span>
                           </div>
                           <textarea
+                            id={`rating-note-${employee.id || employee._id}`}
                             placeholder="Add a note about this rating... (minimum 5 characters)"
                             value={employeeRatings[`${employee.id || employee._id}-note`] || ''}
                             onChange={(e) => {
@@ -1410,10 +1414,11 @@ const ITDepartment = () => {
               setEditingEmployee(null);
             }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-employee-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Name
                 </label>
                 <input
+                  id="edit-employee-name"
                   type="text"
                   defaultValue={editingEmployee?.name || editingEmployee?.firstName || ''}
                   style={{
@@ -1427,10 +1432,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-employee-email" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Email
                 </label>
                 <input
+                  id="edit-employee-email"
                   type="email"
                   defaultValue={editingEmployee?.email || ''}
                   style={{
@@ -1444,10 +1450,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-employee-department" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Department
                 </label>
                 <input
+                  id="edit-employee-department"
                   type="text"
                   defaultValue={editingEmployee?.department || 'IT'}
                   style={{
@@ -1532,10 +1539,11 @@ const ITDepartment = () => {
               handleCreateProject();
             }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="project-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Project Name *
                 </label>
                 <input
+                  id="project-name"
                   type="text"
                   value={newProject.name}
                   onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
@@ -1552,10 +1560,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="project-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Description *
                 </label>
                 <textarea
+                  id="project-description"
                   value={newProject.description}
                   onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Enter project description"
@@ -1573,10 +1582,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="project-status" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Status
                 </label>
                 <select
+                  id="project-status"
                   value={newProject.status}
                   onChange={(e) => setNewProject(prev => ({ ...prev, status: e.target.value }))}
                   style={{

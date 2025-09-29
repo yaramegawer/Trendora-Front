@@ -462,10 +462,11 @@ const EmployeeDashboard = () => {
               handleLeaveSubmit();
             }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="leave-type" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Leave Type *
                 </label>
                 <select
+                  id="leave-type"
                   value={leaveForm.leaveType}
                   onChange={(e) => setLeaveForm(prev => ({ ...prev, leaveType: e.target.value }))}
                   style={{
@@ -484,10 +485,11 @@ const EmployeeDashboard = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="leave-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Start Date *
                 </label>
                 <input
+                  id="leave-start-date"
                   type="date"
                   value={leaveForm.startDate}
                   onChange={(e) => setLeaveForm(prev => ({ ...prev, startDate: e.target.value }))}
@@ -503,10 +505,11 @@ const EmployeeDashboard = () => {
               </div>
               
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   End Date *
                 </label>
                 <input
+                  id="leave-end-date"
                   type="date"
                   value={leaveForm.endDate}
                   onChange={(e) => setLeaveForm(prev => ({ ...prev, endDate: e.target.value }))}
@@ -595,10 +598,11 @@ const EmployeeDashboard = () => {
               handleTicketSubmit();
             }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="ticket-title" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Title *
                 </label>
                 <select
+                  id="ticket-title"
                   value={ticketForm.title}
                   onChange={(e) => setTicketForm(prev => ({ ...prev, title: e.target.value }))}
                   required
@@ -621,10 +625,11 @@ const EmployeeDashboard = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="ticket-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Description *
                 </label>
                 <textarea
+                  id="ticket-description"
                   value={ticketForm.description}
                   onChange={(e) => setTicketForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe the issue in detail (10-500 characters)"
@@ -647,10 +652,11 @@ const EmployeeDashboard = () => {
               </div>
               
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="ticket-priority" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Priority
                 </label>
                 <select
+                  id="ticket-priority"
                   value={ticketForm.priority}
                   onChange={(e) => setTicketForm(prev => ({ ...prev, priority: e.target.value }))}
                   style={{
