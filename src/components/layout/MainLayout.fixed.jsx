@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton, CircularProgress } from '@mui/material';
+import React, { useState, Suspense, lazy } from 'react';
+import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton, CircularProgress, Skeleton } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,16 +11,45 @@ import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlin
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
-import HRDepartment from '../hr/HRDepartment.new';
-import ITDepartment from '../IT/ITDepartment.styled';
-import OperationDepartment from '../operation/OperationDepartment.styled';
-import AccountingDepartment from '../accounting/AccountingDepartment';
-import SalesDepartment from '../sales/SalesDepartment';
-import OverviewDashboard from '../dashboard/OverviewDashboard';
-import EmployeeDashboard from '../dashboard/EmployeeDashboard';
 import logoImage from '../../assets/logo2-removebg-preview.png';
 
+// Lazy load components for better LCP
+const HRDepartment = lazy(() => import('../hr/HRDepartment.new'));
+const ITDepartment = lazy(() => import('../IT/ITDepartment.styled'));
+const OperationDepartment = lazy(() => import('../operation/OperationDepartment.styled'));
+const AccountingDepartment = lazy(() => import('../accounting/AccountingDepartment'));
+const SalesDepartment = lazy(() => import('../sales/SalesDepartment'));
+const OverviewDashboard = lazy(() => import('../dashboard/OverviewDashboard'));
+const EmployeeDashboard = lazy(() => import('../dashboard/EmployeeDashboard'));
+
 const drawerWidth = 280;
+
+// Skeleton loading component for better LCP
+const DashboardSkeleton = () => (
+  <Box sx={{ p: 3, backgroundColor: 'grey.50', minHeight: '100vh' }}>
+    <Box sx={{ mb: 4 }}>
+      <Skeleton variant="text" width={300} height={40} sx={{ mb: 1 }} />
+      <Skeleton variant="text" width={400} height={24} />
+    </Box>
+    
+    <Box sx={{ mb: 3 }}>
+      <Skeleton variant="rectangular" width="100%" height={120} sx={{ mb: 2 }} />
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <Skeleton variant="rectangular" width="25%" height={100} />
+        <Skeleton variant="rectangular" width="25%" height={100} />
+        <Skeleton variant="rectangular" width="25%" height={100} />
+        <Skeleton variant="rectangular" width="25%" height={100} />
+      </Box>
+    </Box>
+    
+    <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+      <Skeleton variant="rectangular" width="50%" height={200} />
+      <Skeleton variant="rectangular" width="50%" height={200} />
+    </Box>
+    
+    <Skeleton variant="rectangular" width="100%" height={150} />
+  </Box>
+);
 
 const getMenuItems = (userRole) => {
   if (userRole === 'Employee') {
@@ -58,42 +87,67 @@ const getSectionTitle = (sectionId, userRole) => {
 const renderContent = (activeSection, userRole) => {
   // For Employee role, always show EmployeeDashboard regardless of activeSection
   if (userRole === 'Employee') {
-    return <EmployeeDashboard />;
+    return (
+      <Suspense fallback={<DashboardSkeleton />}>
+        <EmployeeDashboard />
+      </Suspense>
+    );
   }
   
   switch (activeSection) {
     case 'dashboard':
-      return <OverviewDashboard />;
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <OverviewDashboard />
+        </Suspense>
+      );
     case 'hr':
-      return <HRDepartment />;
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <HRDepartment />
+        </Suspense>
+      );
     case 'it':
-      return <ITDepartment />;
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <ITDepartment />
+        </Suspense>
+      );
     case 'operation':
-      return <OperationDepartment />;
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <OperationDepartment />
+        </Suspense>
+      );
     case 'accounting':
-      return <AccountingDepartment />;
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <AccountingDepartment />
+        </Suspense>
+      );
     case 'sales':
-      return <SalesDepartment />;
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <SalesDepartment />
+        </Suspense>
+      );
     default:
-      return <OverviewDashboard />;
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <OverviewDashboard />
+        </Suspense>
+      );
   }
 };
 
 const MainLayout = () => {
   try {
-    console.log('MainLayout: Component starting to render');
-    
     const [activeSection, setActiveSection] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const { logout, user } = useAuth();
     
-    console.log('MainLayout: User data:', user);
-    
     const userRole = user?.role || 'Employee';
     const menuItems = getMenuItems(userRole);
-    
-    console.log('MainLayout: User role:', userRole);
-    console.log('MainLayout: Menu items:', menuItems);
 
   const handleLogout = () => {
     logout();

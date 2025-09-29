@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import { Box, Typography, Card, CardContent, Grid, Stack, Avatar, Button, CircularProgress, Alert } from '@mui/material';
 import { Dashboard, People, Computer, BusinessCenter, AccountBalance, TrendingUp } from '@mui/icons-material';
 import { useEmployees, useDepartments, useLeaves, usePayroll } from '../../hooks/useHRData';
@@ -31,179 +31,213 @@ const getTimeAgo = (date) => {
   }
 };
 
-const OverviewDashboard = () => {
+const OverviewDashboard = memo(() => {
   try {
-    console.log('OverviewDashboard: Component starting to render');
-    
     const { user } = useAuth();
-    console.log('OverviewDashboard: User data:', user);
     
     const { employees, loading: employeesLoading, error: employeesError } = useEmployees();
-    console.log('OverviewDashboard: Employees data:', { employees, loading: employeesLoading, error: employeesError });
-    
     const { departments, loading: departmentsLoading, error: departmentsError } = useDepartments();
-    console.log('OverviewDashboard: Departments data:', { departments, loading: departmentsLoading, error: departmentsError });
-    
     const { leaves, loading: leavesLoading, error: leavesError } = useLeaves();
-    console.log('OverviewDashboard: Leaves data:', { leaves, loading: leavesLoading, error: leavesError });
-    
     const { payroll, loading: payrollLoading, error: payrollError } = usePayroll();
-    console.log('OverviewDashboard: Payroll data:', { payroll, loading: payrollLoading, error: payrollError });
-    
     const { projects: itProjects, loading: itProjectsLoading, error: itProjectsError } = useITProjects();
-    console.log('OverviewDashboard: IT Projects data:', { itProjects, loading: itProjectsLoading, error: itProjectsError });
-    
     const { campaigns: operationCampaigns, loading: operationCampaignsLoading, error: operationCampaignsError } = useOperationCampaigns();
-    console.log('OverviewDashboard: Operation Campaigns data:', { operationCampaigns, loading: operationCampaignsLoading, error: operationCampaignsError });
-    
     const { leaves: operationLeaves, loading: operationLeavesLoading, error: operationLeavesError } = useOperationLeaves();
-    console.log('OverviewDashboard: Operation Leaves data:', { operationLeaves, loading: operationLeavesLoading, error: operationLeavesError });
-    
     const { employees: operationEmployees, loading: operationEmployeesLoading, error: operationEmployeesError } = useOperationEmployees();
-    console.log('OverviewDashboard: Operation Employees data:', { operationEmployees, loading: operationEmployeesLoading, error: operationEmployeesError });
 
-  // Calculate real statistics
-  const totalEmployees = Array.isArray(employees) ? employees.length : 0;
-  const totalDepartments = Array.isArray(departments) ? departments.length : 0;
-  const pendingLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'pending').length : 0;
-  const totalPayroll = Array.isArray(payroll) ? payroll.reduce((sum, p) => sum + (p.amount || 0), 0) : 0;
-  const approvedLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'approved').length : 0;
-  const rejectedLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'rejected').length : 0;
+  // Memoized statistics calculations for better performance
+  const statistics = useMemo(() => {
+    const totalEmployees = Array.isArray(employees) ? employees.length : 0;
+    const totalDepartments = Array.isArray(departments) ? departments.length : 0;
+    const pendingLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'pending').length : 0;
+    const totalPayroll = Array.isArray(payroll) ? payroll.reduce((sum, p) => sum + (p.amount || 0), 0) : 0;
+    const approvedLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'approved').length : 0;
+    const rejectedLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'rejected').length : 0;
+    
+    // Calculate employee status statistics from database
+    const activeEmployees = Array.isArray(employees) ? employees.filter(employee => 
+      employee.status === 'active' || employee.status === 'Active'
+    ).length : 0;
+    const inactiveEmployees = Array.isArray(employees) ? employees.filter(employee => 
+      employee.status === 'inactive' || employee.status === 'Inactive'
+    ).length : 0;
+    
+    // Calculate IT projects statistics
+    const totalITProjects = Array.isArray(itProjects) ? itProjects.length : 0;
+    const activeITProjects = Array.isArray(itProjects) ? itProjects.filter(project => 
+      project.status === 'active' || project.status === 'in-progress' || project.status === 'ongoing'
+    ).length : 0;
+    const completedITProjects = Array.isArray(itProjects) ? itProjects.filter(project => 
+      project.status === 'completed' || project.status === 'done' || project.status === 'finished'
+    ).length : 0;
+    
+    // Calculate Operations campaigns statistics
+    const totalOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns.length : 0;
+    const activeOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns.filter(campaign => 
+      campaign.status === 'active' || campaign.status === 'in-progress' || campaign.status === 'ongoing'
+    ).length : 0;
+    const completedOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns.filter(campaign => 
+      campaign.status === 'completed' || campaign.status === 'done' || campaign.status === 'finished'
+    ).length : 0;
+    
+    // Calculate Accounting statistics (using payroll data)
+    const totalTransactions = Array.isArray(payroll) ? payroll.length : 0;
+    const pendingTransactions = Array.isArray(payroll) ? payroll.filter(p => p.status === 'pending').length : 0;
+    const completedTransactions = Array.isArray(payroll) ? payroll.filter(p => p.status === 'completed' || p.status === 'paid').length : 0;
+    
+    // Calculate Sales statistics (mock data for now - would need sales API)
+    const totalLeads = 0; // Would need sales API
+    const convertedLeads = 0; // Would need sales API
+    const pendingLeads = 0; // Would need sales API
+
+    return {
+      totalEmployees,
+      totalDepartments,
+      pendingLeaves,
+      totalPayroll,
+      approvedLeaves,
+      rejectedLeaves,
+      activeEmployees,
+      inactiveEmployees,
+      totalITProjects,
+      activeITProjects,
+      completedITProjects,
+      totalOperationCampaigns,
+      activeOperationCampaigns,
+      completedOperationCampaigns,
+      totalTransactions,
+      pendingTransactions,
+      completedTransactions,
+      totalLeads,
+      convertedLeads,
+      pendingLeads
+    };
+  }, [employees, departments, leaves, payroll, itProjects, operationCampaigns]);
+
+  const {
+    totalEmployees,
+    totalDepartments,
+    pendingLeaves,
+    totalPayroll,
+    approvedLeaves,
+    rejectedLeaves,
+    activeEmployees,
+    inactiveEmployees,
+    totalITProjects,
+    activeITProjects,
+    completedITProjects,
+    totalOperationCampaigns,
+    activeOperationCampaigns,
+    completedOperationCampaigns,
+    totalTransactions,
+    pendingTransactions,
+    completedTransactions,
+    totalLeads,
+    convertedLeads,
+    pendingLeads
+  } = statistics;
   
-  // Calculate employee status statistics from database
-  const activeEmployees = Array.isArray(employees) ? employees.filter(employee => 
-    employee.status === 'active' || employee.status === 'Active'
-  ).length : 0;
-  const inactiveEmployees = Array.isArray(employees) ? employees.filter(employee => 
-    employee.status === 'inactive' || employee.status === 'Inactive'
-  ).length : 0;
-  
-  // Calculate IT projects statistics
-  const totalITProjects = Array.isArray(itProjects) ? itProjects.length : 0;
-  const activeITProjects = Array.isArray(itProjects) ? itProjects.filter(project => 
-    project.status === 'active' || project.status === 'in-progress' || project.status === 'ongoing'
-  ).length : 0;
-  const completedITProjects = Array.isArray(itProjects) ? itProjects.filter(project => 
-    project.status === 'completed' || project.status === 'done' || project.status === 'finished'
-  ).length : 0;
-  
-  // Calculate Operations campaigns statistics
-  const totalOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns.length : 0;
-  const activeOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns.filter(campaign => 
-    campaign.status === 'active' || campaign.status === 'in-progress' || campaign.status === 'ongoing'
-  ).length : 0;
-  const completedOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns.filter(campaign => 
-    campaign.status === 'completed' || campaign.status === 'done' || campaign.status === 'finished'
-  ).length : 0;
-  
-  // Calculate Accounting statistics (using payroll data)
-  const totalTransactions = Array.isArray(payroll) ? payroll.length : 0;
-  const pendingTransactions = Array.isArray(payroll) ? payroll.filter(p => p.status === 'pending').length : 0;
-  const completedTransactions = Array.isArray(payroll) ? payroll.filter(p => p.status === 'completed' || p.status === 'paid').length : 0;
-  
-  // Calculate Sales statistics (mock data for now - would need sales API)
-  const totalLeads = 0; // Would need sales API
-  const convertedLeads = 0; // Would need sales API
-  const pendingLeads = 0; // Would need sales API
-  
-  // Calculate recent activities from real data
-  const recentActivities = [];
-  
-  // Add recent employee activities
-  if (totalEmployees > 0) {
-    recentActivities.push({
-      type: 'employees',
-      message: `${totalEmployees} employees currently in the system`,
-      timestamp: 'Updated just now',
-      color: 'primary.main'
-    });
-  }
-  
-  // Add recent leave activities
-  if (pendingLeaves > 0) {
-    recentActivities.push({
-      type: 'leaves',
-      message: `${pendingLeaves} leave requests pending approval`,
-      timestamp: 'Requires attention',
-      color: 'warning.main'
-    });
-  }
-  
-  if (approvedLeaves > 0) {
-    recentActivities.push({
-      type: 'leaves',
-      message: `${approvedLeaves} leave requests approved this period`,
-      timestamp: 'Recent approvals',
-      color: 'success.main'
-    });
-  }
-  
-  // Add recent project activities
-  if (totalITProjects > 0) {
-    recentActivities.push({
-      type: 'projects',
-      message: `${totalITProjects} IT projects in progress`,
-      timestamp: 'Active development',
-      color: 'info.main'
-    });
-  }
-  
-  if (activeITProjects > 0) {
-    recentActivities.push({
-      type: 'projects',
-      message: `${activeITProjects} IT projects currently active`,
-      timestamp: 'In development',
-      color: 'info.main'
-    });
-  }
-  
-  // Add recent campaign activities
-  if (totalOperationCampaigns > 0) {
-    recentActivities.push({
-      type: 'campaigns',
-      message: `${totalOperationCampaigns} operation campaigns running`,
-      timestamp: 'Business operations',
-      color: 'success.main'
-    });
-  }
-  
-  if (activeOperationCampaigns > 0) {
-    recentActivities.push({
-      type: 'campaigns',
-      message: `${activeOperationCampaigns} campaigns currently active`,
-      timestamp: 'Ongoing operations',
-      color: 'success.main'
-    });
-  }
-  
-  // Add recent payroll activities
-  if (totalTransactions > 0) {
-    recentActivities.push({
-      type: 'payroll',
-      message: `${totalTransactions} payroll transactions processed`,
-      timestamp: 'Financial management',
-      color: 'warning.main'
-    });
-  }
-  
-  if (completedTransactions > 0) {
-    recentActivities.push({
-      type: 'payroll',
-      message: `${completedTransactions} payroll transactions completed`,
-      timestamp: 'Recent completions',
-      color: 'success.main'
-    });
-  }
-  
-  // Add department activities
-  if (totalDepartments > 0) {
-    recentActivities.push({
-      type: 'departments',
-      message: `${totalDepartments} departments actively managed`,
-      timestamp: 'System status',
-      color: 'info.main'
-    });
-  }
+  // Memoized recent activities calculation
+  const recentActivities = useMemo(() => {
+    const activities = [];
+    
+    // Add recent employee activities
+    if (totalEmployees > 0) {
+      activities.push({
+        type: 'employees',
+        message: `${totalEmployees} employees currently in the system`,
+        timestamp: 'Updated just now',
+        color: 'primary.main'
+      });
+    }
+    
+    // Add recent leave activities
+    if (pendingLeaves > 0) {
+      activities.push({
+        type: 'leaves',
+        message: `${pendingLeaves} leave requests pending approval`,
+        timestamp: 'Requires attention',
+        color: 'warning.main'
+      });
+    }
+    
+    if (approvedLeaves > 0) {
+      activities.push({
+        type: 'leaves',
+        message: `${approvedLeaves} leave requests approved this period`,
+        timestamp: 'Recent approvals',
+        color: 'success.main'
+      });
+    }
+    
+    // Add recent project activities
+    if (totalITProjects > 0) {
+      activities.push({
+        type: 'projects',
+        message: `${totalITProjects} IT projects in progress`,
+        timestamp: 'Active development',
+        color: 'info.main'
+      });
+    }
+    
+    if (activeITProjects > 0) {
+      activities.push({
+        type: 'projects',
+        message: `${activeITProjects} IT projects currently active`,
+        timestamp: 'In development',
+        color: 'info.main'
+      });
+    }
+    
+    // Add recent campaign activities
+    if (totalOperationCampaigns > 0) {
+      activities.push({
+        type: 'campaigns',
+        message: `${totalOperationCampaigns} operation campaigns running`,
+        timestamp: 'Business operations',
+        color: 'success.main'
+      });
+    }
+    
+    if (activeOperationCampaigns > 0) {
+      activities.push({
+        type: 'campaigns',
+        message: `${activeOperationCampaigns} campaigns currently active`,
+        timestamp: 'Ongoing operations',
+        color: 'success.main'
+      });
+    }
+    
+    // Add recent payroll activities
+    if (totalTransactions > 0) {
+      activities.push({
+        type: 'payroll',
+        message: `${totalTransactions} payroll transactions processed`,
+        timestamp: 'Financial management',
+        color: 'warning.main'
+      });
+    }
+    
+    if (completedTransactions > 0) {
+      activities.push({
+        type: 'payroll',
+        message: `${completedTransactions} payroll transactions completed`,
+        timestamp: 'Recent completions',
+        color: 'success.main'
+      });
+    }
+    
+    // Add department activities
+    if (totalDepartments > 0) {
+      activities.push({
+        type: 'departments',
+        message: `${totalDepartments} departments actively managed`,
+        timestamp: 'System status',
+        color: 'info.main'
+      });
+    }
+    
+    return activities;
+  }, [totalEmployees, pendingLeaves, approvedLeaves, totalITProjects, activeITProjects, totalOperationCampaigns, activeOperationCampaigns, totalTransactions, completedTransactions, totalDepartments]);
   
   // Add operation-specific recent activities with real timestamps
   const recentOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
@@ -699,6 +733,8 @@ const OverviewDashboard = () => {
       </Box>
     );
   }
-};
+});
+
+OverviewDashboard.displayName = 'OverviewDashboard';
 
 export default OverviewDashboard;

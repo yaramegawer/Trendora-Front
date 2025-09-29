@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -7,16 +7,25 @@ import LoginPage from './components/auth/LoginPage';
 import theme from './theme';
 import { CircularProgress, Box, Typography, Button } from '@mui/material';
 
+// Preload critical components for better LCP
+const preloadComponents = () => {
+  // Preload dashboard components that are likely to be viewed first
+  import('./components/dashboard/OverviewDashboard');
+  import('./components/dashboard/EmployeeDashboard');
+};
+
 const AppContent = () => {
   try {
-    console.log('AppContent: Component starting to render');
-    
     const { isAuthenticated, loading, user } = useAuth();
     
-    console.log('AppContent: Auth state:', { isAuthenticated, loading, user });
+    // Preload critical components after initial render
+    useEffect(() => {
+      if (isAuthenticated) {
+        preloadComponents();
+      }
+    }, [isAuthenticated]);
 
     if (loading) {
-      console.log('AppContent: Showing loading state');
       return (
         <Box 
           display="flex" 
@@ -31,11 +40,9 @@ const AppContent = () => {
     }
 
     if (!isAuthenticated) {
-      console.log('AppContent: User not authenticated, showing login page');
       return <LoginPage />;
     }
 
-    console.log('AppContent: User authenticated, showing main layout');
     return <MainLayout />;
   } catch (error) {
     console.error('AppContent: Error rendering component:', error);
