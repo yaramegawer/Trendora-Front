@@ -8,9 +8,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://trendora-nine.vercel.app/',
+        target: 'https://trendora-nine.vercel.app',
         changeOrigin: true,
-        secure: false,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
   },
