@@ -174,12 +174,12 @@ export const useOperationLeaves = () => {
         const departmentLower = userDepartment.toLowerCase();
         console.log('🔍 Operation Department: Checking department:', userDepartment, '->', departmentLower);
         
-        // Check for various Operation department name variations
+        // Check for various Operation department name variations - be more specific
         const isOperationDepartment = departmentLower === 'operation' || 
                                      departmentLower === 'operations' ||
                                      departmentLower === 'operations department' ||
-                                     departmentLower.includes('operation') ||
-                                     departmentLower.includes('operations');
+                                     departmentLower === 'operation department' ||
+                                     (departmentLower.includes('operation') && !departmentLower.includes('it'));
         
         if (!isOperationDepartment) {
           console.log('🚫 Operation Department: User is not in Operation department, not showing leaves');
@@ -192,10 +192,8 @@ export const useOperationLeaves = () => {
           setLeaves(leavesData);
         }
       } else {
-        console.log('⚠️ Operation Department: No department info in response, showing leaves anyway');
-        console.log('📊 Operation Department: Processed employee leaves data:', leavesData);
-        console.log('📊 Operation Department: Number of leaves found:', leavesData.length);
-        setLeaves(leavesData);
+        console.log('⚠️ Operation Department: No department info in response, not showing leaves');
+        setLeaves([]);
       }
     } catch (err) {
       console.warn('Operation Employee Leaves API Error, using empty array:', err.message);

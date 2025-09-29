@@ -1,10 +1,11 @@
-import React, { useMemo, memo } from 'react';
-import { Box, Typography, Card, CardContent, Grid, Stack, Avatar, Button, CircularProgress, Alert } from '@mui/material';
-import { Dashboard, People, Computer, BusinessCenter, AccountBalance, TrendingUp } from '@mui/icons-material';
+import React, { useMemo, memo, useState, useEffect } from 'react';
+import { Box, Typography, Card, CardContent, Grid, Stack, Avatar, Button, CircularProgress, Alert, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from '@mui/material';
+import { Dashboard, People, Computer, BusinessCenter, AccountBalance, TrendingUp, EventNote } from '@mui/icons-material';
 import { useEmployees, useDepartments, useLeaves, usePayroll } from '../../hooks/useHRData';
 import { useITProjects } from '../../hooks/useITData';
 import { useOperationCampaigns, useOperationLeaves, useOperationEmployees } from '../../hooks/useOperationData';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/axios';
 
 // Utility function to calculate time ago
 const getTimeAgo = (date) => {
@@ -34,6 +35,10 @@ const getTimeAgo = (date) => {
 const OverviewDashboard = memo(() => {
   try {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState(0);
+    const [userLeaves, setUserLeaves] = useState([]);
+    const [userLeavesLoading, setUserLeavesLoading] = useState(false);
+    const [userLeavesError, setUserLeavesError] = useState('');
     
     const { employees, loading: employeesLoading, error: employeesError } = useEmployees();
     const { departments, loading: departmentsLoading, error: departmentsError } = useDepartments();
@@ -43,6 +48,61 @@ const OverviewDashboard = memo(() => {
     const { campaigns: operationCampaigns, loading: operationCampaignsLoading, error: operationCampaignsError } = useOperationCampaigns();
     const { leaves: operationLeaves, loading: operationLeavesLoading, error: operationLeavesError } = useOperationLeaves();
     const { employees: operationEmployees, loading: operationEmployeesLoading, error: operationEmployeesError } = useOperationEmployees();
+
+    // Fetch user leaves
+    const fetchUserLeaves = async () => {
+      setUserLeavesLoading(true);
+      setUserLeavesError('');
+      try {
+        console.log('🔄 Fetching user leaves...');
+        const response = await api.get('/dashboard/leaves');
+        console.log('📡 User Leaves API Response:', response);
+        
+        let leavesData = [];
+        if (Array.isArray(response.data)) {
+          leavesData = response.data;
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          leavesData = response.data.data;
+        } else if (response.data && response.data.success && Array.isArray(response.data.data)) {
+          leavesData = response.data.data;
+        }
+        
+        console.log('📊 Processed user leaves data:', leavesData);
+        setUserLeaves(leavesData);
+      } catch (err) {
+        console.error('❌ User Leaves API Error:', err);
+        setUserLeavesError(err.message || 'Failed to fetch leaves');
+        setUserLeaves([]);
+      } finally {
+        setUserLeavesLoading(false);
+      }
+    };
+
+    // Fetch leaves when component mounts or when leaves tab is selected
+    useEffect(() => {
+      if (activeTab === 1) { // Leaves tab
+        fetchUserLeaves();
+      }
+    }, [activeTab]);
+
+    // Utility functions for leaves
+    const getStatusColor = (status) => {
+      switch ((status || '').toLowerCase()) {
+        case 'approved': return 'success';
+        case 'pending': return 'warning';
+        case 'rejected': return 'error';
+        default: return 'default';
+      }
+    };
+
+    const formatDate = (dateString) => {
+      if (!dateString) return 'N/A';
+      try {
+        return new Date(dateString).toLocaleDateString();
+      } catch (error) {
+        return 'Invalid Date';
+      }
+    };
 
   // Memoized statistics calculations for better performance
   const statistics = useMemo(() => {
@@ -551,155 +611,338 @@ const OverviewDashboard = memo(() => {
         </Typography>
       </Box>
 
-      {/* Quick Stats */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  <People />
-                </Avatar>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="h6">
-                    Total Employees
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {totalEmployees}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
+      {/* Tabs */}
+      <Box sx={{ mb: 4 }}>
+        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tab label="Overview" icon={<Dashboard />} iconPosition="start" />
+          <Tab label="My Leaves" icon={<EventNote />} iconPosition="start" />
+        </Tabs>
+      </Box>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
-                  <BusinessCenter />
-                </Avatar>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="h6">
-                    Total Departments
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {totalDepartments}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
-                  <AccountBalance />
-                </Avatar>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="h6">
-                    Pending Leaves
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {pendingLeaves}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'info.main' }}>
-                  <TrendingUp />
-                </Avatar>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="h6">
-                    Total Payroll
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    ${totalPayroll.toLocaleString()}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Departments Grid */}
-      <Grid container spacing={3}>
-        {departmentsData.map((dept) => (
-          <Grid item xs={12} sm={6} md={4} key={dept.id}>
-            <Card sx={{ height: '100%', '&:hover': { boxShadow: 6 } }}>
-              <CardContent>
-                <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: `${dept.color}.main` }}>
-                    <dept.icon />
-                  </Avatar>
-                </Stack>
-                
-                <Typography variant="h6" component="h3" gutterBottom sx={{ fontSize: '1rem' }}>
-                  {dept.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {dept.description}
-                </Typography>
-                
-                <Stack spacing={1}>
-                  {Object.entries(dept.stats).map(([key, value]) => (
-                    <Stack key={key} direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                        {key}:
+      {/* Tab Content */}
+      {activeTab === 0 && (
+        <>
+          {/* Overview Tab - Quick Stats */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <People />
+                    </Avatar>
+                    <Box>
+                      <Typography color="textSecondary" gutterBottom variant="h6">
+                        Total Employees
                       </Typography>
-                      <Typography variant="body2" fontWeight="medium">
-                        {value}
+                      <Typography variant="h4" component="div">
+                        {totalEmployees}
                       </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar sx={{ bgcolor: 'success.main' }}>
+                      <BusinessCenter />
+                    </Avatar>
+                    <Box>
+                      <Typography color="textSecondary" gutterBottom variant="h6">
+                        Total Departments
+                      </Typography>
+                      <Typography variant="h4" component="div">
+                        {totalDepartments}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar sx={{ bgcolor: 'warning.main' }}>
+                      <AccountBalance />
+                    </Avatar>
+                    <Box>
+                      <Typography color="textSecondary" gutterBottom variant="h6">
+                        Pending Leaves
+                      </Typography>
+                      <Typography variant="h4" component="div">
+                        {pendingLeaves}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar sx={{ bgcolor: 'info.main' }}>
+                      <TrendingUp />
+                    </Avatar>
+                    <Box>
+                      <Typography color="textSecondary" gutterBottom variant="h6">
+                        Total Payroll
+                      </Typography>
+                      <Typography variant="h4" component="div">
+                        ${totalPayroll.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Departments Grid */}
+          <Grid container spacing={3}>
+            {departmentsData.map((dept) => (
+              <Grid item xs={12} sm={6} md={4} key={dept.id}>
+                <Card sx={{ height: '100%', '&:hover': { boxShadow: 6 } }}>
+                  <CardContent>
+                    <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
+                      <Avatar sx={{ bgcolor: `${dept.color}.main` }}>
+                        <dept.icon />
+                      </Avatar>
                     </Stack>
-                  ))}
-                </Stack>
+                    
+                    <Typography variant="h6" component="h3" gutterBottom sx={{ fontSize: '1rem' }}>
+                      {dept.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {dept.description}
+                    </Typography>
+                    
+                    <Stack spacing={1}>
+                      {Object.entries(dept.stats).map(([key, value]) => (
+                        <Stack key={key} direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                            {key}:
+                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {value}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Recent Activity */}
+          <Card sx={{ mt: 3 }}>
+            <CardContent>
+              <Typography variant="h6" component="h3" gutterBottom>
+                Recent Activity
+              </Typography>
+              <Stack spacing={2}>
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity, index) => (
+                    <Stack key={index} direction="row" alignItems="center" spacing={2}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: activity.color }} />
+                <Box>
+                  <Typography variant="body2">
+                        {activity.message}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                        {activity.timestamp}
+                  </Typography>
+                </Box>
+              </Stack>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    No recent activity to display. Data will appear as employees and departments are added.
+                    </Typography>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Leaves Tab */}
+      {activeTab === 1 && (
+        <Box>
+          <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
+            My Leave Requests
+          </Typography>
+          
+          {userLeavesLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+              <CircularProgress />
+              <Typography sx={{ ml: 2 }}>Loading your leaves...</Typography>
+            </Box>
+          ) : userLeavesError ? (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {userLeavesError}
+            </Alert>
+          ) : userLeaves.length === 0 ? (
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                <EventNote sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No leave requests found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  You haven't submitted any leave requests yet.
+                </Typography>
               </CardContent>
             </Card>
-          </Grid>
-        ))}
-      </Grid>
+          ) : (
+            <>
+              {/* Leaves Summary Cards */}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Stack direction="row" alignItems="center" spacing={2}>
+                        <Avatar sx={{ bgcolor: 'warning.main' }}>
+                          <EventNote />
+                        </Avatar>
+                        <Box>
+                          <Typography color="textSecondary" gutterBottom variant="h6">
+                            Pending
+                          </Typography>
+                          <Typography variant="h4" component="div">
+                            {userLeaves.filter(leave => leave.status === 'pending').length}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Stack direction="row" alignItems="center" spacing={2}>
+                        <Avatar sx={{ bgcolor: 'success.main' }}>
+                          <EventNote />
+                        </Avatar>
+                        <Box>
+                          <Typography color="textSecondary" gutterBottom variant="h6">
+                            Approved
+                          </Typography>
+                          <Typography variant="h4" component="div">
+                            {userLeaves.filter(leave => leave.status === 'approved').length}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Stack direction="row" alignItems="center" spacing={2}>
+                        <Avatar sx={{ bgcolor: 'error.main' }}>
+                          <EventNote />
+                        </Avatar>
+                        <Box>
+                          <Typography color="textSecondary" gutterBottom variant="h6">
+                            Rejected
+                          </Typography>
+                          <Typography variant="h4" component="div">
+                            {userLeaves.filter(leave => leave.status === 'rejected').length}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Stack direction="row" alignItems="center" spacing={2}>
+                        <Avatar sx={{ bgcolor: 'info.main' }}>
+                          <EventNote />
+                        </Avatar>
+                        <Box>
+                          <Typography color="textSecondary" gutterBottom variant="h6">
+                            Total
+                          </Typography>
+                          <Typography variant="h4" component="div">
+                            {userLeaves.length}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
 
-      {/* Recent Activity */}
-      <Card sx={{ mt: 3 }}>
-        <CardContent>
-          <Typography variant="h6" component="h3" gutterBottom>
-            Recent Activity
-          </Typography>
-          <Stack spacing={2}>
-            {recentActivities.length > 0 ? (
-              recentActivities.map((activity, index) => (
-                <Stack key={index} direction="row" alignItems="center" spacing={2}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: activity.color }} />
-              <Box>
-                <Typography variant="body2">
-                      {activity.message}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                      {activity.timestamp}
-                </Typography>
-              </Box>
-            </Stack>
-              ))
-            ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                No recent activity to display. Data will appear as employees and departments are added.
-                </Typography>
-            )}
-          </Stack>
-        </CardContent>
-      </Card>
+              {/* Leaves Table */}
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h3" gutterBottom sx={{ mb: 3 }}>
+                    Leave History
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Leave Type</TableCell>
+                          <TableCell>Start Date</TableCell>
+                          <TableCell>End Date</TableCell>
+                          <TableCell>Applied Date</TableCell>
+                          <TableCell>Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {userLeaves.map((leave) => (
+                          <TableRow key={leave._id || leave.id}>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                {leave.leaveType || leave.type || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {formatDate(leave.startDate)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {formatDate(leave.endDate)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {formatDate(leave.appliedDate || leave.createdAt || leave.created_at)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={leave.status || 'Unknown'}
+                                color={getStatusColor(leave.status)}
+                                size="small"
+                                variant="outlined"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </Box>
+      )}
     </Box>
   );
   } catch (error) {

@@ -21,8 +21,7 @@ import {
   Wifi,
   Server
 } from 'lucide-react';
-import { useITEmployees, useITProjects, useITTickets, useITLeaves } from '../../hooks/useITData';
-import { itLeaveApi } from '../../services/itApi';
+import { useITEmployees, useITProjects, useITTickets } from '../../hooks/useITData';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ITDepartment = () => {
@@ -33,7 +32,6 @@ const ITDepartment = () => {
   const { employees, loading: employeesLoading, error: employeesError, updateRating } = useITEmployees();
   const { projects, loading: projectsLoading, error: projectsError, createProject, updateProject, deleteProject } = useITProjects();
   const { tickets, loading: ticketsLoading, error: ticketsError, updateTicket, deleteTicket } = useITTickets();
-  const { leaves, loading: leavesLoading, error: leavesError, addLeave, fetchLeaves } = useITLeaves();
 
 
   // Debug logging
@@ -47,12 +45,6 @@ const ITDepartment = () => {
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateProject, setShowCreateProject] = useState(false);
-  const [showCreateOperationLeave, setShowCreateOperationLeave] = useState(false);
-  const [newOperationLeave, setNewOperationLeave] = useState({
-    startDate: '',
-    endDate: '',
-    type: 'annual'
-  });
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -64,62 +56,6 @@ const ITDepartment = () => {
   });
 
 
-  // State for leave form
-
-  // Submit leave handler
-  const handleSubmitLeave = async () => {
-    console.log('🔍 handleSubmitLeave called');
-    console.log('🔍 user:', user);
-    console.log('🔍 newOperationLeave:', newOperationLeave);
-    
-    if (!user) {
-      console.log('❌ No user found');
-      alert('You must be logged in to submit leave requests');
-      return;
-    }
-
-    if (!newOperationLeave.startDate || !newOperationLeave.endDate) {
-      console.log('❌ Missing required fields');
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    if (new Date(newOperationLeave.startDate) > new Date(newOperationLeave.endDate)) {
-      console.log('❌ Invalid date range');
-      alert('End date must be after start date');
-      return;
-    }
-
-    const leaveData = {
-      startDate: newOperationLeave.startDate,
-      endDate: newOperationLeave.endDate,
-      type: newOperationLeave.type,
-      status: 'pending'
-    };
-
-    console.log('📤 Submitting leave data:', leaveData);
-
-    try {
-      console.log('🔄 Calling addLeave...');
-      const result = await addLeave(leaveData);
-      console.log('✅ addLeave result:', result);
-      
-      if (result.success) {
-        alert('Leave request submitted successfully!');
-        setShowCreateOperationLeave(false);
-        setNewOperationLeave({
-          startDate: '',
-          endDate: '',
-          type: 'annual'
-        });
-      } else {
-        alert('Failed to submit leave request: ' + result.message);
-      }
-    } catch (error) {
-      console.error('❌ Error creating IT leave:', error);
-      alert('Failed to submit leave request: ' + error.message);
-    }
-  };
 
   // State for employee ratings
   const [employeeRatings, setEmployeeRatings] = useState({});
@@ -690,8 +626,7 @@ const ITDepartment = () => {
                 { id: 'dashboard', label: 'Dashboard', icon: Activity },
                 { id: 'employees', label: 'Employees', icon: Users },
                 { id: 'tickets', label: 'Tickets', icon: Ticket },
-                { id: 'projects', label: 'Projects', icon: FolderOpen },
-                { id: 'leaves', label: 'Leaves', icon: Clock }
+                { id: 'projects', label: 'Projects', icon: FolderOpen }
               ].map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -1451,267 +1386,9 @@ const ITDepartment = () => {
           </div>
         )}
 
-        {activeTab === 'leaves' && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            border: '1px solid #f3f4f6',
-            padding: '24px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <div>
-                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>Leave Requests</h2>
-                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                  IT Department leave requests
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateOperationLeave(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 16px',
-                  backgroundColor: '#059669',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#047857'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#059669'}
-              >
-                <Plus size={16} />
-                Submit Leave
-              </button>
-            </div>
-            
-            {leavesLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading leaves...</div>
-              </div>
-            ) : Array.isArray(leaves) && leaves.length > 0 ? (
-              <div style={{ display: 'grid', gap: '16px' }}>
-                {leaves.map((leave) => {
-                  const getStatusColor = (status) => {
-                    switch ((status || '').toLowerCase()) {
-                      case 'approved': return { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', badge: '#10b981' };
-                      case 'pending': return { bg: '#fffbeb', border: '#fed7aa', text: '#92400e', badge: '#f59e0b' };
-                      case 'rejected': return { bg: '#fef2f2', border: '#fecaca', text: '#991b1b', badge: '#ef4444' };
-                      default: return { bg: '#f8fafc', border: '#e2e8f0', text: '#6b7280', badge: '#6b7280' };
-                    }
-                  };
-                  
-                  const statusColors = getStatusColor(leave.status);
-                  
-                  return (
-                    <div key={leave.id || leave._id} style={{
-                      backgroundColor: statusColors.bg,
-                      borderRadius: '12px',
-                      padding: '20px',
-                      border: `1px solid ${statusColors.border}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div>
-                        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
-                          {leave.employee?.firstName} {leave.employee?.lastName}
-                        </h3>
-                        <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 4px 0' }}>
-                          {leave.employee?.email}
-                        </p>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            backgroundColor: '#dcfce7',
-                            color: '#166534'
-                          }}>
-                            {leave.type || leave.leaveType || 'Leave'}
-                          </span>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            backgroundColor: statusColors.badge,
-                            color: 'white'
-                          }}>
-                            {leave.status || 'Unknown'}
-                          </span>
-                        </div>
-                        <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
-                          <span style={{ marginRight: '16px' }}>
-                            📅 Start: {leave.startDate ? new Date(leave.startDate).toLocaleDateString() : 'N/A'}
-                          </span>
-                          <span>
-                            📅 End: {leave.endDate ? new Date(leave.endDate).toLocaleDateString() : 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-                          Duration
-                        </div>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                          {leave.startDate && leave.endDate ? 
-                            Math.ceil((new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24)) + 1 : 
-                            'N/A'
-                          } days
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div style={{ fontSize: '16px', color: '#6b7280' }}>No leaves found</div>
-              </div>
-            )}
-          </div>
-        )}
 
       </div>
 
-      {/* Submit Leave Modal */}
-      {showCreateOperationLeave && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '90%',
-            maxWidth: '500px'
-          }}>
-            <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
-              Submit Leave Request
-            </h3>
-            
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmitLeave();
-            }}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Leave Type *
-                </label>
-                <select
-                  value={newOperationLeave.type}
-                  onChange={(e) => setNewOperationLeave(prev => ({ ...prev, type: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                  required
-                >
-                  <option value="annual">Annual Leave</option>
-                  <option value="sick">Sick Leave</option>
-                  <option value="unpaid">Unpaid Leave</option>
-                </select>
-              </div>
-              
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Start Date *
-                </label>
-                <input
-                  type="date"
-                  value={newOperationLeave.startDate}
-                  onChange={(e) => setNewOperationLeave(prev => ({ ...prev, startDate: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                  required
-                />
-              </div>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  End Date *
-                </label>
-                <input
-                  type="date"
-                  value={newOperationLeave.endDate}
-                  onChange={(e) => setNewOperationLeave(prev => ({ ...prev, endDate: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateOperationLeave(false);
-                    setNewOperationLeave({
-                      startDate: '',
-                      endDate: '',
-                      type: 'annual'
-                    });
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#6b7280',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#059669',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Submit Leave
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Employee Form Modal */}
       {showEmployeeForm && (

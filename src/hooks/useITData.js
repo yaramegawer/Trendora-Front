@@ -315,12 +315,13 @@ export const useITLeaves = () => {
         const departmentLower = userDepartment.toLowerCase();
         console.log('🔍 IT Department: Checking department:', userDepartment, '->', departmentLower);
         
-        // Check for various IT department name variations
+        // Check for various IT department name variations - be more specific
         const isITDepartment = departmentLower === 'it' || 
                               departmentLower === 'information technology' ||
                               departmentLower === 'informationtechnology' ||
-                              departmentLower.includes('it') ||
-                              departmentLower.includes('information');
+                              departmentLower === 'it department' ||
+                              departmentLower === 'information technology department' ||
+                              (departmentLower.includes('it') && !departmentLower.includes('operation'));
         
         if (!isITDepartment) {
           console.log('🚫 IT Department: User is not in IT department, not showing leaves');
@@ -333,10 +334,8 @@ export const useITLeaves = () => {
           setLeaves(leavesData);
         }
       } else {
-        console.log('⚠️ IT Department: No department info in response, showing leaves anyway');
-        console.log('📊 IT Department: Processed employee leaves data:', leavesData);
-        console.log('📊 IT Department: Number of leaves found:', leavesData.length);
-        setLeaves(leavesData);
+        console.log('⚠️ IT Department: No department info in response, not showing leaves');
+        setLeaves([]);
       }
     } catch (err) {
       console.error('❌ IT Employee Leaves API Error:', err);
