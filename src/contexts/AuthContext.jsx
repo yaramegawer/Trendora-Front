@@ -109,27 +109,83 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No authentication token received from server. Please check your credentials.');
       }
       
+      // Debug: Log the token to see its structure
+      console.log('🔍 Token received:', token.substring(0, 50) + '...');
+      console.log('🔍 Full response data:', data);
+      
+      // Try to decode token immediately to see its structure
+      try {
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const header = JSON.parse(atob(tokenParts[0]));
+          const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('🔍 Token header:', header);
+          console.log('🔍 Token payload (raw):', payload);
+          console.log('🔍 Token payload keys:', Object.keys(payload));
+        } else {
+          console.log('❌ Token is not a valid JWT format');
+        }
+      } catch (e) {
+        console.log('❌ Could not decode token for debugging:', e);
+      }
+      
       // Check if user data exists and is valid
       // The backend might return user data in different structures
       const hasUserData = data.user || data.id || data.userId || data._id;
       
-      // If no user data in response, try to extract from JWT token
+      // Always try to extract from JWT token first (regardless of user data in response)
       let userIdFromToken = null;
       let roleFromToken = null;
-      if (!hasUserData && token) {
+      if (token) {
         try {
           // Decode JWT token to extract user ID and role
           const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-          console.log('JWT Token payload:', tokenPayload);
-          userIdFromToken = tokenPayload.user_id || tokenPayload.sub || tokenPayload.id;
-          // Look for role in various possible field names
-          roleFromToken = tokenPayload.role || tokenPayload.user_role || tokenPayload.userRole || 
-                         tokenPayload.role_name || tokenPayload.roleName || tokenPayload.userType;
-          console.log('Extracted user ID from token:', userIdFromToken);
-          console.log('Extracted role from token:', roleFromToken);
-          console.log('All token payload fields:', Object.keys(tokenPayload));
+          console.log('🔍 JWT Token payload:', tokenPayload);
+          console.log('🔍 All token payload fields:', Object.keys(tokenPayload));
+          
+          // Extract user ID from various possible field names
+          userIdFromToken = tokenPayload.user_id || tokenPayload.sub || tokenPayload.id || 
+                           tokenPayload.userId || tokenPayload._id || tokenPayload.user?.id;
+          
+          // Extract role from various possible field names (case-insensitive)
+          const roleFields = [
+            'role', 'user_role', 'userRole', 'role_name', 'roleName', 
+            'userType', 'user_type', 'userRole', 'permissions', 'access_level',
+            'user.role', 'profile.role', 'data.role'
+          ];
+          
+          for (const field of roleFields) {
+            if (tokenPayload[field]) {
+              roleFromToken = tokenPayload[field];
+              console.log(`🔍 Found role in field '${field}':`, roleFromToken);
+              break;
+            }
+          }
+          
+          // Also check nested objects
+          if (!roleFromToken && tokenPayload.user && tokenPayload.user.role) {
+            roleFromToken = tokenPayload.user.role;
+            console.log('🔍 Found role in nested user object:', roleFromToken);
+          }
+          
+          // Check profile object
+          if (!roleFromToken && tokenPayload.profile && tokenPayload.profile.role) {
+            roleFromToken = tokenPayload.profile.role;
+            console.log('🔍 Found role in profile object:', roleFromToken);
+          }
+          
+          // Check data object
+          if (!roleFromToken && tokenPayload.data && tokenPayload.data.role) {
+            roleFromToken = tokenPayload.data.role;
+            console.log('🔍 Found role in data object:', roleFromToken);
+          }
+          
+          console.log('🔍 Extracted user ID from token:', userIdFromToken);
+          console.log('🔍 Extracted role from token:', roleFromToken);
+          
         } catch (error) {
-          console.log('Could not decode JWT token:', error);
+          console.log('❌ Could not decode JWT token:', error);
+          console.log('❌ Token format might be invalid or not a JWT');
         }
       }
       
@@ -149,7 +205,26 @@ export const AuthProvider = ({ children }) => {
         ...data // Include any additional data from API response
       };
       
-      console.log('Constructed user data:', userData);
+      // Override role with token role if found (highest priority)
+      if (roleFromToken) {
+        userData.role = roleFromToken;
+        console.log('🔍 Overriding role with token role:', roleFromToken);
+      }
+      
+      console.log('🔍 Role extraction debug:');
+      console.log('  - roleFromToken:', roleFromToken);
+      console.log('  - data.user?.role:', data.user?.role);
+      console.log('  - data.role:', data.role);
+      console.log('  - data.user:', data.user);
+      console.log('  - Final role:', userData.role);
+      console.log('🔍 Constructed user data:', userData);
+      
+      // Additional debugging - check if role is in the response but not being captured
+      console.log('🔍 Full response structure check:');
+      console.log('  - data keys:', Object.keys(data));
+      if (data.user) {
+        console.log('  - data.user keys:', Object.keys(data.user));
+      }
       
       // If we still don't have a role, try fallback methods
       if (!userData.role || userData.role === 'User') {

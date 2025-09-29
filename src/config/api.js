@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || '/api',
+  BASE_URL: import.meta.env.VITE_API_URL || 'https://trendora-nine.vercel.app/api',
   TIMEOUT: 10000,
   ENDPOINTS: {
     USER: {

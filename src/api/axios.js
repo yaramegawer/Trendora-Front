@@ -19,7 +19,8 @@ api.interceptors.request.use(
     console.log('🔑 Axios Interceptor - Is login request?', config.url.includes('/log_in'));
     
     if (token && !config.url.includes('/log_in')) {
-      // Your middleware expects 'token' header, not 'Authorization'
+      // Try both header formats to ensure compatibility
+      config.headers.Authorization = `Bearer ${token}`;
       config.headers.token = `Trendora ${token}`;
       console.log('✅ Token added to request:', token.substring(0, 20) + '...');
       console.log('✅ Request headers after token addition:', config.headers);
