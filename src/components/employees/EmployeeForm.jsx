@@ -182,6 +182,15 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
     }));
   };
 
+  const submitDocument = (document) => {
+    // Remove from pending documents
+    setFormData(prev => ({
+      ...prev,
+      pendingDocuments: prev.pendingDocuments.filter(doc => doc !== document),
+      submittedDocuments: [...prev.submittedDocuments, document]
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -424,15 +433,35 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
                 {doc}
                 <button
                   type="button"
-                  onClick={() => removeDocument('pendingDocuments', doc)}
+                  onClick={() => submitDocument(doc)}
                   style={{
                     background: 'none',
                     border: 'none',
                     color: 'white',
                     marginLeft: '4px',
                     cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '2px 4px',
+                    borderRadius: '2px',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    marginRight: '2px'
+                  }}
+                  title="Submit document"
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeDocument('pendingDocuments', doc)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    marginLeft: '2px',
+                    cursor: 'pointer',
                     fontSize: '14px'
                   }}
+                  title="Remove document"
                 >
                   ×
                 </button>

@@ -172,6 +172,39 @@ const EmployeeManagement = () => {
     setShowEditDialog(true);
   };
 
+  const handleSubmitDocument = async (employeeId, document) => {
+    try {
+      setUserError('');
+      setUserSuccess('');
+      
+      // Find the employee
+      const employee = currentEmployees.find(emp => emp.id === employeeId || emp._id === employeeId);
+      if (!employee) {
+        setUserError('Employee not found');
+        return;
+      }
+
+      // Update the employee's documents
+      const updatedEmployee = {
+        ...employee,
+        pendingDocuments: employee.pendingDocuments.filter(doc => doc !== document),
+        submittedDocuments: [...(employee.submittedDocuments || []), document]
+      };
+
+      // Update the employee in the backend
+      await updateEmployee(employeeId, updatedEmployee);
+      setUserSuccess(`Document "${document}" submitted successfully!`);
+      
+      // Update the viewing employee if it's the same employee
+      if (viewingEmployee && (viewingEmployee.id === employeeId || viewingEmployee._id === employeeId)) {
+        setViewingEmployee(updatedEmployee);
+      }
+    } catch (error) {
+      console.error('Error submitting document:', error);
+      setUserError(`Error submitting document: ${error.message}`);
+    }
+  };
+
   const handleDelete = async (employeeId) => {
     console.log('Debug - handleDelete called with ID:', employeeId);
     
@@ -701,7 +734,18 @@ const EmployeeManagement = () => {
                           {viewingEmployee.pendingDocuments && viewingEmployee.pendingDocuments.length > 0 ? (
                             <Stack spacing={1}>
                               {viewingEmployee.pendingDocuments.map((doc, index) => (
-                                <Chip key={index} label={doc} color="warning" size="small" />
+                                <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip label={doc} color="warning" size="small" />
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="success"
+                                    onClick={() => handleSubmitDocument(viewingEmployee.id || viewingEmployee._id, doc)}
+                                    sx={{ minWidth: 'auto', px: 1, py: 0.5 }}
+                                  >
+                                    Submit
+                                  </Button>
+                                </Box>
                               ))}
                             </Stack>
                           ) : (
