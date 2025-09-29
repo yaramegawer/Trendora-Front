@@ -45,6 +45,14 @@ const DepartmentManagement = () => {
   // Use only real data from database - no fallback
   const currentDepartments = departments || [];
   
+  // Debug: Log what we're actually rendering
+  console.log('🔍 DepartmentManagement Render Debug:');
+  console.log('  - departments from hook:', departments);
+  console.log('  - currentDepartments:', currentDepartments);
+  console.log('  - currentDepartments.length:', currentDepartments.length);
+  console.log('  - loading:', loading);
+  console.log('  - error:', error);
+  
   
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -127,6 +135,12 @@ const DepartmentManagement = () => {
   const filteredDepartments = currentDepartments.filter(dept => 
     dept && dept.name && dept.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Debug: Log filtered departments
+  console.log('🔍 Filtered Departments Debug:');
+  console.log('  - searchTerm:', searchTerm);
+  console.log('  - filteredDepartments:', filteredDepartments);
+  console.log('  - filteredDepartments.length:', filteredDepartments.length);
 
 
   if (loading) {

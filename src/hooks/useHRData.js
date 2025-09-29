@@ -92,12 +92,14 @@ export const useDepartments = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching departments...');
+      console.log('🕐 Fetching departments at:', new Date().toISOString());
       const data = await departmentApi.getAllDepartments();
-      console.log('Departments data received:', data);
+      console.log('🕐 Departments data received at:', new Date().toISOString());
+      console.log('🕐 Departments data:', data);
+      console.log('🕐 Number of departments:', data ? data.length : 'null');
       setDepartments(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error fetching departments:', err);
+      console.error('❌ Error fetching departments:', err);
       setError(err.message || 'Failed to fetch departments');
       setDepartments([]);
     } finally {

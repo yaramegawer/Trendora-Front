@@ -215,27 +215,36 @@ export const departmentApi = {
   // Get all departments
   getAllDepartments: async () => {
     try {
-      console.log('API: Fetching departments from', API_CONFIG.ENDPOINTS.HR.DEPARTMENTS);
-      const response = await api.get(API_CONFIG.ENDPOINTS.HR.DEPARTMENTS);
-      console.log('API: Departments response received:', response.data);
+      console.log('🔍 API: Fetching departments from', API_CONFIG.ENDPOINTS.HR.DEPARTMENTS);
+      console.log('🔍 API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.DEPARTMENTS}`);
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      const response = await api.get(`${API_CONFIG.ENDPOINTS.HR.DEPARTMENTS}?t=${timestamp}`);
+      console.log('🔍 API: Response status:', response.status);
+      console.log('🔍 API: Response data:', response.data);
+      console.log('🔍 API: Response headers:', response.headers);
       
       // Check if response indicates an error
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to fetch departments';
+        console.log('❌ API: Backend returned error:', errorMessage);
         throw new Error(errorMessage);
       }
       
       // Extract data from the response structure
       if (response.data && response.data.success === true && response.data.data) {
-        console.log('API: Departments data extracted:', response.data.data);
+        console.log('✅ API: Departments data extracted:', response.data.data);
+        console.log('✅ API: Number of departments:', response.data.data.length);
         return Array.isArray(response.data.data) ? response.data.data : [];
       }
       
       // Fallback to direct response data (for backward compatibility)
-      console.log('API: Using direct response data:', response.data);
+      console.log('⚠️ API: Using direct response data:', response.data);
+      console.log('⚠️ API: Direct response type:', typeof response.data);
+      console.log('⚠️ API: Direct response is array:', Array.isArray(response.data));
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
-      console.error('API: Department fetch error:', error);
+      console.error('❌ API: Department fetch error:', error);
       const errorMessage = handleApiError(error, 'Failed to fetch departments');
       throw new Error(errorMessage);
     }
