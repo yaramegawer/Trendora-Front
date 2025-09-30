@@ -111,9 +111,12 @@ const EmployeeManagement = () => {
       } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
         setUserError(`Permission Error: ${error.message}`);
       } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t add this email because it already exists'))) {
-        setUserError(error.message);
+        alert(error.message);
       } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
-        setUserError('Can\'t add this email because it already exists');
+        alert('Can\'t add this email because it already exists');
+      } else if (error.message && error.message.includes('email')) {
+        // Catch any other email-related errors and show as alert only
+        alert(error.message);
       } else {
         setUserError(`Error adding employee: ${error.message}`);
       }
@@ -162,9 +165,12 @@ const EmployeeManagement = () => {
       } else if (error.message && error.message.includes('Authentication required')) {
         setUserError('Authentication Error: Please log in again.');
       } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t update this email because it already exists'))) {
-        setUserError(error.message);
+        alert(error.message);
       } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
-        setUserError('Can\'t update this email because it already exists');
+        alert('Can\'t update this email because it already exists');
+      } else if (error.message && error.message.includes('email')) {
+        // Catch any other email-related errors and show as alert only
+        alert(error.message);
       } else {
         setUserError(`Error updating employee: ${error.message}`);
       }

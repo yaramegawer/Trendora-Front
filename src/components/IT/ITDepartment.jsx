@@ -38,8 +38,18 @@ const ITDepartment = () => {
 
   // Tickets
   const [tickets, setTickets] = useState([
-    { id: 1, title: 'Reset password for HR', handled: false },
-    { id: 2, title: 'VPN access for Alice', handled: true },
+    { 
+      id: 1, 
+      title: 'Reset password for HR', 
+      handled: false,
+      submittedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
+    },
+    { 
+      id: 2, 
+      title: 'VPN access for Alice', 
+      handled: true,
+      submittedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+    },
   ]);
   const [newTicketTitle, setNewTicketTitle] = useState('');
 
@@ -200,7 +210,13 @@ const ITDepartment = () => {
   const addTicket = () => {
     const t = newTicketTitle.trim();
     if (!t) return;
-    setTickets(prev => [...prev, { id: Date.now(), title: t, handled: false }]);
+    const currentDate = new Date();
+    setTickets(prev => [...prev, { 
+      id: Date.now(), 
+      title: t, 
+      handled: false,
+      submittedDate: currentDate.toISOString()
+    }]);
     setNewTicketTitle('');
   };
 
@@ -461,7 +477,20 @@ const ITDepartment = () => {
           </div>
           {tickets.map(ticket => (
             <div key={ticket.id} className="project-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div className="project-name">{ticket.title}</div>
+              <div style={{ flex: 1 }}>
+                <div className="project-name">{ticket.title}</div>
+                {ticket.submittedDate && (
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                    Submitted: {new Date(ticket.submittedDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                )}
+              </div>
               <select
                 value={ticket.handled ? 'handled' : 'pending'}
                 onChange={(e) => setTicketHandled(ticket.id, e.target.value === 'handled')}

@@ -30,7 +30,7 @@ const ITDepartment = () => {
   // Use real API data
   const { employees, loading: employeesLoading, error: employeesError, updateRating } = useITEmployees();
   const { projects, loading: projectsLoading, error: projectsError, createProject, updateProject, deleteProject } = useITProjects();
-  const { tickets, loading: ticketsLoading, error: ticketsError, updateTicket, deleteTicket } = useITTickets();
+  const { tickets, loading: ticketsLoading, error: ticketsError, createTicket, updateTicket, deleteTicket } = useITTickets();
   const { user } = useAuth();
 
   // Debug logging
@@ -41,6 +41,16 @@ const ITDepartment = () => {
   console.log('- employees type:', typeof employees);
   console.log('- employees isArray:', Array.isArray(employees));
   console.log('- employees length:', employees?.length);
+  console.log('- tickets:', tickets);
+  console.log('- ticketsLoading:', ticketsLoading);
+  console.log('- ticketsError:', ticketsError);
+  console.log('- tickets type:', typeof tickets);
+  console.log('- tickets isArray:', Array.isArray(tickets));
+  console.log('- tickets length:', tickets?.length);
+  if (Array.isArray(tickets) && tickets.length > 0) {
+    console.log('- First ticket sample:', tickets[0]);
+    console.log('- First ticket createdAt:', tickets[0]?.createdAt);
+  }
   console.log('- user:', user);
   console.log('- token:', localStorage.getItem('token'));
   console.log('- isAuthenticated:', localStorage.getItem('isAuthenticated'));
@@ -53,8 +63,32 @@ const ITDepartment = () => {
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [newProjectProgress, setNewProjectProgress] = useState(0);
 
+  // New ticket form
+  const [newTicketTitle, setNewTicketTitle] = useState('');
+  const [newTicketDescription, setNewTicketDescription] = useState('');
+  const [newTicketPriority, setNewTicketPriority] = useState('medium');
+
   // View toggle: 'employees' | 'tickets' | 'projects'
   const [view, setView] = useState('employees');
+
+  // Date formatting function (same as main dashboard)
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Date formatting error:', error, 'for date:', dateString);
+      return 'Invalid Date';
+    }
+  };
 
   // Employee actions
   const handleEfficiencyChange = async (id, efficiency) => {
@@ -125,10 +159,33 @@ const ITDepartment = () => {
   };
 
   // Ticket actions
-  const handleTicketStatusChange = async (id, handled) => {
+  const handleCreateTicket = async () => {
+    if (!newTicketTitle.trim()) return;
     
     try {
-      await updateTicket(id, { handled });
+      const ticketData = {
+        title: newTicketTitle.trim(),
+        description: newTicketDescription.trim() || '',
+        priority: newTicketPriority,
+        status: 'open'
+      };
+      
+      await createTicket(ticketData);
+      
+      // Reset form
+      setNewTicketTitle('');
+      setNewTicketDescription('');
+      setNewTicketPriority('medium');
+    } catch (e) {
+      console.error('Failed to create ticket', e);
+    }
+  };
+
+  const handleTicketStatusChange = async (id, handled) => {
+    try {
+      // Map handled boolean to status string for API
+      const status = handled ? 'closed' : 'open';
+      await updateTicket(id, { status });
     } catch (e) {
       console.error('Failed to update ticket status', e);
     }
@@ -233,7 +290,7 @@ const ITDepartment = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">Open Tickets</p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => !t.handled).length : 0}
+                  {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => t.status === 'open' || !t.handled).length : 0}
                 </p>
                 <p className="text-xs text-red-600 mt-1">+3 new today</p>
               </div>
@@ -559,7 +616,7 @@ const ITDepartment = () => {
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">Support Tickets</h2>
               <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                {Array.isArray(tickets) ? tickets.filter(t => !t.handled).length : 0} open tickets
+                {Array.isArray(tickets) ? tickets.filter(t => t.status === 'open' || !t.handled).length : 0} open tickets
               </div>
             </div>
 
@@ -582,11 +639,18 @@ const ITDepartment = () => {
                 {tickets.map((ticket) => {
                   const priority = getTicketPriority(ticket.priority);
                   const PriorityIcon = priority.icon;
+                  const isHandled = ticket.status === 'closed' || ticket.handled === true;
+                  
+                  // Debug: Log ticket data to see what fields are available
+                  console.log('Ticket data:', ticket);
+                  console.log('Ticket createdAt:', ticket.createdAt);
+                  console.log('Ticket created_at:', ticket.created_at);
+                  
                   return (
                     <div key={ticket.id || ticket._id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                       <div className="flex justify-between items-start">
                         <div className="flex items-start space-x-4">
-                          <div className={`w-4 h-4 rounded-full mt-2 ${ticket.handled ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                          <div className={`w-4 h-4 rounded-full mt-2 ${isHandled ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                           <div className="flex-1">
                             <h3 className="text-lg font-semibold text-gray-900 mb-2">
                               {ticket.title || ticket.name || 'Untitled Ticket'}
@@ -600,30 +664,41 @@ const ITDepartment = () => {
                                 {ticket.employee.email && ` (${ticket.employee.email})`}
                               </p>
                             )}
+                            {ticket.description && (
+                              <p className="text-sm text-gray-600 mb-3">
+                                {ticket.description}
+                              </p>
+                            )}
+                            {(ticket.createdAt || ticket.created_at || ticket.submittedDate) && (
+                              <p className="text-sm text-gray-500 mb-3">
+                                <Clock className="w-4 h-4 inline mr-1" />
+                                Created: {formatDate(ticket.createdAt || ticket.created_at || ticket.submittedDate)}
+                              </p>
+                            )}
                             <div className="flex items-center space-x-3">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${priority.color}`}>
                                 <PriorityIcon className="w-3 h-3 mr-1" />
                                 {ticket.priority || 'medium'}
                               </span>
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                ticket.handled ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                isHandled ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                               }`}>
-                                {ticket.handled ? 'Resolved' : 'Open'}
+                                {isHandled ? 'Closed' : 'Open'}
                               </span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => handleTicketStatusChange(ticket.id || ticket._id, !ticket.handled)}
+                            onClick={() => handleTicketStatusChange(ticket.id || ticket._id, !isHandled)}
                             className={`p-3 rounded-xl transition-all duration-200 ${
-                              ticket.handled 
+                              isHandled 
                                 ? 'text-yellow-600 hover:bg-yellow-50' 
                                 : 'text-green-600 hover:bg-green-50'
                             }`}
-                            title={ticket.handled ? 'Reopen ticket' : 'Mark as resolved'}
+                            title={isHandled ? 'Reopen ticket' : 'Mark as closed'}
                           >
-                            {ticket.handled ? <Edit3 className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                            {isHandled ? <Edit3 className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
                           </button>
                           <button
                             onClick={() => handleDeleteTicket(ticket.id || ticket._id)}
@@ -647,6 +722,53 @@ const ITDepartment = () => {
                 <p className="text-gray-500">All support tickets have been resolved or no tickets exist.</p>
               </div>
             )}
+
+            {/* Add New Ticket Form */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Ticket</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Title *</label>
+                  <input
+                    type="text"
+                    value={newTicketTitle}
+                    onChange={(e) => setNewTicketTitle(e.target.value)}
+                    placeholder="Enter ticket title"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                  <textarea
+                    value={newTicketDescription}
+                    onChange={(e) => setNewTicketDescription(e.target.value)}
+                    placeholder="Enter ticket description (optional)"
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Priority</label>
+                  <select
+                    value={newTicketPriority}
+                    onChange={(e) => setNewTicketPriority(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <button
+                  onClick={handleCreateTicket}
+                  disabled={!newTicketTitle.trim()}
+                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Create Ticket
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

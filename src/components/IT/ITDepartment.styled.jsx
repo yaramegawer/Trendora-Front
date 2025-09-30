@@ -531,7 +531,7 @@ const ITDepartment = () => {
               <div>
                 <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>Open Tickets</p>
                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => !t.handled).length : 0}
+                  {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => t.status === 'open' || !t.handled).length : 0}
                 </p>
                 <p style={{ fontSize: '8px', color: '#ef4444', marginTop: '4px', margin: 0 }}>+3 new today</p>
               </div>
@@ -798,7 +798,7 @@ const ITDepartment = () => {
                   <div>
                     <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Open Tickets</h4>
                     <p style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                      {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => !t.handled).length : 0}
+                      {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => t.status === 'open' || !t.handled).length : 0}
                     </p>
                   </div>
                 </div>
@@ -1217,6 +1217,18 @@ const ITDepartment = () => {
                         <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0, fontStyle: 'italic' }}>
                           Submitted by: {ticket.employee.firstName} {ticket.employee.lastName}
                           {ticket.employee.email && ` (${ticket.employee.email})`}
+                        </p>
+                      )}
+                      {(ticket.createdAt || ticket.created_at || ticket.submittedDate) && (
+                        <p style={{ fontSize: '12px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                          <Clock size={12} style={{ marginRight: '4px', display: 'inline' }} />
+                          Created: {new Date(ticket.createdAt || ticket.created_at || ticket.submittedDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </p>
                       )}
                     </div>

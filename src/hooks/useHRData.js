@@ -35,7 +35,16 @@ export const useEmployees = () => {
       return newEmployee;
     } catch (err) {
       console.error('Hook: Add employee error:', err);
-      setError(err.message || 'Failed to add employee');
+      
+      // Don't set error state for duplicate email errors - they should only show as alerts
+      const errorMessage = err.message || '';
+      if (!errorMessage.includes('Can\'t add this email because it already exists') && 
+          !errorMessage.includes('already exists') && 
+          !errorMessage.includes('duplicate') && 
+          !errorMessage.includes('E11000')) {
+        setError(err.message || 'Failed to add employee');
+      }
+      
       throw err;
     }
   };
@@ -51,7 +60,16 @@ export const useEmployees = () => {
       return updatedEmployee;
     } catch (err) {
       console.error('Hook: Update employee error:', err);
-      setError(err.message || 'Failed to update employee');
+      
+      // Don't set error state for duplicate email errors - they should only show as alerts
+      const errorMessage = err.message || '';
+      if (!errorMessage.includes('Can\'t update this email because it already exists') && 
+          !errorMessage.includes('already exists') && 
+          !errorMessage.includes('duplicate') && 
+          !errorMessage.includes('E11000')) {
+        setError(err.message || 'Failed to update employee');
+      }
+      
       throw err;
     }
   };
