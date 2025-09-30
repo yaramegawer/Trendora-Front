@@ -147,11 +147,7 @@ const MinimalMainLayout = ({ currentUser, initialRoute = 'hr' }) => {
             </List>
 
             {/* Footer */}
-            <Stack sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-                Marketing Agency Dashboard v1.0
-              </Typography>
-            </Stack>
+
           </Stack>
         </Drawer>
 

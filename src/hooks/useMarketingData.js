@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { itEmployeeApi, itProjectApi, itTicketApi, itLeaveApi } from '../services/itApi';
+import { marketingEmployeeApi, marketingProjectApi, marketingTicketApi, marketingLeaveApi } from '../services/marketingApi';
 
-// Custom hook for IT employee data management
-export const useITEmployees = () => {
+// Custom hook for Marketing employee data management
+export const useMarketingEmployees = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -11,7 +11,7 @@ export const useITEmployees = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await itEmployeeApi.getAllEmployees();
+      const response = await marketingEmployeeApi.getAllEmployees();
       
       // Handle different response formats
       let employeesData = [];
@@ -26,11 +26,32 @@ export const useITEmployees = () => {
       
       setEmployees(employeesData);
     } catch (err) {
-      console.error('IT Employees API Error:', err);
+      console.error('Marketing Employees API Error:', err);
       setError(err.message);
       setEmployees([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateRating = async (id, ratingData) => {
+    console.log('🔍 updateRating called in hook with:', { id, ratingData });
+    try {
+      const updatedEmployee = await marketingEmployeeApi.updateRating(id, ratingData);
+      await fetchEmployees(); // Refresh the list
+      return updatedEmployee;
+    } catch (err) {
+      console.error('Error updating employee rating:', err);
+      throw err;
+    }
+  };
+
+  const getRating = async (id) => {
+    try {
+      return await marketingEmployeeApi.getRating(id);
+    } catch (err) {
+      console.error('Error getting employee rating:', err);
+      throw err;
     }
   };
 
@@ -42,12 +63,14 @@ export const useITEmployees = () => {
     employees,
     loading,
     error,
-    fetchEmployees
+    fetchEmployees,
+    updateRating,
+    getRating
   };
 };
 
-// Custom hook for IT project data management
-export const useITProjects = () => {
+// Custom hook for Marketing project data management
+export const useMarketingProjects = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -56,7 +79,7 @@ export const useITProjects = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await itProjectApi.getAllProjects();
+      const response = await marketingProjectApi.getAllProjects();
       
       // Handle different response formats
       let projectsData = [];
@@ -71,15 +94,8 @@ export const useITProjects = () => {
       
       setProjects(projectsData);
     } catch (err) {
-      console.warn('IT Projects API Error, using empty array:', err.message);
-      
-      // Handle specific ObjectId casting errors silently
-      if (err.message && err.message.includes('Cast to ObjectId failed')) {
-        setError(null); // Don't set error for this specific case
-      } else {
-        setError(err.message);
-      }
-      
+      console.error('Marketing Projects API Error:', err);
+      setError(err.message);
       setProjects([]);
     } finally {
       setLoading(false);
@@ -88,7 +104,7 @@ export const useITProjects = () => {
 
   const createProject = async (projectData) => {
     try {
-      const newProject = await itProjectApi.createProject(projectData);
+      const newProject = await marketingProjectApi.createProject(projectData);
       await fetchProjects(); // Refresh the list
       return newProject;
     } catch (err) {
@@ -99,7 +115,7 @@ export const useITProjects = () => {
 
   const updateProject = async (id, projectData) => {
     try {
-      const updatedProject = await itProjectApi.updateProject(id, projectData);
+      const updatedProject = await marketingProjectApi.updateProject(id, projectData);
       await fetchProjects(); // Refresh the list
       return updatedProject;
     } catch (err) {
@@ -110,7 +126,7 @@ export const useITProjects = () => {
 
   const deleteProject = async (id) => {
     try {
-      await itProjectApi.deleteProject(id);
+      await marketingProjectApi.deleteProject(id);
       await fetchProjects(); // Refresh the list
     } catch (err) {
       console.error('Error deleting project:', err);
@@ -133,8 +149,8 @@ export const useITProjects = () => {
   };
 };
 
-// Custom hook for IT ticket data management
-export const useITTickets = () => {
+// Custom hook for Marketing ticket data management
+export const useMarketingTickets = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -143,7 +159,7 @@ export const useITTickets = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await itTicketApi.getAllTickets();
+      const response = await marketingTicketApi.getAllTickets();
       
       // Handle different response formats
       let ticketsData = [];
@@ -158,7 +174,7 @@ export const useITTickets = () => {
       
       setTickets(ticketsData);
     } catch (err) {
-      console.error('IT Tickets API Error:', err);
+      console.error('Marketing Tickets API Error:', err);
       setError(err.message);
       setTickets([]);
     } finally {
@@ -168,7 +184,7 @@ export const useITTickets = () => {
 
   const createTicket = async (ticketData) => {
     try {
-      const newTicket = await itTicketApi.createTicket(ticketData);
+      const newTicket = await marketingTicketApi.createTicket(ticketData);
       await fetchTickets(); // Refresh the list
       return newTicket;
     } catch (err) {
@@ -179,7 +195,7 @@ export const useITTickets = () => {
 
   const updateTicket = async (id, ticketData) => {
     try {
-      const updatedTicket = await itTicketApi.updateTicket(id, ticketData);
+      const updatedTicket = await marketingTicketApi.updateTicket(id, ticketData);
       await fetchTickets(); // Refresh the list
       return updatedTicket;
     } catch (err) {
@@ -190,7 +206,7 @@ export const useITTickets = () => {
 
   const deleteTicket = async (id) => {
     try {
-      await itTicketApi.deleteTicket(id);
+      await marketingTicketApi.deleteTicket(id);
       await fetchTickets(); // Refresh the list
     } catch (err) {
       console.error('Error deleting ticket:', err);
@@ -213,8 +229,8 @@ export const useITTickets = () => {
   };
 };
 
-// Custom hook for IT leave data management
-export const useITLeaves = () => {
+// Custom hook for Marketing leave data management
+export const useMarketingLeaves = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -223,7 +239,7 @@ export const useITLeaves = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await itLeaveApi.getEmployeeLeaves();
+      const response = await marketingLeaveApi.getEmployeeLeaves();
       
       // Handle different response formats
       let leavesData = [];
@@ -238,7 +254,7 @@ export const useITLeaves = () => {
       
       setLeaves(leavesData);
     } catch (err) {
-      console.error('IT Leaves API Error:', err);
+      console.error('Marketing Leaves API Error:', err);
       setError(err.message);
       setLeaves([]);
     } finally {
@@ -248,7 +264,7 @@ export const useITLeaves = () => {
 
   const submitLeave = async (leaveData) => {
     try {
-      const newLeave = await itLeaveApi.submitEmployeeLeave(leaveData);
+      const newLeave = await marketingLeaveApi.submitEmployeeLeave(leaveData);
       await fetchLeaves(); // Refresh the list
       return newLeave;
     } catch (err) {
@@ -259,7 +275,7 @@ export const useITLeaves = () => {
 
   const updateLeaveStatus = async (id, leaveData) => {
     try {
-      const updatedLeave = await itLeaveApi.updateLeaveStatus(id, leaveData);
+      const updatedLeave = await marketingLeaveApi.updateLeaveStatus(id, leaveData);
       await fetchLeaves(); // Refresh the list
       return updatedLeave;
     } catch (err) {
@@ -270,7 +286,7 @@ export const useITLeaves = () => {
 
   const deleteLeave = async (id) => {
     try {
-      await itLeaveApi.deleteLeave(id);
+      await marketingLeaveApi.deleteLeave(id);
       await fetchLeaves(); // Refresh the list
     } catch (err) {
       console.error('Error deleting leave:', err);

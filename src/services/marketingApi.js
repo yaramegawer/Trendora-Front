@@ -10,8 +10,8 @@ const apiCall = async (endpoint, options = {}) => {
     if (response.data && response.data.success === true) {
       return response.data.data || response.data;
     } else if (response.data && response.data.success === false) {
-      // Handle specific ObjectId casting errors gracefully
-      if (response.data.message && response.data.message.includes('Cast to ObjectId failed')) {
+      // Handle specific "Page not found" errors gracefully
+      if (response.data.message === 'Page not found') {
         return [];
       }
       
@@ -36,15 +36,15 @@ const apiCall = async (endpoint, options = {}) => {
 };
 
 // Employee API functions
-export const itEmployeeApi = {
-  // Get all IT employees
+export const marketingEmployeeApi = {
+  // Get all Marketing employees
   getAllEmployees: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.EMPLOYEES);
+    return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.EMPLOYEES);
   },
 
   // Update employee rating
   updateRating: async (id, ratingData) => {
-    const endpoint = API_CONFIG.ENDPOINTS.IT.EMPLOYEE_RATING.replace(':id', id);
+    const endpoint = API_CONFIG.ENDPOINTS.MARKETING.EMPLOYEE_RATING.replace(':id', id);
     return await apiCall(endpoint, {
       method: 'PUT',
       data: ratingData
@@ -53,48 +53,55 @@ export const itEmployeeApi = {
 
   // Get employee rating
   getRating: async (id) => {
-    const endpoint = API_CONFIG.ENDPOINTS.IT.EMPLOYEE_RATING.replace(':id', id);
+    const endpoint = API_CONFIG.ENDPOINTS.MARKETING.EMPLOYEE_RATING.replace(':id', id);
     return await apiCall(endpoint);
   }
 };
 
 // Project API functions
-export const itProjectApi = {
-  // Get all IT projects
+export const marketingProjectApi = {
+  // Get all Marketing projects
   getAllProjects: async () => {
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS);
-      return response;
+      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.PROJECTS);
     } catch (error) {
-      // Handle specific ObjectId casting errors gracefully
-      if (error.message && error.message.includes('Cast to ObjectId failed')) {
-        return [];
-      }
-      
-      throw error;
+      // Return empty array as fallback
+      return [];
     }
   },
 
   // Create new project
   createProject: async (projectData) => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
-      method: 'POST',
-      data: projectData
-    });
+    try {
+      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.PROJECTS, {
+        method: 'POST',
+        data: projectData
+      });
+    } catch (error) {
+      if (error.message.includes('Page not found')) {
+        throw new Error('Digital Marketing projects endpoint not found. Please check if the backend route is properly configured at /api/digitalMarketing/projects');
+      }
+      throw error;
+    }
   },
 
   // Update project
   updateProject: async (id, projectData) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.PROJECTS}/${id}`;
-    return await apiCall(endpoint, {
-      method: 'PUT',
-      data: projectData
-    });
+    const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.PROJECTS}/${id}`;
+    
+    try {
+      return await apiCall(endpoint, {
+        method: 'PUT',
+        data: projectData
+      });
+    } catch (error) {
+      throw error;
+    }
   },
 
   // Delete project
   deleteProject: async (id) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.PROJECTS}/${id}`;
+    const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.PROJECTS}/${id}`;
     return await apiCall(endpoint, {
       method: 'DELETE'
     });
@@ -102,15 +109,19 @@ export const itProjectApi = {
 };
 
 // Ticket API functions
-export const itTicketApi = {
-  // Get all IT tickets
+export const marketingTicketApi = {
+  // Get all Marketing tickets
   getAllTickets: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS);
+    try {
+      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.TICKETS);
+    } catch (error) {
+      return []; // Return empty array as fallback
+    }
   },
 
   // Create new ticket
   createTicket: async (ticketData) => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
+    return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.TICKETS, {
       method: 'POST',
       data: ticketData
     });
@@ -118,7 +129,7 @@ export const itTicketApi = {
 
   // Update ticket
   updateTicket: async (id, ticketData) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.TICKETS}/${id}`;
+    const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.TICKETS}/${id}`;
     return await apiCall(endpoint, {
       method: 'PUT',
       data: ticketData
@@ -127,7 +138,7 @@ export const itTicketApi = {
 
   // Delete ticket
   deleteTicket: async (id) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.TICKETS}/${id}`;
+    const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.TICKETS}/${id}`;
     return await apiCall(endpoint, {
       method: 'DELETE'
     });
@@ -135,15 +146,19 @@ export const itTicketApi = {
 };
 
 // Leave API functions
-export const itLeaveApi = {
+export const marketingLeaveApi = {
   // Get employee leaves
   getEmployeeLeaves: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.LEAVES);
+    try {
+      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.LEAVES);
+    } catch (error) {
+      return []; // Return empty array as fallback
+    }
   },
 
   // Submit employee leave
   submitEmployeeLeave: async (leaveData) => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.LEAVES, {
+    return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.LEAVES, {
       method: 'POST',
       data: leaveData
     });
@@ -151,7 +166,7 @@ export const itLeaveApi = {
 
   // Update leave status
   updateLeaveStatus: async (id, leaveData) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.LEAVES}/${id}`;
+    const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.LEAVES}/${id}`;
     return await apiCall(endpoint, {
       method: 'PUT',
       data: leaveData
@@ -160,7 +175,7 @@ export const itLeaveApi = {
 
   // Delete leave
   deleteLeave: async (id) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.LEAVES}/${id}`;
+    const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.LEAVES}/${id}`;
     return await apiCall(endpoint, {
       method: 'DELETE'
     });

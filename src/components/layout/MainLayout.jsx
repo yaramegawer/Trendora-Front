@@ -7,11 +7,12 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import HRDepartment from '../hr/HRDepartment';
 import PlaceholderDepartment from '../departments/PlaceholderDepartment';
-import OperationDepartment from '../operation/OperationDepartment.styled';
+import OperationDepartment from '../operation/OperationDepartment';
 import ComputerOutlinedIcon from '@mui/icons-material/ComputerOutlined';
 import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
-import ITDepartment from '../IT/ITDepartment.styled';
+import ITDepartment from '../IT/ITDepartment';
+import DigitalMarketingDepartment from '../marketing/DigitalMarketingDepartment';
 
 const drawerWidth = 280;
 
@@ -35,6 +36,8 @@ const MainLayout = ({ currentUser, initialRoute = 'hr' }) => {
         return (
           <ITDepartment />
         );
+      case 'marketing':
+        return <DigitalMarketingDepartment />;
       case 'operation':
         return <OperationDepartment />;
       case 'accounting':

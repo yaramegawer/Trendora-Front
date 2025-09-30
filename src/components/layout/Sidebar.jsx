@@ -15,6 +15,7 @@ import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import ComputerOutlinedIcon from '@mui/icons-material/ComputerOutlined';
 import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import logoImage from '../../assets/logo2-removebg-preview.png';
 
 const drawerWidth = 280;
@@ -22,6 +23,7 @@ const drawerWidth = 280;
 const menuItems = [
   { id: 'hr', label: 'HR Department', icon: PeopleAltOutlinedIcon },
   { id: 'it', label: 'IT Department', icon: ComputerOutlinedIcon },
+  { id: 'marketing', label: 'Digital Marketing', icon: CampaignOutlinedIcon },
   { id: 'operation', label: 'Operations', icon: BusinessCenterOutlinedIcon },
   { id: 'accounting', label: 'Accounting', icon: AccountBalanceOutlinedIcon },
 ];
@@ -110,11 +112,7 @@ const Sidebar = ({ currentUser, activeSection, onSectionChange, open = true }) =
         <Divider />
         
         {/* Footer */}
-        <Stack className="p-4">
-          <Typography variant="caption" color="text.secondary" className="text-center">
-            Marketing Agency Dashboard v1.0
-          </Typography>
-        </Stack>
+       
       </Stack>
     </Drawer>
   );

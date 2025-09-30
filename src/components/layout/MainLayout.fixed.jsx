@@ -8,6 +8,7 @@ import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import ComputerOutlinedIcon from '@mui/icons-material/ComputerOutlined';
 import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
@@ -16,6 +17,7 @@ import logoImage from '../../assets/logo2-removebg-preview.png';
 // Lazy load components for better LCP
 const HRDepartment = lazy(() => import('../hr/HRDepartment.new'));
 const ITDepartment = lazy(() => import('../IT/ITDepartment.styled'));
+const DigitalMarketingDepartment = lazy(() => import('../marketing/DigitalMarketingDepartment'));
 const OperationDepartment = lazy(() => import('../operation/OperationDepartment.styled'));
 const AccountingDepartment = lazy(() => import('../accounting/AccountingDepartment'));
 const SalesDepartment = lazy(() => import('../sales/SalesDepartment'));
@@ -62,6 +64,7 @@ const getMenuItems = (userRole) => {
     { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon },
     { id: 'hr', label: 'HR Department', icon: PeopleAltOutlinedIcon },
     { id: 'it', label: 'IT Department', icon: ComputerOutlinedIcon },
+    { id: 'marketing', label: 'Digital Marketing', icon: CampaignOutlinedIcon },
     { id: 'operation', label: 'Operations Department', icon: BusinessCenterOutlinedIcon },
     { id: 'accounting', label: 'Accounting Department', icon: AccountBalanceOutlinedIcon },
     { id: 'sales', label: 'Sales Department', icon: TrendingUpOutlinedIcon },
@@ -77,6 +80,7 @@ const getSectionTitle = (sectionId, userRole) => {
     dashboard: 'Dashboard',
     hr: 'HR Department',
     it: 'IT Department',
+    marketing: 'Digital Marketing Department',
     operation: 'Operations Department',
     accounting: 'Accounting Department',
     sales: 'Sales Department',
@@ -111,6 +115,12 @@ const renderContent = (activeSection, userRole) => {
       return (
         <Suspense fallback={<DashboardSkeleton />}>
           <ITDepartment />
+        </Suspense>
+      );
+    case 'marketing':
+      return (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <DigitalMarketingDepartment />
         </Suspense>
       );
     case 'operation':

@@ -1,9 +1,10 @@
 import React, { useMemo, memo, useState, useEffect } from 'react';
 import { Box, Typography, Card, CardContent, Grid, Stack, Avatar, Button, CircularProgress, Alert, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from '@mui/material';
-import { Dashboard, People, Computer, BusinessCenter, AccountBalance, TrendingUp, EventNote } from '@mui/icons-material';
+import { Dashboard, People, Computer, BusinessCenter, AccountBalance, TrendingUp, EventNote, Campaign } from '@mui/icons-material';
 import { useEmployees, useDepartments, useLeaves, usePayroll } from '../../hooks/useHRData';
 import { useITProjects } from '../../hooks/useITData';
 import { useOperationCampaigns, useOperationLeaves, useOperationEmployees } from '../../hooks/useOperationData';
+import { useMarketingProjects, useMarketingTickets } from '../../hooks/useMarketingData';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
 
@@ -48,6 +49,8 @@ const OverviewDashboard = memo(() => {
     const { campaigns: operationCampaigns, loading: operationCampaignsLoading, error: operationCampaignsError } = useOperationCampaigns();
     const { leaves: operationLeaves, loading: operationLeavesLoading, error: operationLeavesError } = useOperationLeaves();
     const { employees: operationEmployees, loading: operationEmployeesLoading, error: operationEmployeesError } = useOperationEmployees();
+    const { projects: marketingProjects, loading: marketingProjectsLoading, error: marketingProjectsError } = useMarketingProjects();
+    const { tickets: marketingTickets, loading: marketingTicketsLoading, error: marketingTicketsError } = useMarketingTickets();
 
     // Fetch user leaves
     const fetchUserLeaves = async () => {
@@ -144,6 +147,24 @@ const OverviewDashboard = memo(() => {
     const pendingTransactions = Array.isArray(payroll) ? payroll.filter(p => p.status === 'pending').length : 0;
     const completedTransactions = Array.isArray(payroll) ? payroll.filter(p => p.status === 'completed' || p.status === 'paid').length : 0;
     
+    // Calculate Marketing statistics
+    const totalMarketingProjects = Array.isArray(marketingProjects) ? marketingProjects.length : 0;
+    const activeMarketingProjects = Array.isArray(marketingProjects) ? marketingProjects.filter(project => 
+      project.status === 'active' || project.status === 'in-progress' || project.status === 'ongoing'
+    ).length : 0;
+    const completedMarketingProjects = Array.isArray(marketingProjects) ? marketingProjects.filter(project => 
+      project.status === 'completed' || project.status === 'done' || project.status === 'finished'
+    ).length : 0;
+    
+    // Calculate Marketing tickets statistics
+    const totalMarketingTickets = Array.isArray(marketingTickets) ? marketingTickets.length : 0;
+    const openMarketingTickets = Array.isArray(marketingTickets) ? marketingTickets.filter(ticket => 
+      ticket.status === 'open' || ticket.status === 'pending' || ticket.status === 'in-progress'
+    ).length : 0;
+    const resolvedMarketingTickets = Array.isArray(marketingTickets) ? marketingTickets.filter(ticket => 
+      ticket.status === 'resolved' || ticket.status === 'closed' || ticket.status === 'completed'
+    ).length : 0;
+
     // Calculate Sales statistics (mock data for now - would need sales API)
     const totalLeads = 0; // Would need sales API
     const convertedLeads = 0; // Would need sales API
@@ -167,11 +188,17 @@ const OverviewDashboard = memo(() => {
       totalTransactions,
       pendingTransactions,
       completedTransactions,
+      totalMarketingProjects,
+      activeMarketingProjects,
+      completedMarketingProjects,
+      totalMarketingTickets,
+      openMarketingTickets,
+      resolvedMarketingTickets,
       totalLeads,
       convertedLeads,
       pendingLeads
     };
-  }, [employees, departments, leaves, payroll, itProjects, operationCampaigns]);
+  }, [employees, departments, leaves, payroll, itProjects, operationCampaigns, marketingProjects, marketingTickets]);
 
   const {
     totalEmployees,
@@ -191,6 +218,12 @@ const OverviewDashboard = memo(() => {
     totalTransactions,
     pendingTransactions,
     completedTransactions,
+    totalMarketingProjects,
+    activeMarketingProjects,
+    completedMarketingProjects,
+    totalMarketingTickets,
+    openMarketingTickets,
+    resolvedMarketingTickets,
     totalLeads,
     convertedLeads,
     pendingLeads
@@ -584,6 +617,18 @@ const OverviewDashboard = memo(() => {
         completed: completedTransactions 
       },
       description: 'Financial Management'
+    },
+    {
+      id: 'marketing',
+      name: 'Digital Marketing',
+      icon: Campaign,
+      color: 'secondary',
+      stats: { 
+        projects: totalMarketingProjects, 
+        active: activeMarketingProjects, 
+        completed: completedMarketingProjects 
+      },
+      description: 'Digital Marketing'
     },
     {
       id: 'sales',

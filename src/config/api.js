@@ -30,6 +30,14 @@ export const API_CONFIG = {
       CAMPAIGNS: '/operation/campaigns',
       LEAVES: '/operation/leaves',
       TICKETS: '/operation/tickets',
+    },
+    MARKETING: {
+      EMPLOYEES: '/digitalMarketing/employees/digitalMarketing',
+      EMPLOYEE_RATING: '/digitalMarketing/employees/:id/rate',
+      GET_RATING: '/digitalMarketing/employees/:id/rate',
+      PROJECTS: '/digitalMarketing/projects',
+      TICKETS: '/digitalMarketing/tickets',
+      LEAVES: '/digitalMarketing/leaves',
     }
   }
 };
