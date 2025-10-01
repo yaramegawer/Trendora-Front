@@ -48,12 +48,27 @@ import {
   Visibility
 } from '@mui/icons-material';
 import { useEmployees, useDepartments } from '../../hooks/useHRData';
-import { useAuth } from '../../contexts/AuthContext';
+import SimplePagination from '../common/SimplePagination';
 import EmployeeForm from './EmployeeForm';
+import { useAuth } from '../../contexts/AuthContext';
 import { canAdd, canEdit, canDelete, showPermissionError } from '../../utils/permissions';
 
 const EmployeeManagement = () => {
-  const { employees, loading, error, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
+  // Server-side pagination state - declare first
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  
+  const { 
+    employees, 
+    loading, 
+    error, 
+    totalEmployees,
+    addEmployee, 
+    updateEmployee, 
+    deleteEmployee,
+    goToPage,
+    changePageSize
+  } = useEmployees(currentPage, pageSize);
   const { departments } = useDepartments();
   const { user, isAuthenticated } = useAuth();
   
@@ -123,7 +138,7 @@ const EmployeeManagement = () => {
     }
   };
 
-  const handleUpdateEmployee = async (employeeData) => {
+  const handleEditEmployee = async (employeeData) => {
     if (!canEditEmployees()) {
       showPermissionError('edit employees', user);
       setShowEditDialog(false);
@@ -343,6 +358,22 @@ const EmployeeManagement = () => {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
+  // Client-side pagination for filtered results
+  const totalFilteredPages = Math.ceil(filteredEmployees.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
+  
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, departmentFilter, statusFilter]);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height={400}>
@@ -550,7 +581,7 @@ const EmployeeManagement = () => {
                   </TableRow>
             </TableHead>
             <TableBody>
-              {filteredEmployees.map((employee, index) => (
+              {paginatedEmployees.map((employee, index) => (
                 <TableRow key={employee.id || employee._id || `employee-${index}`} hover>
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={2}>
@@ -612,6 +643,17 @@ const EmployeeManagement = () => {
             </Typography>
           </Box>
         )}
+        
+        {/* Client-side Pagination */}
+        {filteredEmployees.length > 0 && (
+          <SimplePagination
+            currentPage={currentPage}
+            totalPages={totalFilteredPages}
+            totalItems={filteredEmployees.length}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
+        )}
       </Card>
 
       {/* Action Menu */}
@@ -663,11 +705,15 @@ const EmployeeManagement = () => {
           <Dialog open={showAddDialog} onClose={() => setShowAddDialog(false)} maxWidth="md" fullWidth>
             <DialogTitle>Add Employee</DialogTitle>
             <DialogContent>
-              <EmployeeForm
-                departments={currentDepartments}
-                onSave={handleAddEmployee}
-                onCancel={() => setShowAddDialog(false)}
-              />
+              <Box sx={{ pt: 2 }}>
+                <EmployeeForm
+                  departments={departments}
+                  onSave={handleAddEmployee}
+                  onCancel={() => setShowAddDialog(false)}
+                  loading={loading}
+                  error={error}
+                />
+              </Box>
             </DialogContent>
           </Dialog>
 
@@ -675,15 +721,16 @@ const EmployeeManagement = () => {
           <Dialog open={showEditDialog} onClose={() => setShowEditDialog(false)} maxWidth="md" fullWidth>
             <DialogTitle>Edit Employee</DialogTitle>
             <DialogContent>
-              <EmployeeForm
-                departments={currentDepartments}
-                employee={editingEmployee}
-                onSave={handleUpdateEmployee}
-                onCancel={() => {
-                  setShowEditDialog(false);
-                  setEditingEmployee(null);
-                }}
-              />
+              <Box sx={{ pt: 2 }}>
+                <EmployeeForm
+                  employee={selectedEmployee}
+                  departments={departments}
+                  onSave={handleEditEmployee}
+                  onCancel={() => setShowEditDialog(false)}
+                  loading={loading}
+                  error={error}
+                />
+              </Box>
             </DialogContent>
           </Dialog>
 

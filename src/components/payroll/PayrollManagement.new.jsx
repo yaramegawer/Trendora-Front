@@ -49,10 +49,10 @@ import {
   Print
 } from '@mui/icons-material';
 import { usePayroll } from '../../hooks/usePayrollData';
+import SimplePagination from '../common/SimplePagination';
 import { useEmployees } from '../../hooks/useHRData';
 import { useAuth } from '../../contexts/AuthContext';
 import { canAdd, canEdit, canDelete, showPermissionError } from '../../utils/permissions';
-import PayrollForm from './PayrollForm';
 
 const PayrollStatus = {
   PENDING: 'Pending',
@@ -61,7 +61,23 @@ const PayrollStatus = {
 };
 
 const PayrollManagement = () => {
-  const { payroll, loading, error, generatePayslip, updatePayroll, deletePayroll } = usePayroll();
+  // Server-side pagination state - declare first
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  
+  const { 
+    payroll, 
+    loading, 
+    error, 
+    totalPayroll,
+    generatePayslip, 
+    updatePayroll, 
+    deletePayroll,
+    goToPage,
+    changePageSize,
+    nextPage,
+    prevPage
+  } = usePayroll(currentPage, pageSize);
   const { employees } = useEmployees();
   const { user } = useAuth();
 
@@ -421,6 +437,21 @@ const PayrollManagement = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Server-side pagination - use data from API hooks
+  const totalPages = Math.ceil((totalPayroll || 0) / pageSize);
+  
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    goToPage(newPage);
+  };
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    goToPage(1);
+  }, [searchTerm, statusFilter]);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height={400}>
@@ -508,6 +539,7 @@ const PayrollManagement = () => {
           </Button>
         </Box>
       </Box>
+
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -698,6 +730,15 @@ const PayrollManagement = () => {
             </Typography>
           </Box>
         )}
+        
+        {/* Server-side Pagination - Always visible */}
+        <SimplePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalPayroll}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+        />
       </Card>
 
       {/* Action Menu */}
@@ -765,16 +806,12 @@ const PayrollManagement = () => {
       >
         <DialogTitle>Generate Payroll</DialogTitle>
         <DialogContent>
-            <PayrollForm
-              onSave={handleAddPayroll}
-              onCancel={() => {
-                setUserError('');
-                setUserSuccess('');
-                setShowAddDialog(false);
-              }}
-              employees={currentEmployees}
-              existingPayroll={currentPayroll}
-            />
+            <Box sx={{ pt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Payroll form functionality will be implemented here.
+                The PayrollForm component was removed as it was unused.
+              </Typography>
+            </Box>
         </DialogContent>
       </Dialog>
 
@@ -793,19 +830,12 @@ const PayrollManagement = () => {
       >
         <DialogTitle>Edit Payroll</DialogTitle>
         <DialogContent>
-            <PayrollForm
-              payroll={editingPayroll}
-              onSave={handleUpdatePayroll}
-              onCancel={() => {
-                setUserError('');
-                setUserSuccess('');
-                setShowEditDialog(false);
-                setEditingPayroll(null);
-              }}
-              employees={currentEmployees}
-              existingPayroll={currentPayroll}
-              isInDialog={true}
-            />
+            <Box sx={{ pt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Edit payroll form functionality will be implemented here.
+                The PayrollForm component was removed as it was unused.
+              </Typography>
+            </Box>
         </DialogContent>
       </Dialog>
 

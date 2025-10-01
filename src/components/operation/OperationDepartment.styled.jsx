@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   Megaphone, 
@@ -32,11 +32,32 @@ import { useOperationEmployees, useOperationCampaigns } from '../../hooks/useOpe
 import { operationTicketApi } from '../../services/operationApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { canSubmitLeave, canCreateCampaigns, showPermissionError } from '../../utils/permissions';
+import SimplePagination from '../common/SimplePagination';
 
 const OperationDepartment = () => {
-  // Use real API data
+  // Pagination state
+  const [campaignsCurrentPage, setCampaignsCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+
+  // Filter state for campaigns
+  const [campaignSearchTerm, setCampaignSearchTerm] = useState('');
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState('all');
+  const [showCampaignStatusDropdown, setShowCampaignStatusDropdown] = useState(false);
+
+  // Use real API data with pagination
   const { employees, loading: employeesLoading, error: employeesError, updateEmployeeRating, fetchEmployees } = useOperationEmployees();
-  const { campaigns, loading: campaignsLoading, error: campaignsError, createCampaign, updateCampaign, deleteCampaign } = useOperationCampaigns();
+  const { 
+    campaigns, 
+    loading: campaignsLoading, 
+    error: campaignsError, 
+    totalCampaigns,
+    currentPage: campaignsPage,
+    totalPages: campaignsTotalPages,
+    goToPage: campaignsGoToPage,
+    createCampaign, 
+    updateCampaign, 
+    deleteCampaign 
+  } = useOperationCampaigns(campaignsCurrentPage, pageSize);
   const { user } = useAuth();
 
   // State for forms
@@ -46,6 +67,61 @@ const OperationDepartment = () => {
   // State for campaign editing
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [showEditCampaign, setShowEditCampaign] = useState(false);
+
+  // Filter campaigns by search term and status
+  const filteredCampaigns = Array.isArray(campaigns) ? campaigns.filter(campaign => {
+    // Search filter
+    const matchesSearch = campaignSearchTerm === '' || 
+      (campaign.name && campaign.name.toLowerCase().includes(campaignSearchTerm.toLowerCase())) ||
+      (campaign.description && campaign.description.toLowerCase().includes(campaignSearchTerm.toLowerCase()));
+    
+    // Status filter
+    const matchesStatus = campaignStatusFilter === 'all' || 
+      (campaign.status && campaign.status.toLowerCase() === campaignStatusFilter.toLowerCase());
+    
+    return matchesSearch && matchesStatus;
+  }) : [];
+
+  // Client-side pagination for filtered campaigns
+  const campaignsStartIndex = (campaignsCurrentPage - 1) * pageSize;
+  const campaignsEndIndex = campaignsStartIndex + pageSize;
+  const paginatedCampaigns = filteredCampaigns.slice(campaignsStartIndex, campaignsEndIndex);
+
+  // Pagination handlers
+  const handleCampaignsPageChange = (newPage) => {
+    console.log('Operation Department Styled: Campaigns page change to:', newPage);
+    setCampaignsCurrentPage(newPage);
+    
+    // Use server-side pagination when no filters are applied
+    if (!campaignSearchTerm && campaignStatusFilter === 'all') {
+      campaignsGoToPage(newPage);
+    }
+    // Client-side pagination is handled by the filteredCampaigns logic when filters are active
+  };
+
+  const handleCampaignSearchChange = (searchTerm) => {
+    setCampaignSearchTerm(searchTerm);
+    setCampaignsCurrentPage(1); // Reset to first page when search changes
+  };
+
+  const handleCampaignStatusFilterChange = (status) => {
+    setCampaignStatusFilter(status);
+    setCampaignsCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCampaignStatusDropdown && !event.target.closest('.campaign-status-dropdown-container')) {
+        setShowCampaignStatusDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCampaignStatusDropdown]);
   
 
   // State for employee ratings
@@ -1000,6 +1076,188 @@ const OperationDepartment = () => {
               </button>
             </div>
 
+            {/* Search and Filter Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                backgroundColor: '#ffffff', 
+                borderRadius: '12px', 
+                padding: '16px',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  {/* Search Bar */}
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ 
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '100%'
+                    }}>
+                      <label style={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '12px',
+                        backgroundColor: '#ffffff',
+                        padding: '0 4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        zIndex: 1
+                      }}>
+                        Search Campaigns
+                      </label>
+                      <input
+                        type="text"
+                        value={campaignSearchTerm}
+                        onChange={(e) => handleCampaignSearchChange(e.target.value)}
+                        placeholder="Search by name or description..."
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          border: '1px solid #d1d5db',
+                          backgroundColor: '#ffffff',
+                          color: '#374151',
+                          fontSize: '14px',
+                          fontWeight: '400',
+                          outline: 'none',
+                          transition: 'all 0.2s ease',
+                          boxShadow: 'none'
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = '#9ca3af';
+                          e.target.style.backgroundColor = '#f9fafb';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = '#d1d5db';
+                          e.target.style.backgroundColor = '#ffffff';
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ 
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '100%'
+                    }}>
+                      <label style={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '12px',
+                        backgroundColor: '#ffffff',
+                        padding: '0 4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        zIndex: 1
+                      }}>
+                        Status Filter
+                      </label>
+                      <div className="campaign-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
+                        <div
+                          onClick={() => setShowCampaignStatusDropdown(!showCampaignStatusDropdown)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: '#ffffff',
+                            color: '#374151',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            transition: 'all 0.2s ease',
+                            boxShadow: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 12px center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '16px 16px',
+                            paddingRight: '40px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#f9fafb';
+                            e.target.style.borderColor = '#9ca3af';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#ffffff';
+                            e.target.style.borderColor = '#d1d5db';
+                          }}
+                        >
+                          {campaignStatusFilter === 'all' ? 'All Campaigns' : 
+                           campaignStatusFilter === 'planned' ? 'Planned' :
+                           campaignStatusFilter === 'active' ? 'Active' :
+                           campaignStatusFilter === 'paused' ? 'Paused' :
+                           campaignStatusFilter === 'completed' ? 'Completed' : 'All Campaigns'}
+                        </div>
+                        
+                        {showCampaignStatusDropdown && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            zIndex: 1000,
+                            marginTop: '4px',
+                            overflow: 'hidden'
+                          }}>
+                            {[
+                              { value: 'all', label: 'All Campaigns' },
+                              { value: 'planned', label: 'Planned' },
+                              { value: 'active', label: 'Active' },
+                              { value: 'paused', label: 'Paused' },
+                              { value: 'completed', label: 'Completed' }
+                            ].map((option) => (
+                              <div
+                                key={option.value}
+                                onClick={() => {
+                                  handleCampaignStatusFilterChange(option.value);
+                                  setShowCampaignStatusDropdown(false);
+                                }}
+                                style={{
+                                  padding: '12px 16px',
+                                  cursor: 'pointer',
+                                  color: '#374151',
+                                  fontSize: '14px',
+                                  fontWeight: '400',
+                                  backgroundColor: campaignStatusFilter === option.value ? '#f9fafb' : '#ffffff',
+                                  transition: 'background-color 0.2s ease',
+                                  borderBottom: '1px solid #f3f4f6'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = '#f9fafb';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = campaignStatusFilter === option.value ? '#f9fafb' : '#ffffff';
+                                }}
+                              >
+                                {option.label}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Results Count */}
+                  <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
+                    Showing {filteredCampaigns.length} of {campaigns.length} campaigns
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {campaignsLoading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading campaigns...</div>
@@ -1009,31 +1267,74 @@ const OperationDepartment = () => {
                 <div style={{ fontSize: '16px', color: '#ef4444' }}>Error: {campaignsError}</div>
               </div>
             ) : Array.isArray(campaigns) && campaigns.length > 0 ? (
-              <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}>
-                {campaigns.map((campaign) => {
+              <div>
+                {/* Campaigns Table Header */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 3fr 1fr 1fr 1fr 1fr 1fr',
+                  gap: '16px',
+                  padding: '16px',
+                  backgroundColor: '#f8fafc',
+                  borderBottom: '2px solid #e2e8f0',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  color: '#374151'
+                }}>
+                  <div>Campaign Name</div>
+                  <div>Description</div>
+                  <div>Status</div>
+                  <div>Budget</div>
+                  <div>Start Date</div>
+                  <div>End Date</div>
+                  <div>Actions</div>
+                </div>
+
+                {/* Campaigns Rows */}
+                {(campaignSearchTerm || campaignStatusFilter !== 'all' ? paginatedCampaigns : campaigns).map((campaign) => {
                   const status = getCampaignStatus(campaign);
                   return (
-                  <div key={campaign.id || campaign._id} style={{
-                      backgroundColor: '#f8fafc',
-                    borderRadius: '12px',
-                    padding: '20px',
-                      border: '1px solid #e2e8f0',
-                      transition: 'all 0.2s'
+                    <div key={campaign.id || campaign._id} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 3fr 1fr 1fr 1fr 1fr 1fr',
+                      gap: '16px',
+                      padding: '16px',
+                      backgroundColor: '#ffffff',
+                      borderBottom: '1px solid #e2e8f0',
+                      alignItems: 'center',
+                      transition: 'all 0.2s',
+                      ':hover': {
+                        backgroundColor: '#f8fafc'
+                      }
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <div>
-                          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
-                            {campaign.name}
-                      </h3>
-                          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-                            {campaign.description}
-                          </p>
-                        </div>
+                      {/* Campaign Name */}
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#111827',
+                        wordBreak: 'break-word'
+                      }}>
+                        {campaign.name || 'Untitled Campaign'}
+                      </div>
+
+                      {/* Description */}
+                      <div style={{
+                        fontSize: '13px',
+                        color: '#6b7280',
+                        wordBreak: 'break-word',
+                        maxHeight: '40px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {campaign.description || 'No description available'}
+                      </div>
+
+                      {/* Status */}
+                      <div>
                         <select
                           value={campaign.status || 'planned'}
                           onChange={(e) => handleQuickStatusUpdate(campaign.id || campaign._id, e.target.value)}
                           style={{
-                            padding: '4px 8px',
+                            padding: '6px 8px',
                             backgroundColor: status.color + '20',
                             color: status.color,
                             borderRadius: '6px',
@@ -1041,7 +1342,8 @@ const OperationDepartment = () => {
                             fontWeight: '500',
                             border: '1px solid ' + status.color + '40',
                             cursor: 'pointer',
-                            outline: 'none'
+                            outline: 'none',
+                            width: '100%'
                           }}
                         >
                           <option value="planned">Planned</option>
@@ -1051,67 +1353,103 @@ const OperationDepartment = () => {
                         </select>
                       </div>
 
-                        {campaign.budget && (
-                        <div style={{ marginBottom: '12px' }}>
-                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Budget: </span>
-                          <span style={{ fontSize: '14px', color: '#6b7280' }}>${campaign.budget}</span>
-                        </div>
-                      )}
-
-                      {(campaign.startDate || campaign.endDate) && (
-                        <div style={{ marginBottom: '16px', fontSize: '12px', color: '#6b7280' }}>
-                          {campaign.startDate && (
-                            <span style={{ marginRight: '16px' }}>
-                              📅 Start: {new Date(campaign.startDate).toLocaleDateString()}
-                            </span>
-                          )}
-                          {campaign.endDate && (
-                            <span>
-                              📅 End: {new Date(campaign.endDate).toLocaleDateString()}
-                          </span>
-                        )}
+                      {/* Budget */}
+                      <div style={{
+                        fontSize: '13px',
+                        color: '#059669',
+                        fontWeight: '500'
+                      }}>
+                        {campaign.budget ? `$${campaign.budget}` : 'N/A'}
                       </div>
-                      )}
 
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      {/* Start Date */}
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280'
+                      }}>
+                        {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : 'N/A'}
+                      </div>
+
+                      {/* End Date */}
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280'
+                      }}>
+                        {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : 'N/A'}
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
                         <button
                           onClick={() => handleEditCampaign(campaign)}
                           style={{
                             padding: '6px 12px',
-                          backgroundColor: '#1c242e',
-                          color: 'white',
-                          border: 'none',
+                            backgroundColor: '#1c242e',
+                            color: 'white',
+                            border: 'none',
                             borderRadius: '6px',
                             fontSize: '12px',
-                          fontWeight: '500',
+                            fontWeight: '500',
                             cursor: 'pointer'
-                      }}
-                      >
-                        Edit
-                      </button>
+                          }}
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={() => handleDeleteCampaign(campaign.id || campaign._id)}
                           style={{
                             padding: '6px 12px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          border: 'none',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            border: 'none',
                             borderRadius: '6px',
                             fontSize: '12px',
-                          fontWeight: '500',
+                            fontWeight: '500',
                             cursor: 'pointer'
-                      }}
-                      >
-                        Delete
-                      </button>
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
                   );
                 })}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>No campaigns found</div>
+              </div>
+            )}
+            
+            {/* Pagination for Campaigns */}
+            {Array.isArray(campaigns) && campaigns.length > 0 && (
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+                <SimplePagination
+                  currentPage={campaignsCurrentPage}
+                  totalPages={campaignSearchTerm || campaignStatusFilter !== 'all' 
+                    ? Math.ceil(filteredCampaigns.length / pageSize)
+                    : campaignsTotalPages || Math.ceil(totalCampaigns / pageSize)
+                  }
+                  totalItems={campaignSearchTerm || campaignStatusFilter !== 'all' 
+                    ? filteredCampaigns.length
+                    : totalCampaigns || campaigns.length
+                  }
+                  pageSize={pageSize}
+                  onPageChange={handleCampaignsPageChange}
+                />
+              </div>
+            )}
+            
+            {/* Show message when no campaigns match filter */}
+            {Array.isArray(campaigns) && campaigns.length > 0 && filteredCampaigns.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>
+                  No campaigns found matching your search or filter criteria
+                </div>
               </div>
             )}
           </div>

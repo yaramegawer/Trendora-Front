@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Users, 
   Ticket, 
@@ -19,29 +19,311 @@ import {
   Database,
   Cloud,
   Wifi,
-  Server
+  Server,
+  Upload,
+  FileText
 } from 'lucide-react';
 import { useITEmployees, useITProjects, useITTickets } from '../../hooks/useITData';
 import { useAuth } from '../../contexts/AuthContext';
+import { itLeaveApi } from '../../services/itApi';
+import SimplePagination from '../common/SimplePagination';
 
 const ITDepartment = () => {
   // Get user from auth context
   const { user } = useAuth();
   
-  // Use real API data
+  // Pagination state
+  const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
+  const [ticketsCurrentPage, setTicketsCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+
+  // Filter state for tickets
+  const [ticketStatusFilter, setTicketStatusFilter] = useState('all');
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  
+  // Filter state for projects
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [projectStatusFilter, setProjectStatusFilter] = useState('all');
+  const [showProjectStatusDropdown, setShowProjectStatusDropdown] = useState(false);
+  
+  // PDF Upload state
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [selectedPdfUrl, setSelectedPdfUrl] = useState('');
+  
+  // Use real API data with pagination
   const { employees, loading: employeesLoading, error: employeesError, updateRating } = useITEmployees();
-  const { projects, loading: projectsLoading, error: projectsError, createProject, updateProject, deleteProject } = useITProjects();
-  const { tickets, loading: ticketsLoading, error: ticketsError, updateTicket, deleteTicket } = useITTickets();
+  const { 
+    projects, 
+    loading: projectsLoading, 
+    error: projectsError, 
+    totalProjects,
+    currentPage: projectsPage,
+    totalPages: projectsTotalPages,
+    goToPage: projectsGoToPage,
+    createProject, 
+    updateProject, 
+    deleteProject 
+  } = useITProjects(projectsCurrentPage, pageSize);
+  const { 
+    tickets, 
+    loading: ticketsLoading, 
+    error: ticketsError,
+    totalTickets,
+    currentPage: ticketsPage,
+    totalPages: ticketsTotalPages,
+    goToPage: ticketsGoToPage,
+    updateTicket, 
+    deleteTicket 
+  } = useITTickets(ticketsCurrentPage, pageSize);
 
 
-  // Debug logging
-  console.log('IT Department Styled Debug:');
-  console.log('- employees:', employees);
-  console.log('- employeesLoading:', employeesLoading);
-  console.log('- employeesError:', employeesError);
-  console.log('- employees type:', typeof employees);
-  console.log('- employees isArray:', Array.isArray(employees));
-  console.log('- employees length:', employees?.length);
+
+  // Filter tickets by status
+  const filteredTickets = Array.isArray(tickets) ? tickets.filter(ticket => {
+    if (ticketStatusFilter === 'all') return true;
+    return ticket.status === ticketStatusFilter;
+  }) : [];
+
+  // Filter projects by search term and status (only when not using server-side pagination)
+  const hasActiveProjectFilters = projectSearchTerm !== '' || projectStatusFilter !== 'all';
+  
+  const filteredProjects = hasActiveProjectFilters && Array.isArray(projects) ? projects.filter(project => {
+    // Search filter
+    const matchesSearch = projectSearchTerm === '' || 
+      (project.name && project.name.toLowerCase().includes(projectSearchTerm.toLowerCase())) ||
+      (project.description && project.description.toLowerCase().includes(projectSearchTerm.toLowerCase()));
+    
+    // Status filter
+    const matchesStatus = projectStatusFilter === 'all' || 
+      (project.status && project.status.toLowerCase() === projectStatusFilter.toLowerCase());
+    
+    return matchesSearch && matchesStatus;
+  }) : projects || [];
+
+  // Client-side pagination for filtered tickets
+  const ticketsStartIndex = (ticketsCurrentPage - 1) * pageSize;
+  const ticketsEndIndex = ticketsStartIndex + pageSize;
+  const paginatedTickets = filteredTickets.slice(ticketsStartIndex, ticketsEndIndex);
+
+  // Use server-side pagination when no filters are active, client-side when filters are active
+  const projectsToDisplay = hasActiveProjectFilters ? filteredProjects : projects;
+  
+  // Client-side pagination only for filtered results
+  const projectsStartIndex = hasActiveProjectFilters ? (projectsCurrentPage - 1) * pageSize : 0;
+  const projectsEndIndex = hasActiveProjectFilters ? projectsStartIndex + pageSize : projects.length;
+  const paginatedProjects = hasActiveProjectFilters ? filteredProjects.slice(projectsStartIndex, projectsEndIndex) : projects;
+
+  // Pagination handlers
+  const handleProjectsPageChange = (newPage) => {
+    console.log('IT Department Styled: Projects page change to:', newPage);
+    setProjectsCurrentPage(newPage);
+    
+    // Use server-side pagination when no filters are active
+    if (!hasActiveProjectFilters) {
+      projectsGoToPage(newPage);
+    }
+  };
+
+  const handleTicketsPageChange = (newPage) => {
+    console.log('IT Department Styled: Tickets page change to:', newPage);
+    setTicketsCurrentPage(newPage);
+    ticketsGoToPage(newPage);
+  };
+
+  const handleStatusFilterChange = (status) => {
+    setTicketStatusFilter(status);
+    setTicketsCurrentPage(1); // Reset to first page when filter changes
+    // Note: Server-side filtering would be implemented here if needed
+    // For now, we're using client-side filtering with paginated server data
+  };
+
+  // Attendance Sheet Upload Functions
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Check if file is a valid attendance sheet format
+      const validTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'text/csv' // .csv
+      ];
+      
+      if (!validTypes.includes(file.type)) {
+        setUploadError('Please select a valid attendance sheet file (PDF, Excel, or CSV).');
+        return;
+      }
+      
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError('File size must be less than 10MB.');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setUploadError(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setUploadError('Please select a file first.');
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!user) {
+      setUploadError('Please sign in first to upload attendance sheets.');
+      return;
+    }
+
+    setUploadLoading(true);
+    setUploadError(null);
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('sheet', selectedFile);
+
+      // Get token from localStorage (this is how the app stores it)
+      const token = localStorage.getItem('token');
+      
+      // Debug: Log authentication status
+      console.log('🔍 Upload Debug Info:');
+      console.log('  - localStorage keys:', Object.keys(localStorage));
+      console.log('  - token value:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+      console.log('  - user from AuthContext:', user);
+      console.log('  - isAuthenticated from AuthContext:', user ? 'User object exists' : 'No user object');
+      
+      if (!token) {
+        const availableKeys = Object.keys(localStorage);
+        console.error('❌ No token found in localStorage');
+        console.error('❌ Available localStorage keys:', availableKeys);
+        console.error('❌ User object:', user);
+        throw new Error(`Please sign in first. No authentication token found. Available localStorage keys: ${availableKeys.join(', ')}`);
+      }
+      
+      console.log('✅ Token found, proceeding with upload...');
+
+      // Get the correct API base URL
+      const baseURL = import.meta.env.VITE_API_URL || 'https://trendora-nine.vercel.app/api';
+      const uploadURL = `${baseURL}/it/attendance`;
+      
+      console.log('🔍 Upload URL:', uploadURL);
+      console.log('🔍 Base URL:', baseURL);
+      
+      // Prepare headers (same format as axios interceptor)
+      const headers = {
+        // Don't set Content-Type header, let browser set it with boundary for FormData
+        // Use both header formats like the axios interceptor does
+        'Authorization': `Bearer ${token}`,
+        'token': `Trendora ${token}`,
+      };
+      
+      console.log('🔍 Request headers:', headers);
+      console.log('🔍 Token (first 20 chars):', token.substring(0, 20) + '...');
+      
+      // Upload to the API endpoint
+      const response = await fetch(uploadURL, {
+        method: 'POST',
+        body: formData,
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Create a file URL for display (fallback for preview)
+      const fileUrl = URL.createObjectURL(selectedFile);
+      
+      // Add to uploaded files list
+      const newFile = {
+        id: Date.now(),
+        name: selectedFile.name,
+        size: selectedFile.size,
+        uploadDate: new Date().toISOString(),
+        url: fileUrl,
+        type: selectedFile.type,
+        serverResponse: result // Store server response for reference
+      };
+      
+      setUploadedFiles(prev => [newFile, ...prev]);
+      setSelectedFile(null);
+      setUploadSuccess(`Attendance sheet "${selectedFile.name}" uploaded successfully!`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setUploadSuccess(null), 3000);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(`Failed to upload attendance sheet: ${error.message}`);
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleViewPdf = (fileUrl) => {
+    setSelectedPdfUrl(fileUrl);
+    setShowPdfViewer(true);
+  };
+
+  const handleDeleteFile = (fileId) => {
+    setUploadedFiles(prev => {
+      const updated = prev.filter(file => file.id !== fileId);
+      // Revoke object URL to free memory
+      const fileToDelete = prev.find(file => file.id === fileId);
+      if (fileToDelete) {
+        URL.revokeObjectURL(fileToDelete.url);
+      }
+      return updated;
+    });
+    setUploadSuccess('File deleted successfully!');
+    setTimeout(() => setUploadSuccess(null), 3000);
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handleProjectSearchChange = (searchTerm) => {
+    setProjectSearchTerm(searchTerm);
+    setProjectsCurrentPage(1); // Reset to first page when search changes
+  };
+
+  const handleProjectStatusFilterChange = (status) => {
+    setProjectStatusFilter(status);
+    setProjectsCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showStatusDropdown && !event.target.closest('.status-dropdown-container')) {
+        setShowStatusDropdown(false);
+      }
+      if (showProjectStatusDropdown && !event.target.closest('.project-status-dropdown-container')) {
+        setShowProjectStatusDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showStatusDropdown, showProjectStatusDropdown]);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -199,6 +481,9 @@ const ITDepartment = () => {
   };
 
   const handleCreateProject = async () => {
+    console.log('🚀 Starting project creation process...');
+    console.log('📝 New project data:', newProject);
+    
     // Validate required fields
     if (!newProject.name.trim()) {
       alert('Project name is required');
@@ -237,8 +522,13 @@ const ITDepartment = () => {
         }
       }
       
-      console.log('Creating project with filtered data:', createData);
-      await createProject(createData);
+      console.log('📤 Creating project with filtered data:', createData);
+      console.log('🔗 API endpoint:', '/it/projects');
+      console.log('🔑 Auth token present:', !!localStorage.getItem('token'));
+      
+      const result = await createProject(createData);
+      console.log('✅ Project creation result:', result);
+      
       alert('Project created successfully!');
       setNewProject({
         name: '',
@@ -251,8 +541,27 @@ const ITDepartment = () => {
       });
       setShowCreateProject(false);
     } catch (error) {
-      console.error('Error creating project:', error);
-      alert('Failed to create project: ' + error.message);
+      console.error('❌ Error creating project:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config
+      });
+      
+      let errorMessage = 'Failed to create project: ' + error.message;
+      if (error.response?.data?.message) {
+        errorMessage = `Failed to create project: ${error.response.data.message}`;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Unauthorized. Please check your authentication.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Forbidden. You may not have the required permissions.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Bad request. Please check your data format.';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -395,6 +704,8 @@ const ITDepartment = () => {
   // Leave form handler
   const handleCreateLeave = async () => {
     try {
+      console.log('IT Department: Submitting leave request with data:', newLeave);
+      
       if (!newLeave.type || !newLeave.startDate || !newLeave.endDate) {
         alert('Please fill in all required fields');
         return;
@@ -416,7 +727,9 @@ const ITDepartment = () => {
         status: 'pending'
       };
 
-      const result = await itLeaveApi.addLeave(leaveData);
+      console.log('IT Department: Calling itLeaveApi.submitEmployeeLeave with:', leaveData);
+      const result = await itLeaveApi.submitEmployeeLeave(leaveData);
+      console.log('IT Department: Leave submission result:', result);
       
       // The API returns data directly on success, or throws error on failure
       alert('Leave request submitted successfully!');
@@ -427,7 +740,12 @@ const ITDepartment = () => {
       });
       setShowLeaveForm(false);
     } catch (error) {
-      console.error('Error creating leave:', error);
+      console.error('IT Department: Error creating leave:', error);
+      console.error('IT Department: Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       const errorMessage = error.message || error.response?.data?.message || 'Unknown error occurred';
       alert('Failed to submit leave request: ' + errorMessage);
     }
@@ -742,6 +1060,29 @@ const ITDepartment = () => {
                 >
                   <Plus size={16} />
                   Submit Leave
+                </button>
+
+        <button
+          onClick={() => document.getElementById('pdf-upload').click()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 16px',
+            backgroundColor: '#0891b2',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '500',
+            fontSize: '14px',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = '#0e7490'}
+          onMouseOut={(e) => e.target.style.backgroundColor = '#0891b2'}
+        >
+          <Upload size={16} />
+          Upload Attendance Sheet
                 </button>
               </div>
             </div>
@@ -1190,6 +1531,135 @@ const ITDepartment = () => {
             <div style={{ marginBottom: '24px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>Support Tickets</h2>
             </div>
+
+            {/* Status Filter */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                backgroundColor: '#ffffff', 
+                borderRadius: '12px', 
+                padding: '16px',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ 
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '100%'
+                    }}>
+                      <label style={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '12px',
+                        backgroundColor: '#ffffff',
+                        padding: '0 4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        zIndex: 1
+                      }}>
+                        Status Filter
+                      </label>
+                      <div className="status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
+                        <div
+                          onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: '#ffffff',
+                            color: '#374151',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            transition: 'all 0.2s ease',
+                            boxShadow: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 12px center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '16px 16px',
+                            paddingRight: '40px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#f9fafb';
+                            e.target.style.borderColor = '#9ca3af';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#ffffff';
+                            e.target.style.borderColor = '#d1d5db';
+                          }}
+                        >
+                          {ticketStatusFilter === 'all' ? 'All Tickets' : 
+                           ticketStatusFilter === 'open' ? 'Open' :
+                           ticketStatusFilter === 'in-progress' ? 'In Progress' :
+                           ticketStatusFilter === 'resolved' ? 'Resolved' :
+                           ticketStatusFilter === 'closed' ? 'Closed' : 'All Tickets'}
+                        </div>
+                        
+                        {showStatusDropdown && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            zIndex: 1000,
+                            marginTop: '4px',
+                            overflow: 'hidden'
+                          }}>
+                            {[
+                              { value: 'all', label: 'All Tickets' },
+                              { value: 'open', label: 'Open' },
+                              { value: 'in-progress', label: 'In Progress' },
+                              { value: 'resolved', label: 'Resolved' },
+                              { value: 'closed', label: 'Closed' }
+                            ].map((option) => (
+                              <div
+                                key={option.value}
+                                onClick={() => {
+                                  handleStatusFilterChange(option.value);
+                                  setShowStatusDropdown(false);
+                                }}
+                                style={{
+                                  padding: '12px 16px',
+                                  cursor: 'pointer',
+                                  color: '#374151',
+                                  fontSize: '14px',
+                                  fontWeight: '400',
+                                  backgroundColor: ticketStatusFilter === option.value ? '#f9fafb' : '#ffffff',
+                                  transition: 'background-color 0.2s ease',
+                                  borderBottom: '1px solid #f3f4f6'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = '#f9fafb';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = ticketStatusFilter === option.value ? '#f9fafb' : '#ffffff';
+                                }}
+                              >
+                                {option.label}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
+                    Showing {tickets.length} of {totalTickets} tickets
+                  </div>
+                </div>
+              </div>
+            </div>
             {ticketsLoading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading tickets...</div>
@@ -1285,9 +1755,38 @@ const ITDepartment = () => {
                   </div>
                 ))}
               </div>
+            ) : filteredTickets.length === 0 && Array.isArray(tickets) && tickets.length > 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>No tickets found for the selected status filter</div>
+                <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '8px' }}>
+                  Try changing the status filter or clear it to see all tickets
+                </div>
+              </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>No tickets found</div>
+              </div>
+            )}
+            
+            {/* Pagination for Tickets */}
+            {Array.isArray(tickets) && tickets.length > 0 && (
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+                <SimplePagination
+                  currentPage={ticketsCurrentPage}
+                  totalPages={ticketsTotalPages}
+                  totalItems={totalTickets}
+                  pageSize={pageSize}
+                  onPageChange={handleTicketsPageChange}
+                />
+              </div>
+            )}
+            
+            {/* Show message when no tickets match filter */}
+            {Array.isArray(tickets) && tickets.length > 0 && filteredTickets.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>
+                  No tickets found for the selected status filter
+                </div>
               </div>
             )}
           </div>
@@ -1302,7 +1801,12 @@ const ITDepartment = () => {
             padding: '24px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div>
               <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>Projects</h2>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                  Showing {projects.length} of {totalProjects} projects
+                </div>
+              </div>
               <button style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1326,13 +1830,195 @@ const ITDepartment = () => {
               </button>
             </div>
 
+            {/* Search and Filter Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                backgroundColor: '#ffffff', 
+                borderRadius: '12px', 
+                padding: '16px',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  {/* Search Bar */}
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ 
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '100%'
+                    }}>
+                      <label style={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '12px',
+                        backgroundColor: '#ffffff',
+                        padding: '0 4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        zIndex: 1
+                      }}>
+                        Search Projects
+                      </label>
+                      <input
+                        type="text"
+                        value={projectSearchTerm}
+                        onChange={(e) => handleProjectSearchChange(e.target.value)}
+                        placeholder="Search by name or description..."
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          border: '1px solid #d1d5db',
+                          backgroundColor: '#ffffff',
+                          color: '#374151',
+                          fontSize: '14px',
+                          fontWeight: '400',
+                          outline: 'none',
+                          transition: 'all 0.2s ease',
+                          boxShadow: 'none'
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = '#9ca3af';
+                          e.target.style.backgroundColor = '#f9fafb';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = '#d1d5db';
+                          e.target.style.backgroundColor = '#ffffff';
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ 
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '100%'
+                    }}>
+                      <label style={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '12px',
+                        backgroundColor: '#ffffff',
+                        padding: '0 4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        zIndex: 1
+                      }}>
+                        Status Filter
+                      </label>
+                      <div className="project-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
+                        <div
+                          onClick={() => setShowProjectStatusDropdown(!showProjectStatusDropdown)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: '#ffffff',
+                            color: '#374151',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            transition: 'all 0.2s ease',
+                            boxShadow: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 12px center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '16px 16px',
+                            paddingRight: '40px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#f9fafb';
+                            e.target.style.borderColor = '#9ca3af';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#ffffff';
+                            e.target.style.borderColor = '#d1d5db';
+                          }}
+                        >
+                          {projectStatusFilter === 'all' ? 'All Projects' : 
+                           projectStatusFilter === 'planning' ? 'planned' :
+                           projectStatusFilter === 'in-progress' ? 'In Progress' :
+                           projectStatusFilter === 'completed' ? 'Completed' :
+                           projectStatusFilter === 'on-hold' ? 'On Hold' : 'All Projects'}
+                        </div>
+                        
+                        {showProjectStatusDropdown && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            zIndex: 1000,
+                            marginTop: '4px',
+                            overflow: 'hidden'
+                          }}>
+                            {[
+                              { value: 'all', label: 'All Projects' },
+                              { value: 'planned', label: 'Planned' },
+                              { value: 'in-progress', label: 'In Progress' },
+                              { value: 'completed', label: 'Completed' },
+                              { value: 'on-hold', label: 'On Hold' }
+                            ].map((option) => (
+                              <div
+                                key={option.value}
+                                onClick={() => {
+                                  handleProjectStatusFilterChange(option.value);
+                                  setShowProjectStatusDropdown(false);
+                                }}
+                                style={{
+                                  padding: '12px 16px',
+                                  cursor: 'pointer',
+                                  color: '#374151',
+                                  fontSize: '14px',
+                                  fontWeight: '400',
+                                  backgroundColor: projectStatusFilter === option.value ? '#f9fafb' : '#ffffff',
+                                  transition: 'background-color 0.2s ease',
+                                  borderBottom: '1px solid #f3f4f6'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = '#f9fafb';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = projectStatusFilter === option.value ? '#f9fafb' : '#ffffff';
+                                }}
+                              >
+                                {option.label}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Results Count */}
+                  <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
+                    Showing {filteredProjects.length} of {projects.length} projects
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {projectsLoading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading projects...</div>
               </div>
-            ) : Array.isArray(projects) && projects.length > 0 ? (
+            ) : Array.isArray(filteredProjects) && filteredProjects.length > 0 ? (
               <div style={{ display: 'grid', gap: '16px' }}>
-                {projects.map((project) => (
+                {paginatedProjects.map((project) => (
                   <div key={project.id || project._id} style={{
                     backgroundColor: '#f8fafc',
                     borderRadius: '12px',
@@ -1425,6 +2111,28 @@ const ITDepartment = () => {
             ) : (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>No projects found</div>
+              </div>
+            )}
+            
+            {/* Pagination for Projects */}
+            {totalProjects > 0 && (
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+                <SimplePagination
+                  currentPage={projectsCurrentPage}
+                  totalPages={hasActiveProjectFilters ? Math.ceil(filteredProjects.length / pageSize) : projectsTotalPages}
+                  totalItems={hasActiveProjectFilters ? filteredProjects.length : totalProjects}
+                  pageSize={pageSize}
+                  onPageChange={handleProjectsPageChange}
+                />
+              </div>
+            )}
+            
+            {/* Show message when no projects match filter */}
+            {Array.isArray(projects) && projects.length > 0 && filteredProjects.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>
+                  No projects found matching your search or filter criteria
+                </div>
               </div>
             )}
           </div>
@@ -2251,6 +2959,310 @@ const ITDepartment = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input */}
+      <input
+        id="pdf-upload"
+        type="file"
+        accept=".pdf,.xlsx,.xls,.csv"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
+
+      {/* PDF Upload Dialog */}
+      {selectedFile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
+              Upload Attendance Sheet
+            </h3>
+            
+            {/* File Preview */}
+            <div style={{ 
+              backgroundColor: '#f8fafc', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              marginBottom: '20px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <FileText size={32} color="#059669" />
+                <div style={{ flexGrow: 1 }}>
+                  <div style={{ fontWeight: '600', color: '#374151' }}>
+                    {selectedFile.name}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                    {formatFileSize(selectedFile.size)} • Attendance Sheet
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            {uploadError && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
+                padding: '12px',
+                borderRadius: '6px',
+                marginBottom: '16px',
+                fontSize: '14px'
+              }}>
+                {uploadError}
+              </div>
+            )}
+            
+            {uploadSuccess && (
+              <div style={{
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                color: '#059669',
+                padding: '12px',
+                borderRadius: '6px',
+                marginBottom: '16px',
+                fontSize: '14px'
+              }}>
+                {uploadSuccess}
+              </div>
+            )}
+
+            {/* Upload Progress */}
+            {uploadLoading && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '16px',
+                padding: '12px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '6px'
+              }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #e2e8f0',
+                  borderTop: '2px solid #0891b2',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }} />
+                <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                  Uploading file...
+                </span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFile(null);
+                  setUploadError(null);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={uploadLoading}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: uploadLoading ? '#9ca3af' : '#0891b2',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: uploadLoading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {uploadLoading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer Dialog */}
+      {showPdfViewer && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '0',
+            width: '95%',
+            height: '90vh',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <FileText size={24} color="#dc2626" />
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                  PDF Viewer
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPdfViewer(false)}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+            <div style={{ flex: 1, padding: '0' }}>
+              <iframe
+                src={selectedPdfUrl}
+                width="100%"
+                height="100%"
+                style={{ border: 'none', borderRadius: '0 0 8px 8px' }}
+                title="PDF Viewer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Uploaded Files Section */}
+      {uploadedFiles.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          padding: '20px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0',
+          maxWidth: '400px',
+          maxHeight: '300px',
+          overflowY: 'auto',
+          zIndex: 100
+        }}>
+          <h4 style={{ 
+            margin: '0 0 16px 0', 
+            fontSize: '16px', 
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Upload size={16} />
+            Uploaded Files
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {uploadedFiles.map((file) => (
+              <div key={file.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '6px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <FileText size={16} color="#dc2626" />
+                <div style={{ flexGrow: 1, minWidth: 0 }}>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {file.name}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                    {formatFileSize(file.size)}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleViewPdf(file.url)}
+                  style={{
+                    padding: '4px',
+                    backgroundColor: '#0891b2',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '10px'
+                  }}
+                  title="View PDF"
+                >
+                  👁️
+                </button>
+                <button
+                  onClick={() => handleDeleteFile(file.id)}
+                  style={{
+                    padding: '4px',
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '10px'
+                  }}
+                  title="Delete"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}

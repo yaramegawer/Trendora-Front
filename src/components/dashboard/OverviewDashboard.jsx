@@ -6,6 +6,7 @@ import { useITProjects } from '../../hooks/useITData';
 import { useOperationCampaigns, useOperationLeaves, useOperationEmployees } from '../../hooks/useOperationData';
 import { useMarketingProjects, useMarketingTickets } from '../../hooks/useMarketingData';
 import { useAuth } from '../../contexts/AuthContext';
+import SimplePagination from '../common/SimplePagination';
 import api from '../../api/axios';
 
 // Utility function to calculate time ago
@@ -41,10 +42,39 @@ const OverviewDashboard = memo(() => {
     const [userLeavesLoading, setUserLeavesLoading] = useState(false);
     const [userLeavesError, setUserLeavesError] = useState('');
     
-    const { employees, loading: employeesLoading, error: employeesError } = useEmployees();
-    const { departments, loading: departmentsLoading, error: departmentsError } = useDepartments();
-    const { leaves, loading: leavesLoading, error: leavesError } = useLeaves();
-    const { payroll, loading: payrollLoading, error: payrollError } = usePayroll();
+    // Pagination state for user leaves
+    const [userLeavesCurrentPage, setUserLeavesCurrentPage] = useState(1);
+    const [userLeavesPageSize, setUserLeavesPageSize] = useState(10);
+    const [userLeavesTotal, setUserLeavesTotal] = useState(0);
+    const [userLeavesStatusCounts, setUserLeavesStatusCounts] = useState({
+      pending: 0,
+      approved: 0,
+      rejected: 0
+    });
+    
+    const { 
+      employees, 
+      loading: employeesLoading, 
+      error: employeesError, 
+      totalEmployees: totalEmployeesCount 
+    } = useEmployees();
+    const { 
+      departments, 
+      loading: departmentsLoading, 
+      error: departmentsError 
+    } = useDepartments();
+    const { 
+      leaves, 
+      loading: leavesLoading, 
+      error: leavesError, 
+      totalLeaves: totalLeavesCount 
+    } = useLeaves();
+    const { 
+      payroll, 
+      loading: payrollLoading, 
+      error: payrollError, 
+      totalPayroll: totalPayrollCount 
+    } = usePayroll();
     const { projects: itProjects, loading: itProjectsLoading, error: itProjectsError } = useITProjects();
     const { campaigns: operationCampaigns, loading: operationCampaignsLoading, error: operationCampaignsError } = useOperationCampaigns();
     const { leaves: operationLeaves, loading: operationLeavesLoading, error: operationLeavesError } = useOperationLeaves();
@@ -52,33 +82,80 @@ const OverviewDashboard = memo(() => {
     const { projects: marketingProjects, loading: marketingProjectsLoading, error: marketingProjectsError } = useMarketingProjects();
     const { tickets: marketingTickets, loading: marketingTicketsLoading, error: marketingTicketsError } = useMarketingTickets();
 
-    // Fetch user leaves
-    const fetchUserLeaves = async () => {
+    // Fetch user leaves with pagination
+    const fetchUserLeaves = async (page = userLeavesCurrentPage, limit = userLeavesPageSize) => {
       setUserLeavesLoading(true);
       setUserLeavesError('');
       try {
-        console.log('🔄 Fetching user leaves...');
-        const response = await api.get('/dashboard/leaves');
-        console.log('📡 User Leaves API Response:', response);
+        console.log('🔄 Fetching user leaves with pagination - Page:', page, 'Limit:', limit);
         
-        let leavesData = [];
-        if (Array.isArray(response.data)) {
-          leavesData = response.data;
-        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          leavesData = response.data.data;
-        } else if (response.data && response.data.success && Array.isArray(response.data.data)) {
-          leavesData = response.data.data;
+        // First, fetch all leaves to get total count and status counts
+        console.log('🔄 Fetching all leaves for total count...');
+        const allLeavesResponse = await api.get('/dashboard/leaves', {
+          params: { page: 1, limit: 1000 } // Get all leaves
+        });
+        
+        // Then fetch paginated data
+        const paginatedResponse = await api.get('/dashboard/leaves', {
+          params: { page, limit }
+        });
+        
+        console.log('📡 All Leaves API Response:', allLeavesResponse);
+        console.log('📡 Paginated API Response:', paginatedResponse);
+        
+        // Process all leaves for total count and status counts
+        let allLeavesData = [];
+        if (Array.isArray(allLeavesResponse.data)) {
+          allLeavesData = allLeavesResponse.data;
+        } else if (allLeavesResponse.data && allLeavesResponse.data.data && Array.isArray(allLeavesResponse.data.data)) {
+          allLeavesData = allLeavesResponse.data.data;
+        } else if (allLeavesResponse.data && allLeavesResponse.data.success && Array.isArray(allLeavesResponse.data.data)) {
+          allLeavesData = allLeavesResponse.data.data;
         }
         
-        console.log('📊 Processed user leaves data:', leavesData);
+        // Process paginated data for current page
+        let leavesData = [];
+        if (Array.isArray(paginatedResponse.data)) {
+          leavesData = paginatedResponse.data;
+        } else if (paginatedResponse.data && paginatedResponse.data.data && Array.isArray(paginatedResponse.data.data)) {
+          leavesData = paginatedResponse.data.data;
+        } else if (paginatedResponse.data && paginatedResponse.data.success && Array.isArray(paginatedResponse.data.data)) {
+          leavesData = paginatedResponse.data.data;
+        }
+        
+        const totalLeaves = allLeavesData.length;
+        
+        console.log('📊 All leaves count:', totalLeaves);
+        console.log('📊 Current page data:', leavesData);
+        
         setUserLeaves(leavesData);
+        setUserLeavesTotal(totalLeaves);
+        setUserLeavesCurrentPage(page);
+        
+        // Calculate status counts from all leaves data for accurate counts
+        const statusCounts = {
+          pending: allLeavesData.filter(leave => (leave.status || '').toLowerCase() === 'pending').length,
+          approved: allLeavesData.filter(leave => (leave.status || '').toLowerCase() === 'approved').length,
+          rejected: allLeavesData.filter(leave => (leave.status || '').toLowerCase() === 'rejected').length
+        };
+        setUserLeavesStatusCounts(statusCounts);
+        
+        console.log('📊 Status counts:', statusCounts);
       } catch (err) {
         console.error('❌ User Leaves API Error:', err);
         setUserLeavesError(err.message || 'Failed to fetch leaves');
         setUserLeaves([]);
+        setUserLeavesTotal(0);
       } finally {
         setUserLeavesLoading(false);
       }
+    };
+
+    // Handle page change for user leaves
+    const handleUserLeavesPageChange = (newPage) => {
+      console.log('OverviewDashboard: User leaves page change to:', newPage);
+      setUserLeavesCurrentPage(newPage);
+      fetchUserLeaves(newPage, userLeavesPageSize);
     };
 
     // Fetch leaves when component mounts or when leaves tab is selected
@@ -109,8 +186,8 @@ const OverviewDashboard = memo(() => {
 
   // Memoized statistics calculations for better performance
   const statistics = useMemo(() => {
-    const totalEmployees = Array.isArray(employees) ? employees.length : 0;
-    const totalDepartments = Array.isArray(departments) ? departments.length : 0;
+    const totalEmployees = totalEmployeesCount || 0;
+    const totalDepartments = Array.isArray(departments) ? departments.length : 0; // Departments don't have pagination
     const pendingLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'pending').length : 0;
     const totalPayroll = Array.isArray(payroll) ? payroll.reduce((sum, p) => sum + (p.amount || 0), 0) : 0;
     const approvedLeaves = Array.isArray(leaves) ? leaves.filter(leave => leave.status === 'approved').length : 0;
@@ -198,7 +275,7 @@ const OverviewDashboard = memo(() => {
       convertedLeads,
       pendingLeads
     };
-  }, [employees, departments, leaves, payroll, itProjects, operationCampaigns, marketingProjects, marketingTickets]);
+  }, [employees, departments, leaves, payroll, itProjects, operationCampaigns, marketingProjects, marketingTickets, totalEmployeesCount, totalLeavesCount, totalPayrollCount]);
 
   const {
     totalEmployees,
@@ -863,7 +940,7 @@ const OverviewDashboard = memo(() => {
                             Pending
                           </Typography>
                           <Typography variant="h4" component="div">
-                            {userLeaves.filter(leave => leave.status === 'pending').length}
+                            {userLeavesStatusCounts.pending}
                           </Typography>
                         </Box>
                       </Stack>
@@ -882,7 +959,7 @@ const OverviewDashboard = memo(() => {
                             Approved
                           </Typography>
                           <Typography variant="h4" component="div">
-                            {userLeaves.filter(leave => leave.status === 'approved').length}
+                            {userLeavesStatusCounts.approved}
                           </Typography>
                         </Box>
                       </Stack>
@@ -901,7 +978,7 @@ const OverviewDashboard = memo(() => {
                             Rejected
                           </Typography>
                           <Typography variant="h4" component="div">
-                            {userLeaves.filter(leave => leave.status === 'rejected').length}
+                            {userLeavesStatusCounts.rejected}
                           </Typography>
                         </Box>
                       </Stack>
@@ -920,7 +997,7 @@ const OverviewDashboard = memo(() => {
                             Total
                           </Typography>
                           <Typography variant="h4" component="div">
-                            {userLeaves.length}
+                            {userLeavesTotal}
                           </Typography>
                         </Box>
                       </Stack>
@@ -982,6 +1059,15 @@ const OverviewDashboard = memo(() => {
                       </TableBody>
                     </Table>
                   </TableContainer>
+                  
+                  {/* Pagination for User Leaves */}
+                  <SimplePagination
+                    currentPage={userLeavesCurrentPage}
+                    totalPages={Math.ceil(userLeavesTotal / userLeavesPageSize)}
+                    totalItems={userLeavesTotal}
+                    pageSize={userLeavesPageSize}
+                    onPageChange={handleUserLeavesPageChange}
+                  />
                 </CardContent>
               </Card>
             </>

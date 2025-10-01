@@ -42,8 +42,11 @@ export const operationEmployeeApi = {
 // Campaign API functions
 export const operationCampaignApi = {
   // Get all campaigns
-  getAllCampaigns: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.OPERATION.CAMPAIGNS);
+  getAllCampaigns: async (page = 1, limit = 10) => {
+    return await apiCall(API_CONFIG.ENDPOINTS.OPERATION.CAMPAIGNS, {
+      method: 'GET',
+      params: { page, limit }
+    });
   },
 
   // Create new campaign

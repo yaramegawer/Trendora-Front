@@ -63,10 +63,13 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
 // Employee API functions
 export const employeeApi = {
   // Get all employees
-  getAllEmployees: async () => {
+  getAllEmployees: async (page = 1, limit = 10) => {
     try {
       console.log('API: Fetching employees from', API_CONFIG.ENDPOINTS.HR.EMPLOYEES_HR_DEPT);
-      const response = await api.get(API_CONFIG.ENDPOINTS.HR.EMPLOYEES_HR_DEPT);
+      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+      const response = await api.get(API_CONFIG.ENDPOINTS.HR.EMPLOYEES_HR_DEPT, {
+        params: { page, limit }
+      });
       console.log('API: Employees response received:', response.data);
       
       // Debug: Log the actual data structure
@@ -83,13 +86,8 @@ export const employeeApi = {
         throw new Error(errorMessage);
       }
       
-      // Extract data from the response structure
-      if (response.data && response.data.success === true && response.data.data) {
-        return Array.isArray(response.data.data) ? response.data.data : [];
-      }
-      
-      // Fallback to direct response data (for backward compatibility)
-      return Array.isArray(response.data) ? response.data : [];
+      // Return the full response structure for pagination
+      return response.data;
     } catch (error) {
       const errorMessage = handleApiError(error, 'Failed to fetch employees');
       throw new Error(errorMessage);
@@ -322,9 +320,14 @@ export const departmentApi = {
 // Leave API functions
 export const leaveApi = {
   // Get all leaves
-  getAllLeaves: async () => {
+  getAllLeaves: async (page = 1, limit = 10) => {
     try {
-      const response = await api.get(API_CONFIG.ENDPOINTS.HR.LEAVES);
+      console.log('API: Fetching leaves from', API_CONFIG.ENDPOINTS.HR.LEAVES);
+      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+      const response = await api.get(API_CONFIG.ENDPOINTS.HR.LEAVES, {
+        params: { page, limit }
+      });
+      console.log('API: Leaves response received:', response.data);
       
       // Check if response indicates an error
       if (response.data && response.data.success === false) {
@@ -332,13 +335,8 @@ export const leaveApi = {
         throw new Error(errorMessage);
       }
       
-      // Extract data from the response structure
-      if (response.data && response.data.success === true && response.data.data) {
-        return Array.isArray(response.data.data) ? response.data.data : [];
-      }
-      
-      // Fallback to direct response data (for backward compatibility)
-      return Array.isArray(response.data) ? response.data : [];
+      // Return the full response structure for pagination
+      return response.data;
     } catch (error) {
       const errorMessage = handleApiError(error, 'Failed to fetch leaves');
       throw new Error(errorMessage);
@@ -414,10 +412,13 @@ export const leaveApi = {
 // Payroll API functions
 export const payrollApi = {
   // Get all payroll
-  getAllPayroll: async () => {
+  getAllPayroll: async (page = 1, limit = 10) => {
     try {
       console.log('API: Fetching payroll from', API_CONFIG.ENDPOINTS.HR.PAYROLL);
-      const response = await api.get(API_CONFIG.ENDPOINTS.HR.PAYROLL);
+      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+      const response = await api.get(API_CONFIG.ENDPOINTS.HR.PAYROLL, {
+        params: { page, limit }
+      });
       console.log('API: Payroll response received:', response.data);
       
       // Debug: Log the actual data structure
@@ -434,13 +435,8 @@ export const payrollApi = {
         throw new Error(errorMessage);
       }
       
-      // Extract data from the response structure
-      if (response.data && response.data.success === true && response.data.data) {
-        return Array.isArray(response.data.data) ? response.data.data : [];
-      }
-      
-      // Fallback to direct response data (for backward compatibility)
-      return Array.isArray(response.data) ? response.data : [];
+      // Return the full response structure for pagination
+      return response.data;
     } catch (error) {
       const errorMessage = handleApiError(error, 'Failed to fetch payroll');
       throw new Error(errorMessage);
@@ -543,6 +539,29 @@ export const payrollApi = {
         url: error.config?.url
       });
       const errorMessage = handleApiError(error, 'Failed to delete payroll');
+      throw new Error(errorMessage);
+    }
+  }
+};
+
+// Attendance API functions
+export const attendanceApi = {
+  // Get all attendance records
+  getAttendance: async () => {
+    try {
+      console.log('API: Fetching attendance from /hr/attendance');
+      const response = await api.get('/hr/attendance');
+      console.log('API: Attendance response received:', response.data);
+      
+      // Check if response indicates an error
+      if (response.data && response.data.success === false) {
+        const errorMessage = response.data.message || 'Failed to fetch attendance records';
+        throw new Error(errorMessage);
+      }
+      
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error, 'Failed to fetch attendance records');
       throw new Error(errorMessage);
     }
   }

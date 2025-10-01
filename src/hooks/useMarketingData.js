@@ -70,33 +70,73 @@ export const useMarketingEmployees = () => {
 };
 
 // Custom hook for Marketing project data management
-export const useMarketingProjects = () => {
+export const useMarketingProjects = (page = 1, limit = 10) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [currentPage, setCurrentPage] = useState(page);
+  const [pageSize, setPageSize] = useState(limit);
 
-  const fetchProjects = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchProjects = async (pageNum = currentPage, pageLimit = pageSize) => {
     try {
-      const response = await marketingProjectApi.getAllProjects();
+      setLoading(true);
+      setError(null);
+      console.log(`Fetching marketing projects with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
-      // Handle different response formats
+      // Fetch paginated data
+      const paginatedResponse = await marketingProjectApi.getAllProjects(pageNum, pageLimit);
+      
+      console.log('📡 Marketing Projects API Response:', paginatedResponse);
+      
+      // Process paginated data for current page
       let projectsData = [];
+      let totalCount = 0;
       
-      if (Array.isArray(response)) {
-        projectsData = response;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        projectsData = response.data;
-      } else if (response && Array.isArray(response)) {
-        projectsData = response;
+      if (Array.isArray(paginatedResponse)) {
+        projectsData = paginatedResponse;
+        totalCount = paginatedResponse.length; // Fallback to array length
+      } else if (paginatedResponse && paginatedResponse.data && Array.isArray(paginatedResponse.data)) {
+        projectsData = paginatedResponse.data;
+        totalCount = paginatedResponse.total || paginatedResponse.data.length;
+      } else if (paginatedResponse && paginatedResponse.success && Array.isArray(paginatedResponse.data)) {
+        projectsData = paginatedResponse.data;
+        totalCount = paginatedResponse.total || paginatedResponse.data.length;
+      } else if (paginatedResponse && paginatedResponse.total !== undefined) {
+        // Handle response with total count
+        projectsData = paginatedResponse.data || [];
+        totalCount = paginatedResponse.total;
       }
       
+      // If we don't have a total count from the API, fetch all projects to get the count
+      if (totalCount === 0 || totalCount === projectsData.length) {
+        console.log('🔄 No total count from API, fetching all projects for total count...');
+        const allProjectsResponse = await marketingProjectApi.getAllProjects(1, 1000);
+        
+        let allProjectsData = [];
+        if (Array.isArray(allProjectsResponse)) {
+          allProjectsData = allProjectsResponse;
+        } else if (allProjectsResponse && allProjectsResponse.data && Array.isArray(allProjectsResponse.data)) {
+          allProjectsData = allProjectsResponse.data;
+        } else if (allProjectsResponse && allProjectsResponse.success && Array.isArray(allProjectsResponse.data)) {
+          allProjectsData = allProjectsResponse.data;
+        }
+        
+        totalCount = allProjectsData.length;
+      }
+      
+      console.log('📊 Marketing projects total count:', totalCount);
+      console.log('📊 Current page marketing projects data:', projectsData);
+      
       setProjects(projectsData);
+      setTotalProjects(totalCount);
+      setCurrentPage(pageNum);
+      setPageSize(pageLimit);
     } catch (err) {
-      console.error('Marketing Projects API Error:', err);
-      setError(err.message);
+      console.error('Error fetching marketing projects:', err);
+      setError(err.message || 'Network Error');
       setProjects([]);
+      setTotalProjects(0);
     } finally {
       setLoading(false);
     }
@@ -105,7 +145,7 @@ export const useMarketingProjects = () => {
   const createProject = async (projectData) => {
     try {
       const newProject = await marketingProjectApi.createProject(projectData);
-      await fetchProjects(); // Refresh the list
+      fetchProjects(currentPage, pageSize); // Refresh current page
       return newProject;
     } catch (err) {
       console.error('Error creating project:', err);
@@ -116,7 +156,7 @@ export const useMarketingProjects = () => {
   const updateProject = async (id, projectData) => {
     try {
       const updatedProject = await marketingProjectApi.updateProject(id, projectData);
-      await fetchProjects(); // Refresh the list
+      fetchProjects(currentPage, pageSize); // Refresh current page
       return updatedProject;
     } catch (err) {
       console.error('Error updating project:', err);
@@ -127,10 +167,39 @@ export const useMarketingProjects = () => {
   const deleteProject = async (id) => {
     try {
       await marketingProjectApi.deleteProject(id);
-      await fetchProjects(); // Refresh the list
+      fetchProjects(currentPage, pageSize); // Refresh current page
     } catch (err) {
       console.error('Error deleting project:', err);
       throw err;
+    }
+  };
+
+  const goToPage = (pageNum) => {
+    const maxPages = Math.ceil(totalProjects / pageSize);
+    console.log(`Marketing Projects goToPage: pageNum=${pageNum}, totalProjects=${totalProjects}, pageSize=${pageSize}, maxPages=${maxPages}`);
+    if (totalProjects === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
+      console.log(`Marketing Projects goToPage: Fetching page ${pageNum}`);
+      fetchProjects(pageNum, pageSize);
+    } else {
+      console.log(`Marketing Projects goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+    }
+  };
+
+  const changePageSize = (newPageSize) => {
+    setPageSize(newPageSize);
+    fetchProjects(1, newPageSize);
+  };
+
+  const nextPage = () => {
+    const maxPages = Math.ceil(totalProjects / pageSize);
+    if (currentPage < maxPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
     }
   };
 
@@ -142,10 +211,17 @@ export const useMarketingProjects = () => {
     projects,
     loading,
     error,
+    totalProjects,
+    currentPage,
+    totalPages: Math.ceil(totalProjects / pageSize),
     fetchProjects,
     createProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    goToPage,
+    changePageSize,
+    nextPage,
+    prevPage
   };
 };
 

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMarketingEmployees, useMarketingProjects, useMarketingTickets, useMarketingLeaves } from '../../hooks/useMarketingData';
+import SimplePagination from '../common/SimplePagination';
 
 const DigitalMarketingDepartment = () => {
   // Get user from auth context
@@ -47,15 +48,28 @@ const DigitalMarketingDepartment = () => {
   console.log('🔍 Full hook object:', marketingEmployeesHook);
   console.log('🔍 updateRating function:', updateRating, typeof updateRating);
   
+  // Pagination state for projects
+  const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+
+  // Filter state for projects
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [projectStatusFilter, setProjectStatusFilter] = useState('all');
+  const [showProjectStatusDropdown, setShowProjectStatusDropdown] = useState(false);
+
   const { 
     projects, 
     loading: projectsLoading, 
     error: projectsError, 
+    totalProjects,
+    currentPage: projectsPage,
+    totalPages: projectsTotalPages,
+    goToPage: projectsGoToPage,
     createProject, 
     updateProject, 
     deleteProject,
     fetchProjects
-  } = useMarketingProjects();
+  } = useMarketingProjects(projectsCurrentPage, pageSize);
   
   const { 
     tickets, 
@@ -73,6 +87,64 @@ const DigitalMarketingDepartment = () => {
     submitLeave 
   } = useMarketingLeaves();
   
+  // Filter projects by search term and status (only when not using server-side pagination)
+  const hasActiveFilters = projectSearchTerm !== '' || projectStatusFilter !== 'all';
+  
+  const filteredProjects = hasActiveFilters && Array.isArray(projects) ? projects.filter(project => {
+    // Search filter
+    const matchesSearch = projectSearchTerm === '' || 
+      (project.name && project.name.toLowerCase().includes(projectSearchTerm.toLowerCase())) ||
+      (project.description && project.description.toLowerCase().includes(projectSearchTerm.toLowerCase()));
+    
+    // Status filter
+    const matchesStatus = projectStatusFilter === 'all' || 
+      (project.status && project.status.toLowerCase() === projectStatusFilter.toLowerCase());
+    
+    return matchesSearch && matchesStatus;
+  }) : projects || [];
+
+  // Use server-side pagination when no filters are active, client-side when filters are active
+  const projectsToDisplay = hasActiveFilters ? filteredProjects : projects;
+  
+  // Client-side pagination only for filtered results
+  const projectsStartIndex = hasActiveFilters ? (projectsCurrentPage - 1) * pageSize : 0;
+  const projectsEndIndex = hasActiveFilters ? projectsStartIndex + pageSize : projects.length;
+  const paginatedProjects = hasActiveFilters ? filteredProjects.slice(projectsStartIndex, projectsEndIndex) : projects;
+
+  // Pagination handlers
+  const handleProjectsPageChange = (newPage) => {
+    console.log('Digital Marketing Department: Projects page change to:', newPage);
+    setProjectsCurrentPage(newPage);
+    
+    // Use server-side pagination when no filters are active
+    if (!hasActiveFilters) {
+      projectsGoToPage(newPage);
+    }
+  };
+
+  const handleProjectSearchChange = (searchTerm) => {
+    setProjectSearchTerm(searchTerm);
+    setProjectsCurrentPage(1); // Reset to first page when search changes
+  };
+
+  const handleProjectStatusFilterChange = (status) => {
+    setProjectStatusFilter(status);
+    setProjectsCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProjectStatusDropdown && !event.target.closest('.project-status-dropdown-container')) {
+        setShowProjectStatusDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProjectStatusDropdown]);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -1145,8 +1217,195 @@ const DigitalMarketingDepartment = () => {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gap: '16px' }}>
-              {projects.map((project) => (
+            {/* Search and Filter Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                backgroundColor: '#ffffff', 
+                borderRadius: '12px', 
+                padding: '16px',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  {/* Search Bar */}
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ 
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '100%'
+                    }}>
+                      <label style={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '12px',
+                        backgroundColor: '#ffffff',
+                        padding: '0 4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        zIndex: 1
+                      }}>
+                        Search Projects
+                      </label>
+                      <input
+                        type="text"
+                        value={projectSearchTerm}
+                        onChange={(e) => handleProjectSearchChange(e.target.value)}
+                        placeholder="Search by name or description..."
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          border: '1px solid #d1d5db',
+                          backgroundColor: '#ffffff',
+                          color: '#374151',
+                          fontSize: '14px',
+                          fontWeight: '400',
+                          outline: 'none',
+                          transition: 'all 0.2s ease',
+                          boxShadow: 'none'
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = '#9ca3af';
+                          e.target.style.backgroundColor = '#f9fafb';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = '#d1d5db';
+                          e.target.style.backgroundColor = '#ffffff';
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ 
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '100%'
+                    }}>
+                      <label style={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '12px',
+                        backgroundColor: '#ffffff',
+                        padding: '0 4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        zIndex: 1
+                      }}>
+                        Status Filter
+                      </label>
+                      <div className="project-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
+                        <div
+                          onClick={() => setShowProjectStatusDropdown(!showProjectStatusDropdown)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: '#ffffff',
+                            color: '#374151',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            transition: 'all 0.2s ease',
+                            boxShadow: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 12px center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '16px 16px',
+                            paddingRight: '40px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#f9fafb';
+                            e.target.style.borderColor = '#9ca3af';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#ffffff';
+                            e.target.style.borderColor = '#d1d5db';
+                          }}
+                        >
+                          {projectStatusFilter === 'all' ? 'All Projects' : 
+                           projectStatusFilter === 'planned' ? 'Planned' :
+                           projectStatusFilter === 'in-progress' ? 'In Progress' :
+                           projectStatusFilter === 'completed' ? 'Completed' :
+                           projectStatusFilter === 'on-hold' ? 'On Hold' : 'All Projects'}
+                        </div>
+                        
+                        {showProjectStatusDropdown && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            zIndex: 1000,
+                            marginTop: '4px',
+                            overflow: 'hidden'
+                          }}>
+                            {[
+                              { value: 'all', label: 'All Projects' },
+                              { value: 'planned', label: 'Planned' },
+                              { value: 'in_progress', label: 'In Progress' },
+                              { value: 'completed', label: 'Completed' },
+                              { value: 'on-hold', label: 'On Hold' }
+                            ].map((option) => (
+                              <div
+                                key={option.value}
+                                onClick={() => {
+                                  handleProjectStatusFilterChange(option.value);
+                                  setShowProjectStatusDropdown(false);
+                                }}
+                                style={{
+                                  padding: '12px 16px',
+                                  cursor: 'pointer',
+                                  color: '#374151',
+                                  fontSize: '14px',
+                                  fontWeight: '400',
+                                  backgroundColor: projectStatusFilter === option.value ? '#f9fafb' : '#ffffff',
+                                  transition: 'background-color 0.2s ease',
+                                  borderBottom: '1px solid #f3f4f6'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = '#f9fafb';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = projectStatusFilter === option.value ? '#f9fafb' : '#ffffff';
+                                }}
+                              >
+                                {option.label}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Results Count */}
+                  <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
+                    Showing {filteredProjects.length} of {projects.length} projects
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {projectsLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading projects...</div>
+              </div>
+            ) : Array.isArray(filteredProjects) && filteredProjects.length > 0 ? (
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {paginatedProjects.map((project) => (
                 <div key={project.id || project._id} style={{
                   backgroundColor: '#f8fafc',
                   borderRadius: '12px',
@@ -1236,6 +1495,33 @@ const DigitalMarketingDepartment = () => {
                 </div>
               ))}
             </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>No projects found</div>
+              </div>
+            )}
+            
+            {/* Pagination for Projects */}
+            {totalProjects > 0 && (
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+                <SimplePagination
+                  currentPage={projectsCurrentPage}
+                  totalPages={hasActiveFilters ? Math.ceil(filteredProjects.length / pageSize) : projectsTotalPages}
+                  totalItems={hasActiveFilters ? filteredProjects.length : totalProjects}
+                  pageSize={pageSize}
+                  onPageChange={handleProjectsPageChange}
+                />
+              </div>
+            )}
+            
+            {/* Show message when no projects match filter */}
+            {Array.isArray(projects) && projects.length > 0 && filteredProjects.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>
+                  No projects found matching your search or filter criteria
+                </div>
+              </div>
+            )}
           </div>
         )}
 

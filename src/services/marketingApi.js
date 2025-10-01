@@ -61,9 +61,12 @@ export const marketingEmployeeApi = {
 // Project API functions
 export const marketingProjectApi = {
   // Get all Marketing projects
-  getAllProjects: async () => {
+  getAllProjects: async (page = 1, limit = 10) => {
     try {
-      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.PROJECTS);
+      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.PROJECTS, {
+        method: 'GET',
+        params: { page, limit }
+      });
     } catch (error) {
       // Return empty array as fallback
       return [];

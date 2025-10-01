@@ -61,9 +61,12 @@ export const itEmployeeApi = {
 // Project API functions
 export const itProjectApi = {
   // Get all IT projects
-  getAllProjects: async () => {
+  getAllProjects: async (page = 1, limit = 10) => {
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS);
+      const response = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
+        method: 'GET',
+        params: { page, limit }
+      });
       return response;
     } catch (error) {
       // Handle specific ObjectId casting errors gracefully
@@ -77,10 +80,21 @@ export const itProjectApi = {
 
   // Create new project
   createProject: async (projectData) => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
-      method: 'POST',
-      data: projectData
-    });
+    console.log('🌐 itProjectApi.createProject called with:', projectData);
+    console.log('🌐 API endpoint:', API_CONFIG.ENDPOINTS.IT.PROJECTS);
+    console.log('🌐 Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IT.PROJECTS}`);
+    
+    try {
+      const result = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
+        method: 'POST',
+        data: projectData
+      });
+      console.log('🌐 itProjectApi.createProject result:', result);
+      return result;
+    } catch (error) {
+      console.error('🌐 itProjectApi.createProject error:', error);
+      throw error;
+    }
   },
 
   // Update project
@@ -104,8 +118,11 @@ export const itProjectApi = {
 // Ticket API functions
 export const itTicketApi = {
   // Get all IT tickets
-  getAllTickets: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS);
+  getAllTickets: async (page = 1, limit = 10) => {
+    return await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
+      method: 'GET',
+      params: { page, limit }
+    });
   },
 
   // Create new ticket

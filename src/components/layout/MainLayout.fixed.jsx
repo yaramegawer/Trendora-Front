@@ -64,8 +64,8 @@ const getMenuItems = (userRole) => {
     { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon },
     { id: 'hr', label: 'HR Department', icon: PeopleAltOutlinedIcon },
     { id: 'it', label: 'IT Department', icon: ComputerOutlinedIcon },
-    { id: 'marketing', label: 'Digital Marketing', icon: CampaignOutlinedIcon },
-    { id: 'operation', label: 'Operations Department', icon: BusinessCenterOutlinedIcon },
+    { id: 'marketing', label: 'Digital Marketing Department', icon: CampaignOutlinedIcon },
+    { id: 'operation', label: 'Operation Department', icon: BusinessCenterOutlinedIcon },
     { id: 'accounting', label: 'Accounting Department', icon: AccountBalanceOutlinedIcon },
     { id: 'sales', label: 'Sales Department', icon: TrendingUpOutlinedIcon },
   ];
@@ -80,8 +80,8 @@ const getSectionTitle = (sectionId, userRole) => {
     dashboard: 'Dashboard',
     hr: 'HR Department',
     it: 'IT Department',
-    marketing: 'Digital Marketing Department',
-    operation: 'Operations Department',
+    marketing: 'Marketing Department',
+    operation: 'Operation Department',
     accounting: 'Accounting Department',
     sales: 'Sales Department',
   };
@@ -151,13 +151,12 @@ const renderContent = (activeSection, userRole) => {
 };
 
 const MainLayout = () => {
-  try {
-    const [activeSection, setActiveSection] = useState('dashboard');
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const { logout, user } = useAuth();
-    
-    const userRole = user?.role || 'Employee';
-    const menuItems = getMenuItems(userRole);
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { logout, user } = useAuth();
+  
+  const userRole = user?.role || 'Employee';
+  const menuItems = getMenuItems(userRole);
 
   const handleLogout = () => {
     logout();
@@ -284,25 +283,6 @@ const MainLayout = () => {
       </Box>
     </ThemeProvider>
   );
-  } catch (error) {
-    console.error('MainLayout: Error rendering component:', error);
-    return (
-      <Box sx={{ p: 3, backgroundColor: 'grey.50', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography variant="h5" color="error" gutterBottom>
-          Application Error
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-          There was an error loading the application. Please check the console for details.
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Error: {error.message}
-        </Typography>
-        <Button variant="contained" onClick={() => window.location.reload()}>
-          Refresh Page
-        </Button>
-      </Box>
-    );
-  }
 };
 
 export default MainLayout;

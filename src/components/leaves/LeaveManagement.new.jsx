@@ -37,6 +37,7 @@ import {
   CalendarToday
 } from '@mui/icons-material';
 import { useLeaves, useEmployees } from '../../hooks/useHRData';
+import SimplePagination from '../common/SimplePagination';
 import { useITEmployees } from '../../hooks/useITData';
 import { useAuth } from '../../contexts/AuthContext';
 import { canAdd, canEdit, canDelete, canSubmitLeave, showPermissionError } from '../../utils/permissions';
@@ -56,7 +57,23 @@ const LeaveType = {
 };
 
 const LeaveManagement = () => {
-  const { leaves, loading, error, addLeave, updateLeaveStatus, deleteLeave } = useLeaves();
+  // Server-side pagination state - declare first
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  
+  const { 
+    leaves, 
+    loading, 
+    error, 
+    totalLeaves,
+    addLeave, 
+    updateLeaveStatus, 
+    deleteLeave,
+    goToPage,
+    changePageSize,
+    nextPage,
+    prevPage
+  } = useLeaves(currentPage, pageSize);
   const { employees: hrEmployees } = useEmployees();
   const { employees: itEmployees } = useITEmployees();
   const { user } = useAuth();
@@ -261,6 +278,22 @@ const LeaveManagement = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Server-side pagination - use data from API hooks
+  const totalPages = Math.ceil((totalLeaves || 0) / pageSize);
+  
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    console.log(`LeaveManagement: handlePageChange called with newPage=${newPage}, currentPage=${currentPage}, totalPages=${totalPages}`);
+    setCurrentPage(newPage);
+    goToPage(newPage);
+  };
+
+  // Reset pagination when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+    goToPage(1);
+  }, [searchTerm, statusFilter]);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height={400}>
@@ -291,6 +324,7 @@ const LeaveManagement = () => {
           Leave Management
         </Typography>
       </Box>
+
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
@@ -394,6 +428,15 @@ const LeaveManagement = () => {
             </Typography>
           </Box>
         )}
+        
+        {/* Server-side Pagination - Always visible */}
+        <SimplePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalLeaves}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+        />
       </Card>
 
       {/* Update Status Dialog */}

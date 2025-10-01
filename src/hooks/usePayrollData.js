@@ -1,20 +1,64 @@
 import { useState, useEffect } from 'react';
 import { payrollApi } from '../services/hrApi';
 
-export const usePayroll = () => {
+export const usePayroll = (page = 1, limit = 10) => {
   const [payroll, setPayroll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [totalPayroll, setTotalPayroll] = useState(0);
+  const [currentPage, setCurrentPage] = useState(page);
+  const [pageSize, setPageSize] = useState(limit);
 
-  const fetchPayroll = async () => {
+  const fetchPayroll = async (pageNum = currentPage, pageLimit = pageSize) => {
     try {
       setLoading(true);
       setError('');
-      const data = await payrollApi.getAllPayroll();
-      setPayroll(Array.isArray(data) ? data : []);
+      console.log(`usePayrollData: Fetching payroll with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+      
+      // First, fetch all payroll to get total count
+      console.log('usePayrollData: Fetching all payroll for total count...');
+      const allPayrollResponse = await payrollApi.getAllPayroll(1, 1000); // Get all payroll
+      
+      // Then fetch paginated data
+      const paginatedResponse = await payrollApi.getAllPayroll(pageNum, pageLimit);
+      
+      console.log('usePayrollData: All Payroll API Response:', allPayrollResponse);
+      console.log('usePayrollData: Paginated Payroll API Response:', paginatedResponse);
+      
+      // Process all payroll for total count
+      let allPayrollData = [];
+      if (Array.isArray(allPayrollResponse)) {
+        allPayrollData = allPayrollResponse;
+      } else if (allPayrollResponse && allPayrollResponse.data && Array.isArray(allPayrollResponse.data)) {
+        allPayrollData = allPayrollResponse.data;
+      } else if (allPayrollResponse && allPayrollResponse.success && Array.isArray(allPayrollResponse.data)) {
+        allPayrollData = allPayrollResponse.data;
+      }
+      
+      // Process paginated data for current page
+      let payrollData = [];
+      if (Array.isArray(paginatedResponse)) {
+        payrollData = paginatedResponse;
+      } else if (paginatedResponse && paginatedResponse.data && Array.isArray(paginatedResponse.data)) {
+        payrollData = paginatedResponse.data;
+      } else if (paginatedResponse && paginatedResponse.success && Array.isArray(paginatedResponse.data)) {
+        payrollData = paginatedResponse.data;
+      }
+      
+      const totalPayrollCount = allPayrollData.length;
+      
+      console.log('usePayrollData: All payroll count:', totalPayrollCount);
+      console.log('usePayrollData: Current page payroll data:', payrollData);
+      
+      setPayroll(payrollData);
+      setTotalPayroll(totalPayrollCount);
+      setCurrentPage(pageNum);
+      setPageSize(pageLimit);
     } catch (err) {
+      console.error('usePayrollData: Error fetching payroll:', err);
       setError(err.message || 'Failed to fetch payroll data');
       setPayroll([]);
+      setTotalPayroll(0);
     } finally {
       setLoading(false);
     }
@@ -65,6 +109,38 @@ export const usePayroll = () => {
     }
   };
 
+  // Pagination functions
+  const goToPage = (pageNum) => {
+    const maxPages = Math.ceil(totalPayroll / pageSize);
+    console.log(`usePayrollData goToPage: pageNum=${pageNum}, totalPayroll=${totalPayroll}, pageSize=${pageSize}, maxPages=${maxPages}`);
+    
+    // Always allow page changes if totalPayroll is 0 (initial state) or if page is in valid range
+    // This prevents the issue where totalPayroll might be stale
+    if (totalPayroll === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
+      console.log(`usePayrollData goToPage: Fetching page ${pageNum}`);
+      fetchPayroll(pageNum, pageSize);
+    } else {
+      console.log(`usePayrollData goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+    }
+  };
+
+  const changePageSize = (newPageSize) => {
+    setPageSize(newPageSize);
+    fetchPayroll(1, newPageSize); // Reset to first page when changing page size
+  };
+
+  const nextPage = () => {
+    if (currentPage < Math.ceil(totalPayroll / pageSize)) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
+
   useEffect(() => {
     fetchPayroll();
   }, []);
@@ -73,10 +149,18 @@ export const usePayroll = () => {
     payroll,
     loading,
     error,
+    totalPayroll,
+    currentPage,
+    pageSize,
+    totalPages: Math.ceil(totalPayroll / pageSize),
     generatePayslip,
     updatePayroll,
     deletePayroll,
     getPayslip,
-    fetchPayroll
+    fetchPayroll,
+    goToPage,
+    changePageSize,
+    nextPage,
+    prevPage
   };
 };
