@@ -67,7 +67,7 @@ const ITDepartment = () => {
     goToPage: projectsGoToPage,
     createProject, 
     updateProject, 
-    deleteProject 
+    deleteProject
   } = useITProjects(projectsCurrentPage, pageSize);
   const { 
     tickets, 
@@ -78,7 +78,7 @@ const ITDepartment = () => {
     totalPages: ticketsTotalPages,
     goToPage: ticketsGoToPage,
     updateTicket, 
-    deleteTicket 
+    deleteTicket
   } = useITTickets(ticketsCurrentPage, pageSize);
 
 
@@ -170,6 +170,7 @@ const ITDepartment = () => {
     }
   };
 
+
   const handleUpload = async () => {
     if (!selectedFile) {
       setUploadError('Please select a file first.');
@@ -260,7 +261,8 @@ const ITDepartment = () => {
       setSelectedFile(null);
       setUploadSuccess(`Attendance sheet "${selectedFile.name}" uploaded successfully!`);
       
-      // Clear success message after 3 seconds
+      
+      // Clear success message after 3 seconds (if refresh doesn't happen)
       setTimeout(() => setUploadSuccess(null), 3000);
       
     } catch (error) {
@@ -1548,7 +1550,7 @@ const ITDepartment = () => {
                       display: 'inline-block',
                       width: '100%'
                     }}>
-                      <label style={{ 
+                      <div style={{ 
                         position: 'absolute',
                         top: '-8px',
                         left: '12px',
@@ -1560,7 +1562,7 @@ const ITDepartment = () => {
                         zIndex: 1
                       }}>
                         Status Filter
-                      </label>
+                      </div>
                       <div className="status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
                         <div
                           onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -1847,7 +1849,7 @@ const ITDepartment = () => {
                       display: 'inline-block',
                       width: '100%'
                     }}>
-                      <label style={{ 
+                      <div style={{ 
                         position: 'absolute',
                         top: '-8px',
                         left: '12px',
@@ -1859,7 +1861,7 @@ const ITDepartment = () => {
                         zIndex: 1
                       }}>
                         Search Projects
-                      </label>
+                      </div>
                       <input
                         type="text"
                         value={projectSearchTerm}
@@ -1897,7 +1899,7 @@ const ITDepartment = () => {
                       display: 'inline-block',
                       width: '100%'
                     }}>
-                      <label style={{ 
+                      <div style={{ 
                         position: 'absolute',
                         top: '-8px',
                         left: '12px',
@@ -1909,7 +1911,7 @@ const ITDepartment = () => {
                         zIndex: 1
                       }}>
                         Status Filter
-                      </label>
+                      </div>
                       <div className="project-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
                         <div
                           onClick={() => setShowProjectStatusDropdown(!showProjectStatusDropdown)}
@@ -2367,10 +2369,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="project-members" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Team Members
                 </label>
                 <select
+                  id="project-members"
                   multiple
                   value={newProject.members}
                   onChange={(e) => {
@@ -2398,10 +2401,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="project-notes" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Notes
                 </label>
                 <textarea
+                  id="project-notes"
                   value={newProject.notes}
                   onChange={(e) => setNewProject(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Enter project notes (optional)"
@@ -2422,10 +2426,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="project-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Start Date
                 </label>
                 <input
+                  id="project-start-date"
                   type="date"
                   value={newProject.startDate}
                   onChange={(e) => setNewProject(prev => ({ ...prev, startDate: e.target.value }))}
@@ -2440,10 +2445,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="project-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   End Date
                 </label>
                 <input
+                  id="project-end-date"
                   type="date"
                   value={newProject.endDate}
                   onChange={(e) => setNewProject(prev => ({ ...prev, endDate: e.target.value }))}
@@ -2537,10 +2543,11 @@ const ITDepartment = () => {
               handleUpdateProject();
             }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-project-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Project Name *
                 </label>
                 <input
+                  id="edit-project-name"
                   type="text"
                   value={editingProject.name}
                   onChange={(e) => setEditingProject(prev => ({ ...prev, name: e.target.value }))}

@@ -14,6 +14,7 @@ export const API_CONFIG = {
       DEPARTMENTS: '/hr/departments',
       LEAVES: '/hr/leaves',
       PAYROLL: '/hr/payroll',
+      ATTENDANCE: '/hr/attendance',
     },
     IT: {
       EMPLOYEES: '/it/employees/ITDeprt',

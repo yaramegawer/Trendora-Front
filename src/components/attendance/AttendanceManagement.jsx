@@ -23,93 +23,181 @@ import {
   PictureAsPdf,
   Refresh
 } from '@mui/icons-material';
-import { attendanceApi } from '../../services/hrApi';
+import { useAttendance } from '../../hooks/useAttendanceData';
+import SimplePagination from '../common/SimplePagination';
 
 const AttendanceManagement = () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  
+  // Use the attendance hook with pagination
+  const {
+    attendanceRecords: allAttendanceRecords,
+    loading,
+    error,
+    totalRecords,
+    currentPage: hookCurrentPage,
+    pageSize: hookPageSize,
+    totalPages,
+    goToPage,
+    changePageSize,
+    fetchAttendanceRecords,
+    deleteAttendance
+  } = useAttendance(currentPage, pageSize);
+
+  // Client-side pagination - slice records based on current page
+  const startIndex = (hookCurrentPage - 1) * hookPageSize;
+  const endIndex = startIndex + hookPageSize;
+  const attendanceRecords = allAttendanceRecords.slice(startIndex, endIndex);
+  
+  // Debug pagination values
+  console.log('🔍 Attendance Pagination Debug:', {
+    totalRecords,
+    hookCurrentPage,
+    hookPageSize,
+    totalPages,
+    startIndex,
+    endIndex,
+    recordsOnPage: attendanceRecords.length,
+    allRecordsLength: allAttendanceRecords.length
+  });
+  
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [viewDialog, setViewDialog] = useState(false);
   const [selectedPdfUrl, setSelectedPdfUrl] = useState('');
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  // Fetch attendance records from API
-  const fetchAttendanceRecords = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('Fetching attendance records from API...');
-      
-      const response = await attendanceApi.getAttendance();
-      console.log('🔍 Full API response:', response);
-      console.log('🔍 Response type:', typeof response);
-      console.log('🔍 Response keys:', Object.keys(response || {}));
-      
-      // Extract attendance records from response
-      let records = [];
-      if (response && response.data) {
-        console.log('🔍 Response.data:', response.data);
-        console.log('🔍 Response.data type:', typeof response.data);
-        console.log('🔍 Response.data keys:', Object.keys(response.data || {}));
-        
-        if (Array.isArray(response.data)) {
-          records = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          records = response.data.data;
-        } else {
-          records = [response.data]; // Single record
-        }
-      } else if (Array.isArray(response)) {
-        records = response;
-      } else {
-        records = response ? [response] : [];
-      }
-      
-      console.log('🔍 Final records array:', records);
-      console.log('🔍 Records length:', records.length);
-      if (records.length > 0) {
-        console.log('🔍 First record:', records[0]);
-        console.log('🔍 First record keys:', Object.keys(records[0] || {}));
-        
-        // Debug the specific record structure
-        const firstRecord = records[0];
-        console.log('🔍 First record.data:', firstRecord.data);
-        console.log('🔍 First record.data keys:', firstRecord.data ? Object.keys(firstRecord.data) : 'No data property');
-        
-        if (firstRecord.data && firstRecord.data.url) {
-          console.log('✅ URL found in first record.data.url:', firstRecord.data.url);
-        } else if (firstRecord.data && firstRecord.data.sheet && firstRecord.data.sheet.url) {
-          console.log('✅ URL found in first record.data.sheet.url:', firstRecord.data.sheet.url);
-        } else {
-          console.log('❌ No URL found in expected locations');
-          console.log('🔍 Available properties in first record.data:', firstRecord.data);
-          if (firstRecord.data && firstRecord.data.sheet) {
-            console.log('🔍 Sheet properties:', firstRecord.data.sheet);
-          }
-        }
-      }
-      
-      setAttendanceRecords(records);
-      setSuccess(`Attendance records loaded successfully! Found ${records.length} records.`);
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (error) {
-      console.error('❌ Error fetching attendance records:', error);
-      setError(error.message || 'Failed to fetch attendance records');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load attendance records on component mount
   useEffect(() => {
     fetchAttendanceRecords();
   }, []);
 
+  // Auto-refresh attendance records when component becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Page became visible, refreshing attendance records...');
+        fetchAttendanceRecords();
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('🔄 Window focused, refreshing attendance records...');
+      fetchAttendanceRecords();
+    };
+
+    // Listen for visibility changes and window focus
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    // Cleanup listeners
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchAttendanceRecords]);
+
+  // Periodic refresh every 2 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Periodic refresh: fetching attendance records...');
+      fetchAttendanceRecords();
+    }, 120000); // 2 minutes
+
+    return () => clearInterval(interval);
+  }, [fetchAttendanceRecords]);
+
   // Handle refresh
   const handleRefresh = () => {
     fetchAttendanceRecords();
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    goToPage(page);
+  };
+
+  // Delete handlers
+  const handleDeleteClick = (record) => {
+    console.log('🔍 Frontend: Delete button clicked');
+    console.log('🔍 Frontend: Full record object:', record);
+    console.log('🔍 Frontend: Record keys:', Object.keys(record || {}));
+    console.log('🔍 Frontend: Record._id:', record._id);
+    console.log('🔍 Frontend: Record.id:', record.id);
+    console.log('🔍 Frontend: Record.sheet:', record.sheet);
+    if (record.sheet) {
+      console.log('🔍 Frontend: Record.sheet keys:', Object.keys(record.sheet || {}));
+      console.log('🔍 Frontend: Record.sheet._id:', record.sheet._id);
+      console.log('🔍 Frontend: Record.sheet.id:', record.sheet.id);
+    }
+    
+    setRecordToDelete(record);
+    setDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!recordToDelete) return;
+
+    try {
+      setDeleting(true);
+      setSuccess('');
+      
+      console.log('🔍 Frontend: Starting delete process');
+      console.log('🔍 Frontend: Record to delete:', recordToDelete);
+      
+      // Extract the record ID from the record structure
+      // Try multiple possible locations for the ID
+      const recordId = recordToDelete._id || 
+                      recordToDelete.id || 
+                      recordToDelete.sheet?._id || 
+                      recordToDelete.sheet?.id;
+      console.log('🔍 Frontend: Extracted record ID:', recordId);
+      console.log('🔍 Frontend: All possible IDs:', {
+        'record._id': recordToDelete._id,
+        'record.id': recordToDelete.id,
+        'record.sheet._id': recordToDelete.sheet?._id,
+        'record.sheet.id': recordToDelete.sheet?.id
+      });
+      
+      if (!recordId) {
+        console.error('❌ Frontend: No record ID found');
+        setSuccess('Cannot delete: Record ID not found');
+        setTimeout(() => setSuccess(null), 3000);
+        setDeleteDialog(false);
+        setRecordToDelete(null);
+        return;
+      }
+
+      console.log('🔍 Frontend: Calling deleteAttendance with ID:', recordId);
+      await deleteAttendance(recordId);
+      console.log('✅ Frontend: Delete successful');
+      setSuccess('Attendance record deleted successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+      
+    } catch (error) {
+      console.error('❌ Frontend: Error deleting attendance record:', error);
+      console.error('❌ Frontend: Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      setSuccess(`Error: ${error.message || 'Failed to delete attendance record'}`);
+      setTimeout(() => setSuccess(null), 5000);
+    } finally {
+      setDeleting(false);
+      setDeleteDialog(false);
+      setRecordToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog(false);
+    setRecordToDelete(null);
   };
 
   // Handle PDF viewing
@@ -196,9 +284,16 @@ const AttendanceManagement = () => {
   return (
     <Box sx={{ p: 3, backgroundColor: 'grey.50', minHeight: '100vh' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ color: '#1e293b', fontWeight: 600 }}>
-          Attendance Management
-        </Typography>
+        <Box>
+          <Typography variant="h4" sx={{ color: '#1e293b', fontWeight: 600 }}>
+            Attendance Management
+          </Typography>
+          {!loading && totalRecords > 0 && (
+            <Typography variant="body2" sx={{ color: '#6b7280', mt: 0.5 }}>
+              {totalRecords} attendance record{totalRecords !== 1 ? 's' : ''} found
+            </Typography>
+          )}
+        </Box>
         <Button
           onClick={handleRefresh}
           variant="outlined"
@@ -323,6 +418,18 @@ const AttendanceManagement = () => {
                             <Download />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeleteClick(record);
+                            }}
+                            sx={{ color: '#dc2626' }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
                       </Stack>
                     </Stack>
                   </Paper>
@@ -382,6 +489,74 @@ const AttendanceManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {!loading && allAttendanceRecords.length > 0 && (
+        <SimplePagination
+          currentPage={hookCurrentPage}
+          totalPages={totalPages}
+          totalItems={totalRecords}
+          pageSize={hookPageSize}
+          onPageChange={handlePageChange}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialog}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" sx={{ color: '#dc2626', fontWeight: 600 }}>
+            Delete Attendance Record
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mt: 1 }}>
+            Are you sure you want to delete this attendance record? This action cannot be undone.
+          </Typography>
+          {recordToDelete && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
+                Record Details:
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#6b7280', mt: 0.5 }}>
+                File: {recordToDelete.sheet?.originalName || 'Attendance Record'}
+              </Typography>
+              {recordToDelete.sheet?.employeeName && (
+                <Typography variant="body2" sx={{ color: '#6b7280' }}>
+                  Employee: {recordToDelete.sheet.employeeName}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={handleDeleteCancel}
+            variant="outlined"
+            disabled={deleting}
+            sx={{ color: '#6b7280', borderColor: '#d1d5db' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : null}
+            sx={{ 
+              backgroundColor: '#dc2626', 
+              '&:hover': { backgroundColor: '#b91c1c' },
+              '&:disabled': { backgroundColor: '#fca5a5' }
+            }}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* PDF Viewing Dialog */}
       <Dialog

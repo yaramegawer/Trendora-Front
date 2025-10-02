@@ -546,11 +546,14 @@ export const payrollApi = {
 
 // Attendance API functions
 export const attendanceApi = {
-  // Get all attendance records
-  getAttendance: async () => {
+  // Get all attendance records with pagination
+  getAttendance: async (page = 1, limit = 10) => {
     try {
-      console.log('API: Fetching attendance from /hr/attendance');
-      const response = await api.get('/hr/attendance');
+      console.log('API: Fetching attendance from', API_CONFIG.ENDPOINTS.HR.ATTENDANCE);
+      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+      const response = await api.get(API_CONFIG.ENDPOINTS.HR.ATTENDANCE, {
+        params: { page, limit }
+      });
       console.log('API: Attendance response received:', response.data);
       
       // Check if response indicates an error
@@ -559,9 +562,44 @@ export const attendanceApi = {
         throw new Error(errorMessage);
       }
       
+      // Return the full response structure for pagination
       return response.data;
     } catch (error) {
       const errorMessage = handleApiError(error, 'Failed to fetch attendance records');
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Delete attendance record
+  deleteAttendance: async (id) => {
+    try {
+      console.log('🔍 API: Deleting attendance record with ID:', id);
+      console.log('🔍 API: Delete URL:', `${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
+      console.log('🔍 API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
+      
+      const response = await api.delete(`${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
+      console.log('🔍 API: Delete response status:', response.status);
+      console.log('🔍 API: Delete response headers:', response.headers);
+      console.log('🔍 API: Delete response data:', response.data);
+      
+      // Check if response indicates an error
+      if (response.data && response.data.success === false) {
+        const errorMessage = response.data.message || 'Failed to delete attendance record';
+        console.error('❌ API: Backend returned error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      console.log('✅ API: Delete successful');
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Delete error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url
+      });
+      const errorMessage = handleApiError(error, 'Failed to delete attendance record');
       throw new Error(errorMessage);
     }
   }
