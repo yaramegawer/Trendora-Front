@@ -46,6 +46,7 @@ const AttendanceManagement = () => {
     deleteAttendance
   } = useAttendance(currentPage, pageSize);
 
+  // Use attendance records as they come from backend (backend handles sorting)
   // Client-side pagination - slice records based on current page
   const startIndex = (hookCurrentPage - 1) * hookPageSize;
   const endIndex = startIndex + hookPageSize;

@@ -28,7 +28,7 @@ import {
   Server,
   CheckCircle
 } from 'lucide-react';
-import { useOperationEmployees, useOperationCampaigns } from '../../hooks/useOperationData';
+import { useOperationEmployees, useOperationCampaigns, useOperationLeaves } from '../../hooks/useOperationData';
 import { operationTicketApi } from '../../services/operationApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { canSubmitLeave, canCreateCampaigns, showPermissionError } from '../../utils/permissions';
@@ -58,15 +58,26 @@ const OperationDepartment = () => {
     updateCampaign, 
     deleteCampaign 
   } = useOperationCampaigns(campaignsCurrentPage, pageSize);
+  const { addLeave } = useOperationLeaves();
   const { user } = useAuth();
 
   // State for forms
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [showCreateOperationLeave, setShowCreateOperationLeave] = useState(false);
   
   // State for campaign editing
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [showEditCampaign, setShowEditCampaign] = useState(false);
+  
+  // State for leave form
+  const [leaveFormData, setLeaveFormData] = useState({
+    type: '',
+    startDate: '',
+    endDate: ''
+  });
+  const [leaveFormErrors, setLeaveFormErrors] = useState({});
+  const [leaveFormLoading, setLeaveFormLoading] = useState(false);
 
   // Filter campaigns by search term and status
   const filteredCampaigns = Array.isArray(campaigns) ? campaigns.filter(campaign => {
@@ -502,6 +513,77 @@ const OperationDepartment = () => {
     }
   };
 
+  // Leave form handlers
+  const handleLeaveFormChange = (field, value) => {
+    setLeaveFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear error when user starts typing
+    if (leaveFormErrors[field]) {
+      setLeaveFormErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const handleLeaveFormSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    const errors = {};
+    if (!leaveFormData.type) errors.type = 'Leave type is required';
+    if (!leaveFormData.startDate) errors.startDate = 'Start date is required';
+    if (!leaveFormData.endDate) errors.endDate = 'End date is required';
+    
+    // Validate dates
+    if (leaveFormData.startDate && leaveFormData.endDate) {
+      const startDate = new Date(leaveFormData.startDate);
+      const endDate = new Date(leaveFormData.endDate);
+      if (startDate > endDate) {
+        errors.endDate = 'End date must be after start date';
+      }
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setLeaveFormErrors(errors);
+      return;
+    }
+    
+    setLeaveFormLoading(true);
+    setLeaveFormErrors({});
+    
+    try {
+      const result = await addLeave(leaveFormData);
+      if (result.success) {
+        alert('Leave request submitted successfully!');
+        setLeaveFormData({
+          type: '',
+          startDate: '',
+          endDate: ''
+        });
+        setShowCreateOperationLeave(false);
+      } else {
+        alert('Failed to submit leave request: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error submitting leave request:', error);
+      alert('Failed to submit leave request: ' + error.message);
+    } finally {
+      setLeaveFormLoading(false);
+    }
+  };
+
+  const handleLeaveFormCancel = () => {
+    setLeaveFormData({
+      type: '',
+      startDate: '',
+      endDate: ''
+    });
+    setLeaveFormErrors({});
+    setShowCreateOperationLeave(false);
+  };
 
   // Utility functions
   const getOverallRating = (employee) => {
@@ -1090,7 +1172,7 @@ const OperationDepartment = () => {
                       display: 'inline-block',
                       width: '100%'
                     }}>
-                      <label style={{ 
+                      <div style={{ 
                         position: 'absolute',
                         top: '-8px',
                         left: '12px',
@@ -1102,7 +1184,7 @@ const OperationDepartment = () => {
                         zIndex: 1
                       }}>
                         Search Campaigns
-                      </label>
+                      </div>
                       <input
                         type="text"
                         value={campaignSearchTerm}
@@ -1140,7 +1222,7 @@ const OperationDepartment = () => {
                       display: 'inline-block',
                       width: '100%'
                     }}>
-                      <label style={{ 
+                      <div style={{ 
                         position: 'absolute',
                         top: '-8px',
                         left: '12px',
@@ -1152,7 +1234,7 @@ const OperationDepartment = () => {
                         zIndex: 1
                       }}>
                         Status Filter
-                      </label>
+                      </div>
                       <div className="campaign-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
                         <div
                           onClick={() => setShowCampaignStatusDropdown(!showCampaignStatusDropdown)}
@@ -1483,10 +1565,11 @@ const OperationDepartment = () => {
                 handleCreateCampaign();
             }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="campaign-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Campaign Name *
                 </label>
                 <input
+                  id="campaign-name"
                   type="text"
                     value={newCampaign.name}
                     onChange={(e) => setNewCampaign(prev => ({ ...prev, name: e.target.value }))}
@@ -1505,10 +1588,11 @@ const OperationDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="campaign-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Description
                   </label>
                   <textarea
+                    id="campaign-description"
                     value={newCampaign.description}
                     onChange={(e) => setNewCampaign(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Enter campaign description (optional, max 500 characters)"
@@ -1530,10 +1614,11 @@ const OperationDepartment = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="campaign-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                       Start Date *
                 </label>
                 <input
+                      id="campaign-start-date"
                       type="date"
                       value={newCampaign.startDate}
                       onChange={(e) => setNewCampaign(prev => ({ ...prev, startDate: e.target.value }))}
@@ -1548,10 +1633,11 @@ const OperationDepartment = () => {
                 />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    <label htmlFor="campaign-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                       End Date *
                     </label>
                     <input
+                      id="campaign-end-date"
                       type="date"
                       value={newCampaign.endDate}
                       onChange={(e) => setNewCampaign(prev => ({ ...prev, endDate: e.target.value }))}
@@ -1568,10 +1654,11 @@ const OperationDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="campaign-status" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Status
                 </label>
                 <select
+                  id="campaign-status"
                   value={newCampaign.status}
                   onChange={(e) => setNewCampaign(prev => ({ ...prev, status: e.target.value }))}
                   style={{
@@ -1590,10 +1677,11 @@ const OperationDepartment = () => {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="campaign-notes" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Notes
                 </label>
                 <textarea
+                  id="campaign-notes"
                   value={newCampaign.notes}
                   onChange={(e) => setNewCampaign(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Enter additional notes (optional, max 500 characters)"
@@ -1689,10 +1777,11 @@ const OperationDepartment = () => {
                 handleUpdateCampaign();
               }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-campaign-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Campaign Name
                 </label>
                 <input
+                  id="edit-campaign-name"
                   type="text"
                     value={editingCampaign.name || ''}
                     onChange={(e) => setEditingCampaign(prev => ({ ...prev, name: e.target.value }))}
@@ -1710,10 +1799,11 @@ const OperationDepartment = () => {
               </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-campaign-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Description
                   </label>
                   <textarea
+                    id="edit-campaign-description"
                     value={editingCampaign.description || ''}
                     onChange={(e) => setEditingCampaign(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Enter campaign description (optional, max 500 characters)"
@@ -1735,10 +1825,11 @@ const OperationDepartment = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    <label htmlFor="edit-campaign-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                       Start Date
                     </label>
                     <input
+                      id="edit-campaign-start-date"
                       type="date"
                       value={editingCampaign.startDate || ''}
                       onChange={(e) => setEditingCampaign(prev => ({ ...prev, startDate: e.target.value }))}
@@ -1752,10 +1843,11 @@ const OperationDepartment = () => {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    <label htmlFor="edit-campaign-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                       End Date
                     </label>
                     <input
+                      id="edit-campaign-end-date"
                       type="date"
                       value={editingCampaign.endDate || ''}
                       onChange={(e) => setEditingCampaign(prev => ({ ...prev, endDate: e.target.value }))}
@@ -1771,10 +1863,11 @@ const OperationDepartment = () => {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-campaign-status" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Status
                   </label>
                   <select
+                    id="edit-campaign-status"
                     value={editingCampaign.status || 'planned'}
                     onChange={(e) => setEditingCampaign(prev => ({ ...prev, status: e.target.value }))}
                     style={{
@@ -1793,10 +1886,11 @@ const OperationDepartment = () => {
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-campaign-notes" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Notes
                   </label>
                   <textarea
+                    id="edit-campaign-notes"
                     value={editingCampaign.notes || ''}
                     onChange={(e) => setEditingCampaign(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="Enter additional notes (optional, max 500 characters)"
@@ -1885,10 +1979,11 @@ const OperationDepartment = () => {
                 handleCreateTicket();
               }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="ticket-type" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Issue Type *
                   </label>
                   <select
+                    id="ticket-type"
                     value={newTicket.title}
                     onChange={(e) => setNewTicket(prev => ({ ...prev, title: e.target.value }))}
                     style={{
@@ -1959,10 +2054,11 @@ const OperationDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="ticket-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Description *
                   </label>
                   <textarea
+                    id="ticket-description"
                     value={newTicket.description}
                     onChange={(e) => setNewTicket(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe the issue in detail (10-500 characters)"
@@ -1985,10 +2081,11 @@ const OperationDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="ticket-priority" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Priority
                   </label>
                   <select
+                    id="ticket-priority"
                     value={newTicket.priority}
                     onChange={(e) => setNewTicket(prev => ({ ...prev, priority: e.target.value }))}
                     style={{
@@ -2048,6 +2145,170 @@ const OperationDepartment = () => {
         </div>
       )}
 
+      {/* Leave Form Modal */}
+      {showCreateOperationLeave && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Submit Leave Request</h3>
+              <button
+                onClick={handleLeaveFormCancel}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleLeaveFormSubmit}>
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="leave-type" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Leave Type
+                </label>
+                <select
+                  id="leave-type"
+                  value={leaveFormData.type}
+                  onChange={(e) => handleLeaveFormChange('type', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: `1px solid ${leaveFormErrors.type ? '#ef4444' : '#d1d5db'}`,
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  required
+                >
+                  <option value="">Select leave type</option>
+                  <option value="annual">Annual Leave</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="unpaid">Unpaid Leave</option>
+                </select>
+                {leaveFormErrors.type && (
+                  <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>
+                    {leaveFormErrors.type}
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="leave-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Start Date
+                </label>
+                <input
+                  id="leave-start-date"
+                  type="date"
+                  value={leaveFormData.startDate}
+                  onChange={(e) => handleLeaveFormChange('startDate', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: `1px solid ${leaveFormErrors.startDate ? '#ef4444' : '#d1d5db'}`,
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  required
+                />
+                {leaveFormErrors.startDate && (
+                  <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>
+                    {leaveFormErrors.startDate}
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  End Date
+                </label>
+                <input
+                  id="leave-end-date"
+                  type="date"
+                  value={leaveFormData.endDate}
+                  onChange={(e) => handleLeaveFormChange('endDate', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: `1px solid ${leaveFormErrors.endDate ? '#ef4444' : '#d1d5db'}`,
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  required
+                />
+                {leaveFormErrors.endDate && (
+                  <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>
+                    {leaveFormErrors.endDate}
+                  </div>
+                )}
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end'
+              }}>
+                <button
+                  type="button"
+                  onClick={handleLeaveFormCancel}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={leaveFormLoading}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: leaveFormLoading ? '#9ca3af' : '#059669',
+                    color: 'white',
+                    fontSize: '14px',
+                    cursor: leaveFormLoading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {leaveFormLoading ? 'Submitting...' : 'Submit Leave Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

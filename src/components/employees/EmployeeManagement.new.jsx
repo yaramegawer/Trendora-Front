@@ -132,7 +132,22 @@ const EmployeeManagement = () => {
       } else if (error.message && error.message.includes('email')) {
         // Catch any other email-related errors and show as alert only
         alert(error.message);
+      } else if ((error.message && error.message.includes('department') && error.message.includes('must be one of')) || 
+                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('department') && error.response.data.message.includes('must be one of')) ||
+                 (error.message && error.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales')) ||
+                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales'))) {
+        // Catch department validation errors and show as alert only
+        const errorMsg = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
+        alert(errorMsg);
+        return; // Don't set userError, just show alert and return
       } else {
+        // Check if it's a department validation error in any other format
+        const errorMessage = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
+        if (errorMessage && (errorMessage.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales') || 
+                            (errorMessage.includes('department') && errorMessage.includes('must be one of')))) {
+          alert(errorMessage);
+          return; // Don't set userError, just show alert and return
+        }
         setUserError(`Error adding employee: ${error.message}`);
       }
     }
@@ -186,7 +201,22 @@ const EmployeeManagement = () => {
       } else if (error.message && error.message.includes('email')) {
         // Catch any other email-related errors and show as alert only
         alert(error.message);
+      } else if ((error.message && error.message.includes('department') && error.message.includes('must be one of')) || 
+                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('department') && error.response.data.message.includes('must be one of')) ||
+                 (error.message && error.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales')) ||
+                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales'))) {
+        // Catch department validation errors and show as alert only
+        const errorMsg = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
+        alert(errorMsg);
+        return; // Don't set userError, just show alert and return
       } else {
+        // Check if it's a department validation error in any other format
+        const errorMessage = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
+        if (errorMessage && (errorMessage.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales') || 
+                            (errorMessage.includes('department') && errorMessage.includes('must be one of')))) {
+          alert(errorMessage);
+          return; // Don't set userError, just show alert and return
+        }
         setUserError(`Error updating employee: ${error.message}`);
       }
     }
@@ -718,15 +748,21 @@ const EmployeeManagement = () => {
           </Dialog>
 
           {/* Edit Employee Dialog */}
-          <Dialog open={showEditDialog} onClose={() => setShowEditDialog(false)} maxWidth="md" fullWidth>
+          <Dialog open={showEditDialog} onClose={() => {
+            setShowEditDialog(false);
+            setEditingEmployee(null);
+          }} maxWidth="md" fullWidth>
             <DialogTitle>Edit Employee</DialogTitle>
             <DialogContent>
               <Box sx={{ pt: 2 }}>
                 <EmployeeForm
-                  employee={selectedEmployee}
+                  employee={editingEmployee}
                   departments={departments}
                   onSave={handleEditEmployee}
-                  onCancel={() => setShowEditDialog(false)}
+                  onCancel={() => {
+                    setShowEditDialog(false);
+                    setEditingEmployee(null);
+                  }}
                   loading={loading}
                   error={error}
                 />

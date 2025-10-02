@@ -23,7 +23,7 @@ import {
   Upload,
   FileText
 } from 'lucide-react';
-import { useITEmployees, useITProjects, useITTickets } from '../../hooks/useITData';
+import { useITEmployees, useITProjects, useITTickets, useITLeaves } from '../../hooks/useITData';
 import { useAuth } from '../../contexts/AuthContext';
 import { itLeaveApi } from '../../services/itApi';
 import SimplePagination from '../common/SimplePagination';
@@ -40,6 +40,9 @@ const ITDepartment = () => {
   // Filter state for tickets
   const [ticketStatusFilter, setTicketStatusFilter] = useState('all');
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  
+  // Check if ticket filters are active
+  const hasActiveTicketFilters = ticketStatusFilter !== 'all';
   
   // Filter state for projects
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
@@ -80,8 +83,7 @@ const ITDepartment = () => {
     updateTicket, 
     deleteTicket
   } = useITTickets(ticketsCurrentPage, pageSize);
-
-
+  const { submitLeave } = useITLeaves();
 
   // Filter tickets by status
   const filteredTickets = Array.isArray(tickets) ? tickets.filter(ticket => {
@@ -112,6 +114,7 @@ const ITDepartment = () => {
 
   // Use server-side pagination when no filters are active, client-side when filters are active
   const projectsToDisplay = hasActiveProjectFilters ? filteredProjects : projects;
+  const ticketsToDisplay = hasActiveTicketFilters ? paginatedTickets : tickets;
   
   // Client-side pagination only for filtered results
   const projectsStartIndex = hasActiveProjectFilters ? (projectsCurrentPage - 1) * pageSize : 0;
@@ -132,7 +135,11 @@ const ITDepartment = () => {
   const handleTicketsPageChange = (newPage) => {
     console.log('IT Department Styled: Tickets page change to:', newPage);
     setTicketsCurrentPage(newPage);
-    ticketsGoToPage(newPage);
+    
+    // Use server-side pagination when no filters are active
+    if (!hasActiveTicketFilters) {
+      ticketsGoToPage(newPage);
+    }
   };
 
   const handleStatusFilterChange = (status) => {
@@ -635,7 +642,7 @@ const ITDepartment = () => {
       };
       
       // Only include members if they exist and are valid ObjectIds
-      if (editingProject.members && editingProject.members.length > 0) {
+      if (editingProject.members && Array.isArray(editingProject.members) && editingProject.members.length > 0) {
         // If members are populated objects, extract their IDs
         const memberIds = editingProject.members.map(member => {
           if (typeof member === 'object' && member._id) {
@@ -1621,7 +1628,7 @@ const ITDepartment = () => {
                             {[
                               { value: 'all', label: 'All Tickets' },
                               { value: 'open', label: 'Open' },
-                              { value: 'in-progress', label: 'In Progress' },
+                              { value: 'in_progress', label: 'In Progress' },
                               { value: 'resolved', label: 'Resolved' },
                               { value: 'closed', label: 'Closed' }
                             ].map((option) => (
@@ -1668,7 +1675,7 @@ const ITDepartment = () => {
               </div>
             ) : Array.isArray(tickets) && tickets.length > 0 ? (
               <div style={{ display: 'grid', gap: '16px' }}>
-                {tickets.map((ticket) => (
+                {(hasActiveTicketFilters ? paginatedTickets : tickets).map((ticket) => (
                   <div key={ticket.id || ticket._id} style={{
                     backgroundColor: '#f8fafc',
                     borderRadius: '12px',
@@ -1775,8 +1782,8 @@ const ITDepartment = () => {
               <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
                 <SimplePagination
                   currentPage={ticketsCurrentPage}
-                  totalPages={ticketsTotalPages}
-                  totalItems={totalTickets}
+                  totalPages={hasActiveTicketFilters ? Math.ceil(filteredTickets.length / pageSize) : ticketsTotalPages}
+                  totalItems={hasActiveTicketFilters ? filteredTickets.length : totalTickets}
                   pageSize={pageSize}
                   onPageChange={handleTicketsPageChange}
                 />
@@ -2564,10 +2571,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-project-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Description *
                 </label>
                 <textarea
+                  id="edit-project-description"
                   value={editingProject.description}
                   onChange={(e) => setEditingProject(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Enter project description"
@@ -2585,10 +2593,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-project-status" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Status
                 </label>
                 <select
+                  id="edit-project-status"
                   value={editingProject.status}
                   onChange={(e) => setEditingProject(prev => ({ ...prev, status: e.target.value }))}
                   style={{
@@ -2607,10 +2616,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-project-members" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Team Members
                 </label>
                 <select
+                  id="edit-project-members"
                   multiple
                   value={editingProject.members || []}
                   onChange={(e) => {
@@ -2638,10 +2648,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-project-notes" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Notes
                 </label>
                 <textarea
+                  id="edit-project-notes"
                   value={editingProject.notes || ''}
                   onChange={(e) => setEditingProject(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Enter project notes (optional)"
@@ -2662,10 +2673,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-project-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Start Date
                 </label>
                 <input
+                  id="edit-project-start-date"
                   type="date"
                   value={editingProject.startDate || ''}
                   onChange={(e) => setEditingProject(prev => ({ ...prev, startDate: e.target.value }))}
@@ -2680,10 +2692,11 @@ const ITDepartment = () => {
               </div>
               
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="edit-project-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   End Date
                 </label>
                 <input
+                  id="edit-project-end-date"
                   type="date"
                   value={editingProject.endDate || ''}
                   onChange={(e) => setEditingProject(prev => ({ ...prev, endDate: e.target.value }))}
@@ -2774,10 +2787,11 @@ const ITDepartment = () => {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              <label htmlFor="ticket-status" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                 New Status
               </label>
               <select
+                id="ticket-status"
                 value={editingTicket.status || 'open'}
                 onChange={(e) => setEditingTicket(prev => ({ ...prev, status: e.target.value }))}
                 style={{
@@ -2874,10 +2888,11 @@ const ITDepartment = () => {
               handleCreateLeave();
             }}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="leave-type" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Leave Type *
                 </label>
                 <select
+                  id="leave-type"
                   value={newLeave.type}
                   onChange={(e) => setNewLeave({...newLeave, type: e.target.value})}
                   required
@@ -2897,10 +2912,11 @@ const ITDepartment = () => {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="leave-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   Start Date *
                 </label>
                 <input
+                  id="leave-start-date"
                   type="date"
                   value={newLeave.startDate}
                   onChange={(e) => setNewLeave({...newLeave, startDate: e.target.value})}
@@ -2916,10 +2932,11 @@ const ITDepartment = () => {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   End Date *
                 </label>
                 <input
+                  id="leave-end-date"
                   type="date"
                   value={newLeave.endDate}
                   onChange={(e) => setNewLeave({...newLeave, endDate: e.target.value})}

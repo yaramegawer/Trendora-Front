@@ -1234,7 +1234,7 @@ const DigitalMarketingDepartment = () => {
                       display: 'inline-block',
                       width: '100%'
                     }}>
-                      <label style={{ 
+                      <div style={{ 
                         position: 'absolute',
                         top: '-8px',
                         left: '12px',
@@ -1246,7 +1246,7 @@ const DigitalMarketingDepartment = () => {
                         zIndex: 1
                       }}>
                         Search Projects
-                      </label>
+                      </div>
                       <input
                         type="text"
                         value={projectSearchTerm}
@@ -1284,7 +1284,7 @@ const DigitalMarketingDepartment = () => {
                       display: 'inline-block',
                       width: '100%'
                     }}>
-                      <label style={{ 
+                      <div style={{ 
                         position: 'absolute',
                         top: '-8px',
                         left: '12px',
@@ -1296,7 +1296,7 @@ const DigitalMarketingDepartment = () => {
                         zIndex: 1
                       }}>
                         Status Filter
-                      </label>
+                      </div>
                       <div className="project-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
                         <div
                           onClick={() => setShowProjectStatusDropdown(!showProjectStatusDropdown)}
@@ -1357,7 +1357,7 @@ const DigitalMarketingDepartment = () => {
                               { value: 'planned', label: 'Planned' },
                               { value: 'in_progress', label: 'In Progress' },
                               { value: 'completed', label: 'Completed' },
-                              { value: 'on-hold', label: 'On Hold' }
+                              { value: 'on_hold', label: 'On Hold' }
                             ].map((option) => (
                               <div
                                 key={option.value}
@@ -1621,9 +1621,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="project-members" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Team Members                  </label>
                   <select
+                    id="project-members"
                     multiple
                     value={newProject.members}
                     onChange={(e) => {
@@ -1652,10 +1653,11 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="project-notes" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Notes
                   </label>
                   <textarea
+                    id="project-notes"
                     value={newProject.notes}
                     onChange={(e) => setNewProject(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="Enter project notes (optional)"
@@ -1676,9 +1678,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="project-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Start Date                  </label>
                   <input
+                    id="project-start-date"
                     type="date"
                     value={newProject.startDate}
                     onChange={(e) => setNewProject(prev => ({ ...prev, startDate: e.target.value }))}
@@ -1694,9 +1697,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="project-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     End Date                  </label>
                   <input
+                    id="project-end-date"
                     type="date"
                     value={newProject.endDate}
                     onChange={(e) => setNewProject(prev => ({ ...prev, endDate: e.target.value }))}
@@ -1790,10 +1794,11 @@ const DigitalMarketingDepartment = () => {
                 handleUpdateProject();
               }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-project-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Project Name
                   </label>
                   <input
+                    id="edit-project-name"
                     type="text"
                     value={editingProject.name || ''}
                     onChange={(e) => setEditingProject(prev => ({ ...prev, name: e.target.value }))}

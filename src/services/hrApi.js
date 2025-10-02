@@ -325,7 +325,12 @@ export const leaveApi = {
       console.log('API: Fetching leaves from', API_CONFIG.ENDPOINTS.HR.LEAVES);
       console.log('API: Pagination params - Page:', page, 'Limit:', limit);
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.LEAVES, {
-        params: { page, limit }
+        params: { 
+          page, 
+          limit,
+          sortBy: 'createdAt',
+          sortOrder: 'desc'
+        }
       });
       console.log('API: Leaves response received:', response.data);
       
@@ -417,7 +422,12 @@ export const payrollApi = {
       console.log('API: Fetching payroll from', API_CONFIG.ENDPOINTS.HR.PAYROLL);
       console.log('API: Pagination params - Page:', page, 'Limit:', limit);
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.PAYROLL, {
-        params: { page, limit }
+        params: { 
+          page, 
+          limit,
+          sortBy: 'createdAt',
+          sortOrder: 'desc'
+        }
       });
       console.log('API: Payroll response received:', response.data);
       
@@ -552,7 +562,12 @@ export const attendanceApi = {
       console.log('API: Fetching attendance from', API_CONFIG.ENDPOINTS.HR.ATTENDANCE);
       console.log('API: Pagination params - Page:', page, 'Limit:', limit);
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.ATTENDANCE, {
-        params: { page, limit }
+        params: { 
+          page, 
+          limit,
+          sortBy: 'createdAt',
+          sortOrder: 'desc'
+        }
       });
       console.log('API: Attendance response received:', response.data);
       

@@ -57,15 +57,17 @@ const LeaveType = {
 };
 
 const LeaveManagement = () => {
-  // Server-side pagination state - declare first
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  // Local state for client-side pagination when filters are active
+  const [clientCurrentPage, setClientCurrentPage] = useState(1);
   
   const { 
     leaves, 
     loading, 
     error, 
     totalLeaves,
+    currentPage,
+    pageSize,
+    totalPages: hookTotalPages,
     addLeave, 
     updateLeaveStatus, 
     deleteLeave,
@@ -73,7 +75,7 @@ const LeaveManagement = () => {
     changePageSize,
     nextPage,
     prevPage
-  } = useLeaves(currentPage, pageSize);
+  } = useLeaves();
   const { employees: hrEmployees } = useEmployees();
   const { employees: itEmployees } = useITEmployees();
   const { user } = useAuth();
@@ -83,8 +85,23 @@ const LeaveManagement = () => {
   // Combine HR and IT employees for display
   const currentEmployees = [...(hrEmployees || []), ...(itEmployees || [])];
   
+  // Use leaves as they come from backend (backend handles sorting)
+  const sortedLeaves = currentLeaves;
+  
   // Debug logging
-  console.log('HR Leave Management - Leaves data:', currentLeaves);
+  console.log('HR Leave Management - Leaves data from backend:', currentLeaves);
+  
+  // Debug when leaves data changes
+  React.useEffect(() => {
+    console.log('🔍 Leaves data changed:', {
+      leavesLength: leaves.length,
+      currentLeavesLength: currentLeaves.length,
+      sortedLeavesLength: sortedLeaves.length,
+      currentPage,
+      totalLeaves,
+      hookTotalPages
+    });
+  }, [leaves, currentLeaves, sortedLeaves, currentPage, totalLeaves, hookTotalPages]);
   
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -255,7 +272,7 @@ const LeaveManagement = () => {
     return `Unknown Employee (ID: ${leave.employeeId || 'N/A'})`;
   };
 
-  const filteredLeaves = currentLeaves.filter(leave => {
+  const filteredLeaves = sortedLeaves.filter(leave => {
     const matchesSearch = getEmployeeName(leave).toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (leave.leaveType || leave.type || '').toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -278,19 +295,68 @@ const LeaveManagement = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Server-side pagination - use data from API hooks
-  const totalPages = Math.ceil((totalLeaves || 0) / pageSize);
+  // Check if there are active filters
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all';
+
+  // Use client-side pagination when filters are active, server-side when no filters
+  let paginatedLeaves;
+  let displayCurrentPage;
+  let displayTotalPages;
+  
+  if (hasActiveFilters) {
+    // Client-side pagination for filtered results
+    displayCurrentPage = clientCurrentPage;
+    displayTotalPages = Math.ceil(filteredLeaves.length / pageSize);
+    const startIndex = (clientCurrentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    paginatedLeaves = filteredLeaves.slice(startIndex, endIndex);
+  } else {
+    // Server-side pagination - use data as received from backend (already paginated)
+    displayCurrentPage = currentPage;
+    displayTotalPages = hookTotalPages;
+    paginatedLeaves = sortedLeaves;
+  }
+
+  // Debug logging after all variables are declared
+  console.log('🔍 Pagination Debug:', {
+    displayCurrentPage,
+    displayTotalPages,
+    hasActiveFilters,
+    filteredLeavesLength: filteredLeaves.length,
+    paginatedLeavesLength: paginatedLeaves.length,
+    totalLeaves,
+    pageSize,
+    clientCurrentPage,
+    serverCurrentPage: currentPage,
+    leavesLength: leaves.length,
+    sortedLeavesLength: sortedLeaves.length
+  });
   
   // Handle page change
   const handlePageChange = (newPage) => {
-    console.log(`LeaveManagement: handlePageChange called with newPage=${newPage}, currentPage=${currentPage}, totalPages=${totalPages}`);
-    setCurrentPage(newPage);
-    goToPage(newPage);
+    console.log(`🔍 LeaveManagement: handlePageChange called`);
+    console.log(`🔍 - newPage: ${newPage}`);
+    console.log(`🔍 - displayCurrentPage: ${displayCurrentPage}`);
+    console.log(`🔍 - displayTotalPages: ${displayTotalPages}`);
+    console.log(`🔍 - hasActiveFilters: ${hasActiveFilters}`);
+    console.log(`🔍 - filteredLeaves.length: ${filteredLeaves.length}`);
+    console.log(`🔍 - totalLeaves: ${totalLeaves}`);
+    console.log(`🔍 - paginatedLeaves.length: ${paginatedLeaves.length}`);
+    
+    if (!hasActiveFilters) {
+      // Server-side pagination
+      console.log(`🔍 - Calling goToPage(${newPage}) for server-side pagination`);
+      goToPage(newPage);
+    } else {
+      // Client-side pagination
+      console.log(`🔍 - Setting clientCurrentPage to ${newPage} for client-side pagination`);
+      setClientCurrentPage(newPage);
+    }
   };
 
   // Reset pagination when filters change
   React.useEffect(() => {
-    setCurrentPage(1);
+    setClientCurrentPage(1);
     goToPage(1);
   }, [searchTerm, statusFilter]);
 
@@ -375,7 +441,7 @@ const LeaveManagement = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredLeaves.map((leave) => (
+              {paginatedLeaves.map((leave) => (
                 <TableRow key={leave.id || leave._id} hover>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={2}>
@@ -421,7 +487,7 @@ const LeaveManagement = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        {filteredLeaves.length === 0 && (
+        {paginatedLeaves.length === 0 && (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography color="textSecondary">
               No leave requests found.
@@ -429,11 +495,18 @@ const LeaveManagement = () => {
           </Box>
         )}
         
-        {/* Server-side Pagination - Always visible */}
+        {/* Pagination - Always visible */}
+        {console.log('🔍 Rendering SimplePagination with:', {
+          displayCurrentPage,
+          displayTotalPages,
+          totalItems: hasActiveFilters ? filteredLeaves.length : totalLeaves,
+          pageSize,
+          hasActiveFilters
+        })}
         <SimplePagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalLeaves}
+          currentPage={displayCurrentPage}
+          totalPages={displayTotalPages}
+          totalItems={hasActiveFilters ? filteredLeaves.length : totalLeaves}
           pageSize={pageSize}
           onPageChange={handlePageChange}
         />

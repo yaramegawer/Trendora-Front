@@ -34,6 +34,17 @@ export const useITEmployees = () => {
     }
   };
 
+  const updateRating = async (id, ratingData) => {
+    try {
+      const updatedEmployee = await itEmployeeApi.updateRating(id, ratingData);
+      await fetchEmployees(); // Refresh the employees list
+      return updatedEmployee;
+    } catch (err) {
+      console.error('Error updating employee rating:', err);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     fetchEmployees();
   }, []);
@@ -42,7 +53,8 @@ export const useITEmployees = () => {
     employees,
     loading,
     error,
-    fetchEmployees
+    fetchEmployees,
+    updateRating
   };
 };
 

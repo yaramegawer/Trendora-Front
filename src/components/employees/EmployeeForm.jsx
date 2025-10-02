@@ -58,9 +58,9 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
       
       // If department is a MongoDB ID (24 character hex string), try to find the department name
       if (departmentValue && departmentValue.length === 24 && /^[0-9a-fA-F]+$/.test(departmentValue)) {
-        // This is likely a MongoDB ID, we'll need to handle this differently
-        // For now, set it to empty and let user select
-        departmentValue = '';
+        // Try to find the department name from the departments array
+        const foundDept = departments.find(dept => dept._id === departmentValue || dept.id === departmentValue);
+        departmentValue = foundDept ? foundDept.name : '';
       }
       
       // Handle hire date format - convert from ISO string to yyyy-MM-dd format
@@ -99,7 +99,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         pendingDocuments: []
       });
     }
-  }, [employee]);
+  }, [employee, departments]);
 
   const validateForm = () => {
     const newErrors = {};

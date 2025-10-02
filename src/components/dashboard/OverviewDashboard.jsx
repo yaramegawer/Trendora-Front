@@ -351,7 +351,6 @@ const OverviewDashboard = memo(() => {
     // Add operation-specific recent activities
     const recentOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
       .filter(campaign => campaign.createdAt || campaign.created_at)
-      .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
       .slice(0, 2) : [];
     
     recentOperationCampaigns.forEach(campaign => {
@@ -397,7 +396,6 @@ const OverviewDashboard = memo(() => {
         (campaign.status === 'completed' || campaign.status === 'done' || campaign.status === 'finished') &&
         (campaign.updatedAt || campaign.updated_at)
       )
-      .sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at))
       .slice(0, 1) : [];
     
     recentlyCompletedOperationCampaigns.forEach(campaign => {
