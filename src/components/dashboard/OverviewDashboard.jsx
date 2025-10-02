@@ -9,30 +9,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import SimplePagination from '../common/SimplePagination';
 import api from '../../api/axios';
 
-// Utility function to calculate time ago
-const getTimeAgo = (date) => {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  
-  if (diffInSeconds < 60) {
-    return 'Just now';
-  } else if (diffInSeconds < 3600) {
-    const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  } else if (diffInSeconds < 86400) {
-    const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  } else if (diffInSeconds < 2592000) {
-    const days = Math.floor(diffInSeconds / 86400);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
-  } else if (diffInSeconds < 31536000) {
-    const months = Math.floor(diffInSeconds / 2592000);
-    return `${months} month${months > 1 ? 's' : ''} ago`;
-  } else {
-    const years = Math.floor(diffInSeconds / 31536000);
-    return `${years} year${years > 1 ? 's' : ''} ago`;
-  }
-};
 
 const OverviewDashboard = memo(() => {
   try {
@@ -315,8 +291,6 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'employees',
         message: `${totalEmployees} employees currently in the system`,
-        timestamp: 'Updated just now',
-        timestampValue: new Date(),
         color: 'primary.main'
       });
     }
@@ -326,8 +300,6 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'leaves',
         message: `${pendingLeaves} leave requests pending approval`,
-        timestamp: 'Requires attention',
-        timestampValue: new Date(),
         color: 'warning.main'
       });
     }
@@ -336,8 +308,6 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'leaves',
         message: `${approvedLeaves} leave requests approved this period`,
-        timestamp: 'Recent approvals',
-        timestampValue: new Date(),
         color: 'success.main'
       });
     }
@@ -347,8 +317,6 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'projects',
         message: `${totalITProjects} IT projects in progress`,
-        timestamp: 'Active development',
-        timestampValue: new Date(),
         color: 'info.main'
       });
     }
@@ -358,8 +326,6 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'campaigns',
         message: `${totalOperationCampaigns} operation campaigns running`,
-        timestamp: 'Business operations',
-        timestampValue: new Date(),
         color: 'success.main'
       });
     }
@@ -369,8 +335,6 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'payroll',
         message: `${totalTransactions} payroll transactions processed`,
-        timestamp: 'Financial management',
-        timestampValue: new Date(),
         color: 'warning.main'
       });
     }
@@ -380,28 +344,22 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'departments',
         message: `${totalDepartments} departments actively managed`,
-        timestamp: 'System status',
-        timestampValue: new Date(),
         color: 'info.main'
       });
     }
     
-    // Add operation-specific recent activities with real timestamps
+    // Add operation-specific recent activities
     const recentOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
       .filter(campaign => campaign.createdAt || campaign.created_at)
       .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
       .slice(0, 2) : [];
     
     recentOperationCampaigns.forEach(campaign => {
-      const createdAt = new Date(campaign.createdAt || campaign.created_at);
-      const timeAgo = getTimeAgo(createdAt);
       const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Untitled Campaign';
       
       activities.push({
         type: 'operation',
         message: `New campaign created: ${campaignName}`,
-        timestamp: timeAgo,
-        timestampValue: createdAt,
         color: 'success.main'
       });
     });
@@ -413,9 +371,6 @@ const OverviewDashboard = memo(() => {
       .slice(0, 1) : [];
     
     recentOperationLeaves.forEach(leave => {
-      const updatedAt = new Date(leave.updatedAt || leave.updated_at);
-      const timeAgo = getTimeAgo(updatedAt);
-      
       // Try to find employee name from operation employees data
       let employeeName = 'Employee';
       if (leave.employeeId && Array.isArray(operationEmployees)) {
@@ -432,13 +387,11 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'operation',
         message: `Employee rating updated: ${employeeName}`,
-        timestamp: timeAgo,
-        timestampValue: updatedAt,
         color: 'primary.main'
       });
     });
     
-    // Add operation task completion activities with real timestamps
+    // Add operation task completion activities
     const recentlyCompletedOperationCampaigns = Array.isArray(operationCampaigns) ? operationCampaigns
       .filter(campaign => 
         (campaign.status === 'completed' || campaign.status === 'done' || campaign.status === 'finished') &&
@@ -448,15 +401,11 @@ const OverviewDashboard = memo(() => {
       .slice(0, 1) : [];
     
     recentlyCompletedOperationCampaigns.forEach(campaign => {
-      const updatedAt = new Date(campaign.updatedAt || campaign.updated_at);
-      const timeAgo = getTimeAgo(updatedAt);
       const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Campaign Task';
       
       activities.push({
         type: 'operation',
         message: `Task completed: ${campaignName}`,
-        timestamp: timeAgo,
-        timestampValue: updatedAt,
         color: 'success.main'
       });
     });
@@ -467,8 +416,6 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'operation',
         message: `${pendingOperationLeaves} operation leave requests pending`,
-        timestamp: 'Requires attention',
-        timestampValue: new Date(),
         color: 'warning.main'
       });
     }
@@ -478,16 +425,12 @@ const OverviewDashboard = memo(() => {
       activities.push({
         type: 'operation',
         message: `${approvedOperationLeaves} operation leave requests approved`,
-        timestamp: 'Recent approvals',
-        timestampValue: new Date(),
         color: 'success.main'
       });
     }
     
-    // Sort all activities by timestamp (most recent first) and limit to 4
-    return activities
-      .sort((a, b) => (b.timestampValue || new Date()) - (a.timestampValue || new Date()))
-      .slice(0, 4);
+    // Limit to 4 activities
+    return activities.slice(0, 4);
   }, [totalEmployees, pendingLeaves, approvedLeaves, totalITProjects, totalOperationCampaigns, totalTransactions, totalDepartments, operationCampaigns, operationLeaves, operationEmployees]);
 
   // Calculate growth percentage (mock calculation for now)
@@ -878,9 +821,6 @@ const OverviewDashboard = memo(() => {
                 <Box>
                   <Typography variant="body2">
                         {activity.message}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                        {activity.timestamp}
                   </Typography>
                 </Box>
               </Stack>

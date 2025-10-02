@@ -806,7 +806,6 @@ const OperationDepartment = () => {
           </div>
                   <div>
                     <p style={{ fontSize: '12px', fontWeight: '500', color: '#111827', margin: 0 }}>New campaign created</p>
-                    <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>2 hours ago</p>
         </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
@@ -815,7 +814,6 @@ const OperationDepartment = () => {
                   </div>
                   <div>
                     <p style={{ fontSize: '12px', fontWeight: '500', color: '#111827', margin: 0 }}>Employee rating updated</p>
-                    <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>4 hours ago</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
@@ -824,7 +822,6 @@ const OperationDepartment = () => {
                   </div>
                   <div>
                     <p style={{ fontSize: '12px', fontWeight: '500', color: '#111827', margin: 0 }}>Task completed</p>
-                    <p style={{ fontSize: '10px', color: '#6b7280', margin: 0 }}>6 hours ago</p>
                   </div>
                 </div>
               </div>
