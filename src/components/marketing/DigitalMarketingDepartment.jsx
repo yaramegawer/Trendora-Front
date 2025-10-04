@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMarketingEmployees, useMarketingProjects, useMarketingTickets, useMarketingLeaves } from '../../hooks/useMarketingData';
+import { marketingCustomerApi } from '../../services/marketingApi';
 import SimplePagination from '../common/SimplePagination';
 
 const DigitalMarketingDepartment = () => {
@@ -56,6 +57,17 @@ const DigitalMarketingDepartment = () => {
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [projectStatusFilter, setProjectStatusFilter] = useState('all');
   const [showProjectStatusDropdown, setShowProjectStatusDropdown] = useState(false);
+
+  // State for customer sections
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCustomerSections, setShowCustomerSections] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [customerProjects, setCustomerProjects] = useState([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerProjectsLoading, setCustomerProjectsLoading] = useState(false);
+  const [customerProjectsCurrentPage, setCustomerProjectsCurrentPage] = useState(1);
+  const [customerProjectsPageSize, setCustomerProjectsPageSize] = useState(10);
+  const [customerProjectsTotal, setCustomerProjectsTotal] = useState(0);
 
   const { 
     projects, 
@@ -111,6 +123,42 @@ const DigitalMarketingDepartment = () => {
   const projectsEndIndex = hasActiveFilters ? projectsStartIndex + pageSize : projects.length;
   const paginatedProjects = hasActiveFilters ? filteredProjects.slice(projectsStartIndex, projectsEndIndex) : projects;
 
+  // Filter customer projects by status and search term when in customer view
+  const filteredCustomerProjects = (() => {
+    if (showCustomerSections && selectedCustomer) {
+      let filtered = customerProjects;
+      
+      // Filter by status first
+      if (projectStatusFilter !== 'all') {
+        filtered = filtered.filter(project => project.status === projectStatusFilter);
+      }
+      
+      // Then filter by search term if provided
+      if (projectSearchTerm.trim()) {
+        filtered = filtered.filter(project => {
+          const projectName = project.name || '';
+          const projectDescription = project.description || '';
+          return projectName.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
+                 projectDescription.toLowerCase().includes(projectSearchTerm.toLowerCase());
+        });
+      }
+      
+      return filtered;
+    }
+    return customerProjects;
+  })();
+
+  // Filter customers based on search term (only when not in customer view)
+  const filteredCustomers = (() => {
+    if (!showCustomerSections && projectSearchTerm.trim() && customers.length > 0) {
+      return customers.filter(customer => {
+        const customerName = typeof customer === 'string' ? customer : (customer.name || customer.customerName || customer.title || '');
+        return customerName.toLowerCase().includes(projectSearchTerm.toLowerCase());
+      });
+    }
+    return customers;
+  })();
+
   // Pagination handlers
   const handleProjectsPageChange = (newPage) => {
     console.log('Digital Marketing Department: Projects page change to:', newPage);
@@ -125,12 +173,24 @@ const DigitalMarketingDepartment = () => {
   const handleProjectSearchChange = (searchTerm) => {
     setProjectSearchTerm(searchTerm);
     setProjectsCurrentPage(1); // Reset to first page when search changes
+    
+    console.log('🔍 Search term:', searchTerm);
+    console.log('🔍 Show customer sections:', showCustomerSections);
+    console.log('🔍 Customers:', customers);
+    
+    // No longer automatically going back to customer list
+    // This allows searching for projects within the customer view
   };
 
   const handleProjectStatusFilterChange = (status) => {
     setProjectStatusFilter(status);
     setProjectsCurrentPage(1); // Reset to first page when filter changes
   };
+
+  // Fetch customers on component mount
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -155,7 +215,8 @@ const DigitalMarketingDepartment = () => {
     members: [],
     notes: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    customerName: ''
   });
 
   // State for employee ratings
@@ -180,6 +241,122 @@ const DigitalMarketingDepartment = () => {
     startDate: '',
     endDate: ''
   });
+  
+  // Fetch all customers from API
+  const fetchCustomers = async () => {
+    try {
+      setCustomersLoading(true);
+      console.log('🔄 Fetching customers from API...');
+      const customersData = await marketingCustomerApi.getAllCustomers();
+      console.log('📡 Customers API Response:', customersData);
+      
+      // Handle different response structures
+      let customersList = [];
+      if (Array.isArray(customersData)) {
+        customersList = customersData;
+      } else if (customersData && customersData.data && Array.isArray(customersData.data)) {
+        customersList = customersData.data;
+      } else if (customersData && customersData.success && Array.isArray(customersData.data)) {
+        customersList = customersData.data;
+      }
+      
+      console.log('📊 Customers loaded:', customersList.length);
+      console.log('📊 Customers data:', customersList);
+      setCustomers(customersList);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      setCustomers([]);
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
+
+  // Fetch projects for a specific customer
+  const fetchCustomerProjects = async (customerName, page = 1, pageSize = 10) => {
+    try {
+      setCustomerProjectsLoading(true);
+      console.log('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize);
+      console.log('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
+      const projectsData = await marketingCustomerApi.getCustomerProjects(customerName, page, pageSize);
+      console.log('📡 Customer Projects API Response:', projectsData);
+      console.log('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
+      
+      // Handle different response structures
+      let projectsList = [];
+      let totalProjects = 0;
+      
+      if (Array.isArray(projectsData)) {
+        projectsList = projectsData;
+        totalProjects = projectsData.length;
+      } else if (projectsData && projectsData.data && Array.isArray(projectsData.data)) {
+        projectsList = projectsData.data;
+        totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
+      } else if (projectsData && projectsData.success && Array.isArray(projectsData.data)) {
+        projectsList = projectsData.data;
+        totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
+      }
+      
+      console.log('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
+      setCustomerProjects(projectsList);
+      setCustomerProjectsTotal(totalProjects);
+      return { projects: projectsList, total: totalProjects };
+    } catch (error) {
+      console.error('Error fetching customer projects:', error);
+      setCustomerProjects([]);
+      setCustomerProjectsTotal(0);
+      return { projects: [], total: 0 };
+    } finally {
+      setCustomerProjectsLoading(false);
+    }
+  };
+
+  // Extract customer name from project (handles both customerName field and notes fallback)
+  const extractCustomerFromProject = (project) => {
+    // First try the direct customerName field
+    if (project.customerName && project.customerName.trim() !== '') {
+      return project.customerName.trim();
+    }
+    
+    // Fallback to parsing from notes field
+    if (project.notes) {
+      const match = project.notes.match(/^Customer:\s*(.+?)(?:\n|$)/);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    
+    return '';
+  };
+  
+  // Handle customer section click
+  const handleCustomerClick = async (customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerSections(true);
+    setCustomerProjectsCurrentPage(1); // Reset to first page
+    // Fetch projects for this specific customer using customer name
+    const customerName = customer.name || customer.customerName || customer.title;
+    console.log('🔍 Customer object:', customer);
+    console.log('🔍 Extracted customer name:', customerName);
+    await fetchCustomerProjects(customerName, 1, customerProjectsPageSize);
+  };
+  
+  // Handle back to all projects
+  const handleBackToAllProjects = () => {
+    setSelectedCustomer(null);
+    setShowCustomerSections(false);
+    setCustomerProjects([]);
+    setCustomerProjectsCurrentPage(1);
+    setCustomerProjectsTotal(0);
+  };
+
+  // Handle customer projects pagination
+  const handleCustomerProjectsPageChange = async (newPage) => {
+    if (selectedCustomer) {
+      setCustomerProjectsCurrentPage(newPage);
+      const customerName = selectedCustomer.name || selectedCustomer.customerName || selectedCustomer.title;
+      await fetchCustomerProjects(customerName, newPage, customerProjectsPageSize);
+    }
+  };
 
   // State for ticket submission (create new ticket)
   const [showSubmitTicket, setShowSubmitTicket] = useState(false);
@@ -318,6 +495,10 @@ const DigitalMarketingDepartment = () => {
       alert('Project description is required');
       return;
     }
+    if (!newProject.customerName.trim()) {
+      alert('Customer name is required');
+      return;
+    }
     if (!newProject.startDate) {
       alert('Start date is required');
       return;
@@ -357,6 +538,7 @@ const DigitalMarketingDepartment = () => {
     
     try {
       // Use real API to create project
+      // Try with customerName field first, fallback to notes if backend doesn't support it yet
       const projectData = {
         name: newProject.name,
         description: newProject.description,
@@ -364,25 +546,73 @@ const DigitalMarketingDepartment = () => {
         endDate: newProject.endDate,
         status: newProject.status,
         members: newProject.members, // Send the IDs directly, not the full objects
-        notes: newProject.notes
+        notes: newProject.customerName ? `Customer: ${newProject.customerName}${newProject.notes ? '\n\n' + newProject.notes : ''}` : newProject.notes
       };
+      
+      // Try to add customerName field if backend supports it
+      if (newProject.customerName) {
+        projectData.customerName = newProject.customerName;
+      }
       
       console.log('📤 Sending project data:', projectData);
       console.log('📤 Members array:', newProject.members);
       console.log('📤 Members length:', newProject.members.length);
       
-      await createProject(projectData);
-      alert('Project created successfully!');
-      setNewProject({
-        name: '',
-        description: '',
-        status: 'planned',
-        members: [],
-        notes: '',
-        startDate: '',
-        endDate: ''
-      });
-      setShowCreateProject(false);
+      try {
+        await createProject(projectData);
+        alert('Project created successfully!');
+        setNewProject({
+          name: '',
+          description: '',
+          status: 'planned',
+          members: [],
+          notes: '',
+          startDate: '',
+          endDate: '',
+          customerName: ''
+        });
+        setShowCreateProject(false);
+        
+        // Refresh projects data
+        await fetchProjects();
+        // Refresh customers data to update project counts
+        await fetchCustomers();
+      } catch (customerNameError) {
+        // If customerName field is not allowed, retry without it
+        if (customerNameError.message && customerNameError.message.includes('customerName') && customerNameError.message.includes('not allowed')) {
+          console.log('🔄 Backend doesn\'t support customerName field yet, retrying without it...');
+          const fallbackProjectData = {
+            name: newProject.name,
+            description: newProject.description,
+            startDate: newProject.startDate,
+            endDate: newProject.endDate,
+            status: newProject.status,
+            members: newProject.members,
+            notes: newProject.customerName ? `Customer: ${newProject.customerName}${newProject.notes ? '\n\n' + newProject.notes : ''}` : newProject.notes
+          };
+          
+          await createProject(fallbackProjectData);
+          alert('Project created successfully! (Customer name stored in notes)');
+          setNewProject({
+            name: '',
+            description: '',
+            status: 'planned',
+            members: [],
+            notes: '',
+            startDate: '',
+            endDate: '',
+            customerName: ''
+          });
+          setShowCreateProject(false);
+          
+          // Refresh projects data
+          await fetchProjects();
+          // Refresh customers data to update project counts
+          await fetchCustomers();
+        } else {
+          throw customerNameError;
+        }
+      }
     } catch (error) {
       console.error('Error creating project:', error);
       alert('Failed to create project: ' + error.message);
@@ -495,7 +725,13 @@ const DigitalMarketingDepartment = () => {
 
   // Project edit handlers
   const handleEditProject = (project) => {
-    setEditingProject(project);
+    // Extract customer name using the hybrid approach
+    const customerName = extractCustomerFromProject(project);
+    const projectWithCustomer = {
+      ...project,
+      customerName: customerName
+    };
+    setEditingProject(projectWithCustomer);
     setShowEditProject(true);
   };
 
@@ -537,7 +773,7 @@ const DigitalMarketingDepartment = () => {
       }
       
       // Filter out fields that are not allowed in update requests
-      const allowedFields = ['id', 'name', 'description', 'status', 'members', 'notes', 'startDate', 'endDate'];
+      const allowedFields = ['id', 'name', 'description', 'customerName', 'status', 'members', 'notes', 'startDate', 'endDate'];
       const updateData = {};
       
       // Include the ID in the request body (required by backend schema)
@@ -565,6 +801,20 @@ const DigitalMarketingDepartment = () => {
             } else {
               updateData[field] = editingProject[field];
             }
+          } else if (field === 'notes') {
+            // Handle notes field specially to include customer name if customerName field is not supported
+            const customerName = editingProject.customerName || '';
+            const originalNotes = editingProject.notes || '';
+            
+            // Remove existing customer prefix if it exists
+            const cleanNotes = originalNotes.replace(/^Customer:\s*.*?(?:\n|$)/, '').trim();
+            
+            // Add customer name prefix if it exists
+            if (customerName) {
+              updateData[field] = `Customer: ${customerName}${cleanNotes ? '\n\n' + cleanNotes : ''}`;
+            } else {
+              updateData[field] = cleanNotes;
+            }
           } else {
             updateData[field] = editingProject[field];
           }
@@ -584,7 +834,38 @@ const DigitalMarketingDepartment = () => {
       
     } catch (error) {
       console.error('Error updating project:', error);
-      alert('Failed to update project: ' + error.message);
+      
+      // If customerName field is not allowed, retry without it
+      if (error.message && error.message.includes('customerName') && error.message.includes('not allowed')) {
+        console.log('🔄 Backend doesn\'t support customerName field in updates, retrying without it...');
+        
+        try {
+          // Remove customerName from updateData and ensure it's in notes
+          const fallbackUpdateData = { ...updateData };
+          delete fallbackUpdateData.customerName;
+          
+          // Ensure customer name is in notes if it exists
+          const customerName = editingProject.customerName || '';
+          if (customerName) {
+            const originalNotes = editingProject.notes || '';
+            // Remove existing customer prefix if it exists
+            const cleanNotes = originalNotes.replace(/^Customer:\s*.*?(?:\n|$)/, '').trim();
+            // Add customer name prefix
+            fallbackUpdateData.notes = `Customer: ${customerName}${cleanNotes ? '\n\n' + cleanNotes : ''}`;
+          }
+          
+          await updateProject(projectId, fallbackUpdateData);
+          alert('Project updated successfully! (Customer name stored in notes)');
+          setShowEditProject(false);
+          setEditingProject(null);
+          return;
+        } catch (fallbackError) {
+          console.error('Error updating project (fallback):', fallbackError);
+          alert('Failed to update project: ' + fallbackError.message);
+        }
+      } else {
+        alert('Failed to update project: ' + error.message);
+      }
     }
   };
 
@@ -1245,13 +1526,13 @@ const DigitalMarketingDepartment = () => {
                         color: '#374151',
                         zIndex: 1
                       }}>
-                        Search Projects
+                        {showCustomerSections ? "Filter Projects" : "Search Projects"}
                       </div>
                       <input
                         type="text"
                         value={projectSearchTerm}
                         onChange={(e) => handleProjectSearchChange(e.target.value)}
-                        placeholder="Search by name or description..."
+                        placeholder={showCustomerSections ? "Search projects..." : "Search by name or description..."}
                         style={{
                           width: '100%',
                           padding: '12px 16px',
@@ -1391,10 +1672,6 @@ const DigitalMarketingDepartment = () => {
                     </div>
                   </div>
 
-                  {/* Results Count */}
-                  <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
-                    Showing {filteredProjects.length} of {projects.length} projects
-                  </div>
                 </div>
               </div>
             </div>
@@ -1403,106 +1680,255 @@ const DigitalMarketingDepartment = () => {
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading projects...</div>
               </div>
-            ) : Array.isArray(filteredProjects) && filteredProjects.length > 0 ? (
-              <div style={{ display: 'grid', gap: '16px' }}>
-                {paginatedProjects.map((project) => (
-                <div key={project.id || project._id} style={{
-                  backgroundColor: '#f8fafc',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  border: '1px solid #e2e8f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
-                      {project.name || 'Project'}
-                    </h3>
-                    <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0' }}>
-                      {project.description || 'No description available'}
-                    </p>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        backgroundColor: getStatusColor(project.status) + '20',
-                        color: getStatusColor(project.status)
-                      }}>
-                        {project.status || 'Planning'}
-                      </span>
-                    </div>
-                    {(project.startDate || project.endDate) && (
-                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
-                        {project.startDate && (
-                          <span style={{ marginRight: '16px' }}>
-                            📅 Start: {new Date(project.startDate).toLocaleDateString()}
-                          </span>
-                        )}
-                        {project.endDate && (
-                          <span>
-                            📅 End: {new Date(project.endDate).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {project.members && project.members.length > 0 && (
-                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
-                        <span style={{ fontWeight: '500', marginRight: '8px' }}>👥 Team:</span>
-                        <span>
-                          {project.members.map((member, index) => (
-                            <span key={member._id || member.id || index}>
-                              {member.firstName} {member.lastName}
-                              {index < project.members.length - 1 && ', '}
-                            </span>
-                          ))}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button style={{
-                      padding: '6px 12px',
-                      backgroundColor: '#1c242e',
-                      color: 'white',
+            ) : showCustomerSections ? (
+              // Show projects for selected customer
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                  <button
+                    onClick={handleBackToAllProjects}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
                       border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '12px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
                       fontWeight: '500',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      marginRight: '16px'
                     }}
-                    onClick={() => handleEditProject(project)}
-                    >
-                      Edit
-                    </button>
-                    <button style={{
-                      padding: '6px 12px',
-                      backgroundColor: '#dc2626',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => handleDeleteProject(project.id || project._id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                  >
+                    ← Back to All Projects
+                  </button>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                    Projects for {selectedCustomer?.name || selectedCustomer}
+                  </h3>
                 </div>
-              ))}
-            </div>
-            ) : (
+                
+                {customerProjectsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading customer projects...</div>
+                  </div>
+                ) : filteredCustomerProjects.length > 0 ? (
+                  <div style={{ display: 'grid', gap: '16px' }}>
+                    {filteredCustomerProjects.map((project) => (
+                      <div key={project.id || project._id} style={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <div>
+                          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
+                            {project.name || 'Project'}
+                          </h3>
+                          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0' }}>
+                            {project.description || 'No description available'}
+                          </p>
+                          <div style={{ display: 'flex', gap: '12px' }}>
+                            <span style={{
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              backgroundColor: getStatusColor(project.status) + '20',
+                              color: getStatusColor(project.status)
+                            }}>
+                              {project.status || 'Planning'}
+                            </span>
+                          </div>
+                          {(project.startDate || project.endDate) && (
+                            <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                              {project.startDate && (
+                                <span style={{ marginRight: '16px' }}>
+                                  📅 Start: {new Date(project.startDate).toLocaleDateString()}
+                                </span>
+                              )}
+                              {project.endDate && (
+                                <span>
+                                  📅 End: {new Date(project.endDate).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {project.members && project.members.length > 0 && (
+                            <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                              <span style={{ fontWeight: '500', marginRight: '8px' }}>👥 Team:</span>
+                              <span>
+                                {project.members.map((member, index) => (
+                                  <span key={member._id || member.id || index}>
+                                    {member.firstName} {member.lastName}
+                                    {index < project.members.length - 1 && ', '}
+                                  </span>
+                                ))}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#1c242e',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleEditProject(project)}
+                          >
+                            Edit
+                          </button>
+                          <button style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleDeleteProject(project.id || project._id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '16px', color: '#6b7280' }}>
+                      {(() => {
+                        if (projectSearchTerm.trim()) {
+                          return `No projects found matching "${projectSearchTerm}" for ${selectedCustomer?.name || selectedCustomer}.`;
+                        } else if (projectStatusFilter === 'all') {
+                          return `No projects found for ${selectedCustomer?.name || selectedCustomer}.`;
+                        } else {
+                          return `No ${projectStatusFilter} projects found for ${selectedCustomer?.name || selectedCustomer}.`;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Customer Projects Pagination */}
+                {customerProjectsTotal > customerProjectsPageSize && (
+                  <div style={{ marginTop: '20px' }}>
+                    <SimplePagination
+                      currentPage={customerProjectsCurrentPage}
+                      totalPages={Math.ceil(customerProjectsTotal / customerProjectsPageSize)}
+                      onPageChange={handleCustomerProjectsPageChange}
+                      totalItems={customerProjectsTotal}
+                      pageSize={customerProjectsPageSize}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : filteredCustomers.length > 0 ? (
+              // Show customer sections
+              <div>
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
+                    Projects by Customer ({filteredCustomers.length} customers)
+                  </h3>
+                  {customersLoading ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}>
+                      <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading customers...</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {filteredCustomers.map((customer, index) => {
+                        console.log(`🔍 Customer ${index + 1}:`, customer, 'Type:', typeof customer);
+                        
+                        // Handle both string and object formats
+                        let displayName;
+                        if (typeof customer === 'string') {
+                          displayName = customer;
+                        } else if (customer && typeof customer === 'object') {
+                          displayName = customer.name || customer.customerName || customer.title || 'Unknown Customer';
+                        } else {
+                          displayName = 'Unknown Customer';
+                        }
+                        
+                        console.log(`🔍 Customer ${index + 1} displayName:`, displayName);
+                        
+                        // Count projects for this customer from the projects data
+                        const customerProjects = projects.filter(project => {
+                          const projectCustomer = extractCustomerFromProject(project);
+                          console.log(`🔍 Project "${project.name}" customer: "${projectCustomer}", looking for: "${displayName}"`);
+                          return projectCustomer === displayName;
+                        });
+                        
+                        console.log(`🔍 Customer "${displayName}" has ${customerProjects.length} projects:`, customerProjects.map(p => p.name));
+                        
+                        return (
+                          <div
+                            key={typeof customer === 'string' ? customer : (customer.id || customer._id)}
+                            onClick={() => handleCustomerClick({ name: displayName })}
+                            style={{
+                              backgroundColor: '#f8fafc',
+                              borderRadius: '12px',
+                              padding: '16px',
+                              border: '1px solid #e2e8f0',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}
+                            onMouseOver={(e) => {
+                              e.target.style.backgroundColor = '#f1f5f9';
+                              e.target.style.borderColor = '#cbd5e1';
+                            }}
+                            onMouseOut={(e) => {
+                              e.target.style.backgroundColor = '#f8fafc';
+                              e.target.style.borderColor = '#e2e8f0';
+                            }}
+                          >
+                            <div>
+                              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
+                                {displayName}
+                              </h4>
+                              <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                                {customerProjects.length} project{customerProjects.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            <div style={{ color: '#6b7280' }}>
+                              →
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : Array.isArray(filteredProjects) && filteredProjects.length > 0 ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>No projects found</div>
               </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>
+                  {projectSearchTerm.trim() ? `No customers found matching "${projectSearchTerm}".` : 'No projects or customers found'}
+                </div>
+              </div>
             )}
             
-            {/* Pagination for Projects */}
-            {totalProjects > 0 && (
+            {/* Pagination for Projects - Only show when not in customer sections and not showing customer list */}
+            {!showCustomerSections && !(Array.isArray(filteredProjects) && filteredProjects.length > 0 && customers.length > 0) && totalProjects > 0 && (
               <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
                 <SimplePagination
                   currentPage={projectsCurrentPage}
@@ -1592,6 +2018,27 @@ const DigitalMarketingDepartment = () => {
                       borderRadius: '4px',
                       fontSize: '14px',
                       resize: 'vertical'
+                    }}
+                    required
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="project-customer-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Customer Name *
+                  </label>
+                  <input
+                    id="project-customer-name"
+                    type="text"
+                    value={newProject.customerName}
+                    onChange={(e) => setNewProject(prev => ({ ...prev, customerName: e.target.value }))}
+                    placeholder="Enter customer name"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px'
                     }}
                     required
                   />
@@ -1727,7 +2174,8 @@ const DigitalMarketingDepartment = () => {
                         members: [],
                         notes: '',
                         startDate: '',
-                        endDate: ''
+                        endDate: '',
+                        customerName: ''
                       });
                     }}
                     style={{
@@ -1814,9 +2262,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-project-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Description                  </label>
                   <textarea
+                    id="edit-project-description"
                     value={editingProject.description || ''}
                     onChange={(e) => setEditingProject(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Enter project description"
@@ -1833,9 +2282,30 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-project-customer-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Customer Name
+                  </label>
+                  <input
+                    id="edit-project-customer-name"
+                    type="text"
+                    value={editingProject.customerName || ''}
+                    onChange={(e) => setEditingProject(prev => ({ ...prev, customerName: e.target.value }))}
+                    placeholder="Enter customer name"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="edit-project-status" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Status                  </label>
                   <select
+                    id="edit-project-status"
                     value={editingProject.status || 'planned'}
                     onChange={(e) => setEditingProject(prev => ({ ...prev, status: e.target.value }))}
                     style={{
@@ -1854,9 +2324,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-project-members" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Team Members                  </label>
                   <select
+                    id="edit-project-members"
                     multiple
                     value={editingProject.members || []}
                     onChange={(e) => {
@@ -1884,9 +2355,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-project-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Start Date                  </label>
                   <input
+                    id="edit-project-start-date"
                     type="date"
                     value={editingProject.startDate || ''}
                     onChange={(e) => setEditingProject(prev => ({ ...prev, startDate: e.target.value }))}
@@ -1901,9 +2373,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-project-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     End Date                  </label>
                   <input
+                    id="edit-project-end-date"
                     type="date"
                     value={editingProject.endDate || ''}
                     onChange={(e) => setEditingProject(prev => ({ ...prev, endDate: e.target.value }))}
@@ -1918,11 +2391,12 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="edit-project-notes" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Notes
                   </label>
                   <textarea
-                    value={editingProject.notes || ''}
+                    id="edit-project-notes"
+                    value={editingProject.notes ? editingProject.notes.replace(/^Customer:\s*.*?(?:\n|$)/, '').trim() : ''}
                     onChange={(e) => setEditingProject(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="Enter project notes (optional)"
                     rows={3}
@@ -2012,9 +2486,10 @@ const DigitalMarketingDepartment = () => {
                 handleSubmitTicket();
               }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="ticket-type" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Issue Type                  </label>
                   <select
+                    id="ticket-type"
                     value={newTicket.title}
                     onChange={(e) => setNewTicket(prev => ({ ...prev, title: e.target.value }))}
                     style={{
@@ -2085,9 +2560,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="ticket-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Description                  </label>
                   <textarea
+                    id="ticket-description"
                     value={newTicket.description}
                     onChange={(e) => setNewTicket(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe the issue in detail (10-500 characters)"
@@ -2110,10 +2586,11 @@ const DigitalMarketingDepartment = () => {
                 </div>
                 
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="ticket-priority" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Priority
                   </label>
                   <select
+                    id="ticket-priority"
                     value={newTicket.priority}
                     onChange={(e) => setNewTicket(prev => ({ ...prev, priority: e.target.value }))}
                     style={{
@@ -2211,10 +2688,11 @@ const DigitalMarketingDepartment = () => {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                <label htmlFor="ticket-status" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   New Status
                 </label>
                 <select
+                  id="ticket-status"
                   value={editingTicket.status || 'open'}
                   onChange={(e) => setEditingTicket(prev => ({ ...prev, status: e.target.value }))}
                   style={{
@@ -2311,9 +2789,10 @@ const DigitalMarketingDepartment = () => {
                 handleSubmitLeave();
               }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="leave-type" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Leave Type                  </label>
                   <select
+                    id="leave-type"
                     value={newLeave.type}
                     onChange={(e) => setNewLeave({...newLeave, type: e.target.value})}
                     required
@@ -2333,9 +2812,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="leave-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Start Date                  </label>
                   <input
+                    id="leave-start-date"
                     type="date"
                     value={newLeave.startDate}
                     onChange={(e) => setNewLeave({...newLeave, startDate: e.target.value})}
@@ -2351,9 +2831,10 @@ const DigitalMarketingDepartment = () => {
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     End Date                  </label>
                   <input
+                    id="leave-end-date"
                     type="date"
                     value={newLeave.endDate}
                     onChange={(e) => setNewLeave({...newLeave, endDate: e.target.value})}

@@ -184,3 +184,30 @@ export const marketingLeaveApi = {
     });
   }
 };
+
+// Customer API functions
+export const marketingCustomerApi = {
+  // Get all customers
+  getAllCustomers: async () => {
+    try {
+      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.CUSTOMERS);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      return []; // Return empty array as fallback
+    }
+  },
+
+  // Get projects for a specific customer
+  getCustomerProjects: async (customerName, page = 1, limit = 10) => {
+    try {
+      const endpoint = API_CONFIG.ENDPOINTS.MARKETING.CUSTOMER_PROJECTS.replace(':customerName', customerName);
+      return await apiCall(endpoint, {
+        method: 'GET',
+        params: { page, limit }
+      });
+    } catch (error) {
+      console.error('Error fetching customer projects:', error);
+      return []; // Return empty array as fallback
+    }
+  }
+};

@@ -84,7 +84,8 @@ const OperationDepartment = () => {
     // Search filter
     const matchesSearch = campaignSearchTerm === '' || 
       (campaign.name && campaign.name.toLowerCase().includes(campaignSearchTerm.toLowerCase())) ||
-      (campaign.description && campaign.description.toLowerCase().includes(campaignSearchTerm.toLowerCase()));
+      (campaign.description && campaign.description.toLowerCase().includes(campaignSearchTerm.toLowerCase())) ||
+      (campaign.customerName && campaign.customerName.toLowerCase().includes(campaignSearchTerm.toLowerCase()));
     
     // Status filter
     const matchesStatus = campaignStatusFilter === 'all' || 
@@ -144,6 +145,7 @@ const OperationDepartment = () => {
   const [newCampaign, setNewCampaign] = useState({
     name: '',
     description: '',
+    customerName: '',
     startDate: '',
     endDate: '',
     status: 'planned',
@@ -282,14 +284,20 @@ const OperationDepartment = () => {
     }
 
     // Validate required fields
-    if (!newCampaign.name || !newCampaign.startDate || !newCampaign.endDate) {
-      alert('Please fill in all required fields (Name, Start Date, End Date)');
+    if (!newCampaign.name || !newCampaign.customerName || !newCampaign.startDate || !newCampaign.endDate) {
+      alert('Please fill in all required fields (Name, Customer Name, Start Date, End Date)');
       return;
     }
 
     // Validate name length
     if (newCampaign.name.length < 3 || newCampaign.name.length > 50) {
       alert('Campaign name must be between 3 and 50 characters');
+      return;
+    }
+
+    // Validate customer name length
+    if (newCampaign.customerName.length < 3 || newCampaign.customerName.length > 100) {
+      alert('Customer name must be between 3 and 100 characters');
       return;
     }
 
@@ -315,6 +323,7 @@ const OperationDepartment = () => {
       // Prepare data according to backend schema
       const campaignData = {
         name: newCampaign.name,
+        customerName: newCampaign.customerName.trim(),
         startDate: newCampaign.startDate,
         endDate: newCampaign.endDate,
         status: newCampaign.status
@@ -335,6 +344,7 @@ const OperationDepartment = () => {
       setNewCampaign({
         name: '',
         description: '',
+        customerName: '',
         startDate: '',
         endDate: '',
           status: 'planned',
@@ -364,6 +374,12 @@ const OperationDepartment = () => {
       return;
     }
 
+    // Validate customer name length only if customer name is provided
+    if (editingCampaign.customerName && (editingCampaign.customerName.length < 3 || editingCampaign.customerName.length > 100)) {
+      alert('Customer name must be between 3 and 100 characters');
+      return;
+    }
+
     // Validate description length only if description is provided
     if (editingCampaign.description && editingCampaign.description.length > 500) {
       alert('Description must be 500 characters or less');
@@ -390,6 +406,9 @@ const OperationDepartment = () => {
       // Only include fields that have values
       if (editingCampaign.name && editingCampaign.name.trim()) {
         campaignData.name = editingCampaign.name.trim();
+      }
+      if (editingCampaign.customerName && editingCampaign.customerName.trim()) {
+        campaignData.customerName = editingCampaign.customerName.trim();
       }
       if (editingCampaign.description && editingCampaign.description.trim()) {
         campaignData.description = editingCampaign.description.trim();
@@ -1350,7 +1369,7 @@ const OperationDepartment = () => {
                 {/* Campaigns Table Header */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '2fr 3fr 1fr 1fr 1fr 1fr 1fr',
+                  gridTemplateColumns: '2fr 2fr 2fr 1fr 1fr 1fr 1fr 1fr',
                   gap: '16px',
                   padding: '16px',
                   backgroundColor: '#f8fafc',
@@ -1360,6 +1379,7 @@ const OperationDepartment = () => {
                   color: '#374151'
                 }}>
                   <div>Campaign Name</div>
+                  <div>Customer Name</div>
                   <div>Description</div>
                   <div>Status</div>
                   <div>Budget</div>
@@ -1374,7 +1394,7 @@ const OperationDepartment = () => {
                   return (
                     <div key={campaign.id || campaign._id} style={{
                       display: 'grid',
-                      gridTemplateColumns: '2fr 3fr 1fr 1fr 1fr 1fr 1fr',
+                      gridTemplateColumns: '2fr 2fr 2fr 1fr 1fr 1fr 1fr 1fr',
                       gap: '16px',
                       padding: '16px',
                       backgroundColor: '#ffffff',
@@ -1393,6 +1413,16 @@ const OperationDepartment = () => {
                         wordBreak: 'break-word'
                       }}>
                         {campaign.name || 'Untitled Campaign'}
+                      </div>
+
+                      {/* Customer Name */}
+                      <div style={{
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        color: '#059669',
+                        wordBreak: 'break-word'
+                      }}>
+                        {campaign.customerName || 'No Customer'}
                       </div>
 
                       {/* Description */}
@@ -1586,6 +1616,29 @@ const OperationDepartment = () => {
                   }}
                 />
               </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label htmlFor="campaign-customer-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Customer Name *
+                </label>
+                <input
+                  id="campaign-customer-name"
+                  type="text"
+                  value={newCampaign.customerName}
+                  onChange={(e) => setNewCampaign(prev => ({ ...prev, customerName: e.target.value }))}
+                  placeholder="Enter customer name (3-100 characters)"
+                  minLength={3}
+                  maxLength={100}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
               
               <div style={{ marginBottom: '16px' }}>
                 <label htmlFor="campaign-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
@@ -1709,6 +1762,7 @@ const OperationDepartment = () => {
                       setNewCampaign({
                         name: '',
                         description: '',
+                        customerName: '',
                         startDate: '',
                         endDate: '',
                         status: 'planned',
@@ -1797,6 +1851,28 @@ const OperationDepartment = () => {
                   }}
                 />
               </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="edit-campaign-customer-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Customer Name
+                  </label>
+                  <input
+                    id="edit-campaign-customer-name"
+                    type="text"
+                    value={editingCampaign.customerName || ''}
+                    onChange={(e) => setEditingCampaign(prev => ({ ...prev, customerName: e.target.value }))}
+                    placeholder="Enter customer name (optional, 3-100 characters)"
+                    minLength={3}
+                    maxLength={100}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
                 
                 <div style={{ marginBottom: '16px' }}>
                   <label htmlFor="edit-campaign-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>

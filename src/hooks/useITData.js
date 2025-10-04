@@ -112,6 +112,7 @@ export const useITProjects = (page = 1, limit = 10) => {
         }
         
         totalCount = allProjectsData.length;
+        console.log('useITProjects: Total projects count from all data:', totalCount);
       }
       
       console.log('useITProjects: IT projects total count:', totalCount);

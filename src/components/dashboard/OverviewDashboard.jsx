@@ -33,7 +33,7 @@ const OverviewDashboard = memo(() => {
       loading: employeesLoading, 
       error: employeesError, 
       totalEmployees: totalEmployeesCount 
-    } = useEmployees();
+    } = useEmployees(1, 5); // Load only 5 employees initially for better LCP
     const { 
       departments, 
       loading: departmentsLoading, 
@@ -44,21 +44,21 @@ const OverviewDashboard = memo(() => {
       loading: leavesLoading, 
       error: leavesError, 
       totalLeaves: totalLeavesCount 
-    } = useLeaves();
+    } = useLeaves(1, 5); // Load only 5 leaves initially
     const { 
       payroll, 
       loading: payrollLoading, 
       error: payrollError, 
       totalPayroll: totalPayrollCount 
-    } = usePayroll();
-    const { projects: itProjects, loading: itProjectsLoading, error: itProjectsError } = useITProjects();
-    const { campaigns: operationCampaigns, loading: operationCampaignsLoading, error: operationCampaignsError } = useOperationCampaigns();
-    const { leaves: operationLeaves, loading: operationLeavesLoading, error: operationLeavesError } = useOperationLeaves();
-    const { employees: operationEmployees, loading: operationEmployeesLoading, error: operationEmployeesError } = useOperationEmployees();
-    const { projects: marketingProjects, loading: marketingProjectsLoading, error: marketingProjectsError } = useMarketingProjects();
-    const { tickets: marketingTickets, loading: marketingTicketsLoading, error: marketingTicketsError } = useMarketingTickets();
+    } = usePayroll(1, 5); // Load only 5 payroll records initially
+    const { projects: itProjects, loading: itProjectsLoading, error: itProjectsError } = useITProjects(1, 5); // Load only 5 projects initially
+    const { campaigns: operationCampaigns, loading: operationCampaignsLoading, error: operationCampaignsError } = useOperationCampaigns(1, 5); // Load only 5 campaigns initially
+    const { leaves: operationLeaves, loading: operationLeavesLoading, error: operationLeavesError } = useOperationLeaves(1, 5); // Load only 5 leaves initially
+    const { employees: operationEmployees, loading: operationEmployeesLoading, error: operationEmployeesError } = useOperationEmployees(1, 5); // Load only 5 employees initially
+    const { projects: marketingProjects, loading: marketingProjectsLoading, error: marketingProjectsError } = useMarketingProjects(1, 5); // Load only 5 projects initially
+    const { tickets: marketingTickets, loading: marketingTicketsLoading, error: marketingTicketsError } = useMarketingTickets(1, 5); // Load only 5 tickets initially
 
-    // Fetch user leaves with pagination
+    // Fetch user leaves with pagination (deferred for better LCP)
     const fetchUserLeaves = async (page = userLeavesCurrentPage, limit = userLeavesPageSize) => {
       setUserLeavesLoading(true);
       setUserLeavesError('');
@@ -460,14 +460,24 @@ const OverviewDashboard = memo(() => {
     
     return (
       <Box sx={{ p: 3, backgroundColor: 'grey.50', minHeight: '100vh' }}>
-        {/* Header */}
+        {/* Header - Optimized for LCP */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1.75rem' }}>
-            Welcome back, {user?.name ? user.name.split('.')[0].split(' ')[0] : 'User'}!
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <h1 style={{ 
+            fontWeight: 'bold', 
+            color: '#1e293b', 
+            fontSize: '1.75rem',
+            margin: '0 0 8px 0',
+            lineHeight: '1.2'
+          }}>
+            Welcome back, {user?.name?.split('.')[0]?.split(' ')[0] || 'User'}!
+          </h1>
+          <p style={{ 
+            color: '#64748b',
+            margin: '0',
+            fontSize: '1rem'
+          }}>
             Your comprehensive business management dashboard
-          </Typography>
+          </p>
         </Box>
 
         {/* Error Alert */}

@@ -39,6 +39,8 @@ export const API_CONFIG = {
       PROJECTS: '/digitalMarketing/projects',
       TICKETS: '/digitalMarketing/tickets',
       LEAVES: '/digitalMarketing/leaves',
+      CUSTOMERS: '/digitalMarketing/customers',
+      CUSTOMER_PROJECTS: '/digitalMarketing/customers/:customerName/projects',
     }
   }
 };
