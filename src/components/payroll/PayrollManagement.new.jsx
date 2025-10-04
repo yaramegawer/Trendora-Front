@@ -186,8 +186,17 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
     // Base salary validation (required for both create and update)
     if (formData.baseSalary === '' || formData.baseSalary === null || formData.baseSalary === undefined) {
       newErrors.baseSalary = 'Base salary is required';
-    } else if (parseFloat(formData.baseSalary) < 0) {
-      newErrors.baseSalary = 'Base salary must be 0 or greater';
+    } else {
+      const numValue = parseFloat(formData.baseSalary);
+      if (isNaN(numValue)) {
+        newErrors.baseSalary = 'Base salary must be a valid number';
+      } else if (numValue < 0) {
+        newErrors.baseSalary = 'Base salary cannot be negative';
+      } else if (numValue > 999999999 || !Number.isFinite(numValue)) {
+        newErrors.baseSalary = 'Base salary is too large (maximum: $999,999,999)';
+      } else if (numValue > 0 && numValue < 0.01) {
+        newErrors.baseSalary = 'Base salary is too small (minimum: $0.01)';
+      }
     }
 
     // Validate numeric fields (only if they have values)
