@@ -571,25 +571,6 @@ const OverviewDashboard = memo(() => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Stack direction="row" alignItems="center" spacing={2}>
-                  <Avatar sx={{ bgcolor: 'info.main' }}>
-                    <TrendingUp />
-                  </Avatar>
-                  <Box>
-                    <Typography color="textSecondary" gutterBottom variant="h6">
-                      Total Payroll
-                    </Typography>
-                    <Typography variant="h4" component="div">
-                      --
-                    </Typography>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
         </Grid>
 
       </Box>
@@ -757,25 +738,6 @@ const OverviewDashboard = memo(() => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Stack direction="row" alignItems="center" spacing={2}>
-                    <Avatar sx={{ bgcolor: 'info.main' }}>
-                      <TrendingUp />
-                    </Avatar>
-                    <Box>
-                      <Typography color="textSecondary" gutterBottom variant="h6">
-                        Total Payroll
-                      </Typography>
-                      <Typography variant="h4" component="div">
-                        ${totalPayroll.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
           </Grid>
 
           {/* Departments Grid */}

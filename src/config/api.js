@@ -41,6 +41,12 @@ export const API_CONFIG = {
       LEAVES: '/digitalMarketing/leaves',
       CUSTOMERS: '/digitalMarketing/customers',
       CUSTOMER_PROJECTS: '/digitalMarketing/customers/:customerName/projects',
+    },
+    ACCOUNTING: {
+      ADD_INVOICE: '/accounting/add_invoice',
+      UPDATE_INVOICE: '/accounting/update_invoice',
+      GET_ALL_INVOICES: '/accounting/get_all',
+      DELETE_INVOICE: '/accounting/delete_invoice',
     }
   }
 };

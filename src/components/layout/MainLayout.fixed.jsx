@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, useCallback, useMemo } from 'react';
 import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton, CircularProgress, Skeleton } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -156,11 +156,19 @@ const MainLayout = () => {
   const { logout, user } = useAuth();
   
   const userRole = user?.role || 'Employee';
-  const menuItems = getMenuItems(userRole);
+  const menuItems = useMemo(() => getMenuItems(userRole), [userRole]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
-  };
+  }, [logout]);
+
+  // Prevent DOM conflicts during Google Translate
+  const handleSidebarToggle = useCallback(() => {
+    // Use requestAnimationFrame to ensure DOM stability
+    requestAnimationFrame(() => {
+      setSidebarOpen(prev => !prev);
+    });
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -189,7 +197,7 @@ const MainLayout = () => {
                 </Typography>
               )}
               <IconButton
-                onClick={() => setSidebarOpen(!sidebarOpen)}
+                onClick={handleSidebarToggle}
                 sx={{ 
                   color: '#94a3b8', 
                   position: 'absolute',
@@ -231,6 +239,7 @@ const MainLayout = () => {
 
           <Box sx={{ p: 2, borderTop: '1px solid #334155' }}>
             <Button
+              key={`logout-${sidebarOpen}`}
               onClick={handleLogout}
               startIcon={<LogoutIcon />}
               sx={{

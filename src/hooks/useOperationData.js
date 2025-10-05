@@ -429,3 +429,206 @@ export const useOperationTickets = () => {
     deleteTicket
   };
 };
+
+// Custom hook for Operation recent activities
+export const useOperationRecentActivities = () => {
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const generateRecentActivities = (employees, campaigns, leaves, tickets) => {
+    const activities = [];
+    const now = new Date();
+
+    // Add recent campaign activities
+    if (Array.isArray(campaigns) && campaigns.length > 0) {
+      const recentCampaigns = campaigns
+        .filter(campaign => campaign.createdAt || campaign.created_at)
+        .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
+        .slice(0, 2);
+
+      recentCampaigns.forEach(campaign => {
+        const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Untitled Campaign';
+        const createdAt = campaign.createdAt || campaign.created_at;
+        const timeAgo = createdAt ? getTimeAgo(new Date(createdAt)) : 'recently';
+        
+        activities.push({
+          type: 'campaign',
+          message: `New campaign created: ${campaignName}`,
+          color: '#10b981',
+          icon: 'CheckCircle',
+          timestamp: createdAt,
+          timeAgo: timeAgo
+        });
+      });
+
+      // Add completed campaigns
+      const completedCampaigns = campaigns
+        .filter(campaign => 
+          (campaign.status === 'completed' || campaign.status === 'done' || campaign.status === 'finished') &&
+          (campaign.updatedAt || campaign.updated_at)
+        )
+        .sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at))
+        .slice(0, 1);
+
+      completedCampaigns.forEach(campaign => {
+        const campaignName = campaign.name || campaign.title || campaign.campaignName || 'Campaign Task';
+        const updatedAt = campaign.updatedAt || campaign.updated_at;
+        const timeAgo = updatedAt ? getTimeAgo(new Date(updatedAt)) : 'recently';
+        
+        activities.push({
+          type: 'task',
+          message: `Task completed: ${campaignName}`,
+          color: '#f59e0b',
+          icon: 'Calendar',
+          timestamp: updatedAt,
+          timeAgo: timeAgo
+        });
+      });
+    }
+
+    // Add recent employee rating activities
+    if (Array.isArray(employees) && employees.length > 0) {
+      const recentEmployees = employees
+        .filter(employee => employee.updatedAt || employee.updated_at)
+        .sort((a, b) => new Date(b.updatedAt || b.updated_at) - new Date(a.updatedAt || a.updated_at))
+        .slice(0, 1);
+
+      recentEmployees.forEach(employee => {
+        const employeeName = employee.firstName && employee.lastName 
+          ? `${employee.firstName} ${employee.lastName}`
+          : employee.name || employee.firstName || employee.lastName || 'Employee';
+        const updatedAt = employee.updatedAt || employee.updated_at;
+        const timeAgo = updatedAt ? getTimeAgo(new Date(updatedAt)) : 'recently';
+        
+        activities.push({
+          type: 'employee',
+          message: `Employee rating updated: ${employeeName}`,
+          color: '#3b82f6',
+          icon: 'Users',
+          timestamp: updatedAt,
+          timeAgo: timeAgo
+        });
+      });
+    }
+
+    // Add recent leave activities
+    if (Array.isArray(leaves) && leaves.length > 0) {
+      const recentLeaves = leaves
+        .filter(leave => leave.createdAt || leave.created_at)
+        .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
+        .slice(0, 1);
+
+      recentLeaves.forEach(leave => {
+        const employeeName = leave.employeeName || leave.employee?.name || 'Employee';
+        const createdAt = leave.createdAt || leave.created_at;
+        const timeAgo = createdAt ? getTimeAgo(new Date(createdAt)) : 'recently';
+        
+        activities.push({
+          type: 'leave',
+          message: `Leave request submitted: ${employeeName}`,
+          color: '#8b5cf6',
+          icon: 'Calendar',
+          timestamp: createdAt,
+          timeAgo: timeAgo
+        });
+      });
+    }
+
+    // Add recent ticket activities
+    if (Array.isArray(tickets) && tickets.length > 0) {
+      const recentTickets = tickets
+        .filter(ticket => ticket.createdAt || ticket.created_at)
+        .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
+        .slice(0, 1);
+
+      recentTickets.forEach(ticket => {
+        const ticketTitle = ticket.title || ticket.subject || 'Support Ticket';
+        const createdAt = ticket.createdAt || ticket.created_at;
+        const timeAgo = createdAt ? getTimeAgo(new Date(createdAt)) : 'recently';
+        
+        activities.push({
+          type: 'ticket',
+          message: `New support ticket: ${ticketTitle}`,
+          color: '#ef4444',
+          icon: 'AlertCircle',
+          timestamp: createdAt,
+          timeAgo: timeAgo
+        });
+      });
+    }
+
+    // Sort all activities by timestamp (most recent first) and limit to 6
+    return activities
+      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+      .slice(0, 6);
+  };
+
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
+  };
+
+  const fetchRecentActivities = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch all operation data in parallel
+      const [employeesResponse, campaignsResponse, leavesResponse, ticketsResponse] = await Promise.all([
+        operationEmployeeApi.getAllEmployees().catch(() => ({ data: [] })),
+        operationCampaignApi.getAllCampaigns(1, 100).catch(() => ({ data: [] })),
+        operationLeaveApi.getEmployeeLeaves().catch(() => ({ data: [] })),
+        operationTicketApi.getAllTickets().catch(() => ({ data: [] }))
+      ]);
+
+      // Extract data from responses
+      const employees = Array.isArray(employeesResponse) ? employeesResponse : 
+        (employeesResponse?.data || employeesResponse?.success ? employeesResponse.data : []);
+      
+      const campaigns = Array.isArray(campaignsResponse) ? campaignsResponse : 
+        (campaignsResponse?.data || campaignsResponse?.success ? campaignsResponse.data : []);
+      
+      const leaves = Array.isArray(leavesResponse) ? leavesResponse : 
+        (leavesResponse?.data || leavesResponse?.success ? leavesResponse.data : []);
+      
+      const tickets = Array.isArray(ticketsResponse) ? ticketsResponse : 
+        (ticketsResponse?.data || ticketsResponse?.success ? ticketsResponse.data : []);
+
+      console.log('Operation Recent Activities Data:', {
+        employees: employees.length,
+        campaigns: campaigns.length,
+        leaves: leaves.length,
+        tickets: tickets.length
+      });
+
+      // Generate recent activities from the data
+      const activities = generateRecentActivities(employees, campaigns, leaves, tickets);
+      setRecentActivities(activities);
+      
+      console.log('Generated recent activities:', activities);
+    } catch (err) {
+      console.error('Error fetching operation recent activities:', err);
+      setError(err.message || 'Failed to fetch recent activities');
+      setRecentActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentActivities();
+  }, []);
+
+  return {
+    recentActivities,
+    loading,
+    error,
+    fetchRecentActivities
+  };
+};

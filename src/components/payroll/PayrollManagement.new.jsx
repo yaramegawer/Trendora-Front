@@ -193,9 +193,9 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
       } else if (numValue < 0) {
         newErrors.baseSalary = 'Base salary cannot be negative';
       } else if (numValue > 999999999 || !Number.isFinite(numValue)) {
-        newErrors.baseSalary = 'Base salary is too large (maximum: $999,999,999)';
+        newErrors.baseSalary = 'Base salary is too large (maximum: EGP 999,999,999)';
       } else if (numValue > 0 && numValue < 0.01) {
-        newErrors.baseSalary = 'Base salary is too small (minimum: $0.01)';
+        newErrors.baseSalary = 'Base salary is too small (minimum: EGP 0.01)';
       }
     }
 
@@ -504,7 +504,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     Base Salary:
                   </Typography>
                   <Typography variant="h6" color="primary">
-                    ${parseFloat(formData.baseSalary || 0).toLocaleString()}
+                    EGP {parseFloat(formData.baseSalary || 0).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -512,7 +512,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     Benefits:
                   </Typography>
                   <Typography variant="h6" color="success.main">
-                    +${parseFloat(formData.benefits || 0).toLocaleString()}
+                    +EGP {parseFloat(formData.benefits || 0).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -520,7 +520,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     Overtime Pay:
                   </Typography>
                   <Typography variant="h6" color="success.main">
-                    +${((parseFloat(formData.overtimeHours || 0) * parseFloat(formData.overtimeRate || 0))).toLocaleString()}
+                    +EGP {((parseFloat(formData.overtimeHours || 0) * parseFloat(formData.overtimeRate || 0))).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -528,7 +528,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     Bonuses:
                   </Typography>
                   <Typography variant="h6" color="success.main">
-                    +${parseFloat(formData.bonuses || 0).toLocaleString()}
+                    +EGP {parseFloat(formData.bonuses || 0).toLocaleString()}
                   </Typography>
                 </Grid>
               </Grid>
@@ -536,7 +536,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
               <Divider />
               
               <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-                Gross Pay: ${calculateGrossSalary().toLocaleString()}
+                Gross Pay: EGP {calculateGrossSalary().toLocaleString()}
               </Typography>
               
               <Divider />
@@ -547,7 +547,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     Deductions:
                   </Typography>
                   <Typography variant="h6" color="error.main">
-                    -${parseFloat(formData.deductions || 0).toLocaleString()}
+                    -EGP {parseFloat(formData.deductions || 0).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -555,13 +555,13 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     Taxes:
                   </Typography>
                   <Typography variant="h6" color="error.main">
-                    -${parseFloat(formData.taxes || 0).toLocaleString()}
+                    -EGP {parseFloat(formData.taxes || 0).toLocaleString()}
                   </Typography>
                 </Grid>
               </Grid>
               
               <Typography variant="h6" color="error" sx={{ fontWeight: 'bold' }}>
-                Total Deductions: ${calculateDeductions().toLocaleString()}
+                Total Deductions: EGP {calculateDeductions().toLocaleString()}
               </Typography>
               
               <Divider sx={{ borderWidth: 2, borderColor: 'primary.main' }} />
@@ -573,7 +573,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                 textAlign: 'center'
               }}>
                 <Typography variant="h4" color="white" sx={{ fontWeight: 'bold' }}>
-                  Net Pay: ${calculateNetSalary().toLocaleString()}
+                  Net Pay: EGP {calculateNetSalary().toLocaleString()}
                 </Typography>
               </Box>
             </Stack>
@@ -779,7 +779,7 @@ const PayrollManagement = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Payslip - ${employeeName}</title>
+        <title>Payslip - {employeeName}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
           .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
@@ -805,15 +805,15 @@ const PayrollManagement = () => {
         <div class="employee-info">
           <div class="info-row">
             <span class="info-label">Employee Name:</span>
-            <span>${employeeName}</span>
+            <span>{employeeName}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Pay Period:</span>
-            <span>${formatPayDate(payroll.payDate) || 'N/A'}</span>
+            <span>{formatPayDate(payroll.payDate) || 'N/A'}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Status:</span>
-            <span>${payroll.status || 'N/A'}</span>
+            <span>{payroll.status || 'N/A'}</span>
           </div>
         </div>
         
@@ -821,23 +821,23 @@ const PayrollManagement = () => {
           <h3>EARNINGS</h3>
           <div class="earnings-row">
             <span>Base Salary</span>
-            <span>$${(payroll.baseSalary || 0).toLocaleString()}</span>
+            <span>EGP {(payroll.baseSalary || 0).toLocaleString()}</span>
           </div>
           <div class="earnings-row">
             <span>Bonuses</span>
-            <span>$${(payroll.bonuses || 0).toLocaleString()}</span>
+            <span>EGP {(payroll.bonuses || 0).toLocaleString()}</span>
           </div>
           <div class="earnings-row">
-            <span>Overtime (${payroll.overtimeHours || 0} hrs × $${payroll.overtimeRate || 0})</span>
-            <span>$${((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)).toLocaleString()}</span>
+            <span>Overtime ({payroll.overtimeHours || 0} hrs × EGP {payroll.overtimeRate || 0})</span>
+            <span>EGP {((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)).toLocaleString()}</span>
           </div>
           <div class="earnings-row">
             <span>Benefits</span>
-            <span>$${(payroll.benefits || 0).toLocaleString()}</span>
+            <span>EGP {(payroll.benefits || 0).toLocaleString()}</span>
           </div>
           <div class="total-row">
             <span>Total Earnings</span>
-            <span>$${((payroll.baseSalary || 0) + (payroll.bonuses || 0) + ((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)) + (payroll.benefits || 0)).toLocaleString()}</span>
+            <span>EGP {((payroll.baseSalary || 0) + (payroll.bonuses || 0) + ((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)) + (payroll.benefits || 0)).toLocaleString()}</span>
           </div>
         </div>
         
@@ -845,20 +845,20 @@ const PayrollManagement = () => {
           <h3>DEDUCTIONS</h3>
           <div class="deductions-row">
             <span>Deductions</span>
-            <span>$${(payroll.deductions || 0).toLocaleString()}</span>
+            <span>EGP {(payroll.deductions || 0).toLocaleString()}</span>
           </div>
           <div class="deductions-row">
             <span>Taxes</span>
-            <span>$${(payroll.taxes || 0).toLocaleString()}</span>
+            <span>EGP {(payroll.taxes || 0).toLocaleString()}</span>
           </div>
           <div class="total-row">
             <span>Total Deductions</span>
-            <span>$${((payroll.deductions || 0) + (payroll.taxes || 0)).toLocaleString()}</span>
+            <span>EGP {((payroll.deductions || 0) + (payroll.taxes || 0)).toLocaleString()}</span>
           </div>
         </div>
         
         <div class="net-pay">
-          NET PAY: $${netPay.toLocaleString()}
+          NET PAY: EGP {netPay.toLocaleString()}
         </div>
       </body>
       </html>
@@ -1165,7 +1165,7 @@ const PayrollManagement = () => {
                     Total Payroll
                   </Typography>
                   <Typography variant="h4">
-                    ${sortedPayroll.reduce((sum, pay) => sum + (pay.netPay || 0), 0).toLocaleString()}
+                    EGP {sortedPayroll.reduce((sum, pay) => sum + (pay.netPay || 0), 0).toLocaleString()}
                   </Typography>
                 </Box>
               </Stack>
@@ -1307,11 +1307,11 @@ const PayrollManagement = () => {
                   </Stack>
                 </TableCell>
                   <TableCell>{formatPayDate(pay.payDate)}</TableCell>
-                  <TableCell>${pay.baseSalary?.toLocaleString() || 0}</TableCell>
-                  <TableCell>${pay.deductions?.toLocaleString() || 0}</TableCell>
+                  <TableCell>EGP {pay.baseSalary?.toLocaleString() || 0}</TableCell>
+                  <TableCell>EGP {pay.deductions?.toLocaleString() || 0}</TableCell>
                   <TableCell>
                     <Typography variant="body2" color="white" sx={{ bgcolor: 'primary.main', p: 0.5, borderRadius: 1, display: 'inline-block' }}>
-                      ${pay.netPay?.toLocaleString() || 0}
+                      EGP {pay.netPay?.toLocaleString() || 0}
                     </Typography>
                   </TableCell>
                   <TableCell>

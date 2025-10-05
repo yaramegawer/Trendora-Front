@@ -28,7 +28,7 @@ import {
   Server,
   CheckCircle
 } from 'lucide-react';
-import { useOperationEmployees, useOperationCampaigns, useOperationLeaves } from '../../hooks/useOperationData';
+import { useOperationEmployees, useOperationCampaigns, useOperationLeaves, useOperationRecentActivities } from '../../hooks/useOperationData';
 import { operationTicketApi } from '../../services/operationApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { canSubmitLeave, canCreateCampaigns, showPermissionError } from '../../utils/permissions';
@@ -59,6 +59,7 @@ const OperationDepartment = () => {
     deleteCampaign 
   } = useOperationCampaigns(campaignsCurrentPage, pageSize);
   const { addLeave } = useOperationLeaves();
+  const { recentActivities, loading: recentActivitiesLoading, error: recentActivitiesError } = useOperationRecentActivities();
   const { user } = useAuth();
 
   // State for forms
@@ -901,30 +902,49 @@ const OperationDepartment = () => {
                 Recent Activity
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
-                  <div style={{ padding: '6px', backgroundColor: '#10b981', borderRadius: '4px' }}>
-                    <CheckCircle size={12} color="white" />
-          </div>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: '500', color: '#111827', margin: 0 }}>New campaign created</p>
-        </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
-                  <div style={{ padding: '6px', backgroundColor: '#3b82f6', borderRadius: '4px' }}>
-                    <Users size={12} color="white" />
+                {recentActivitiesLoading ? (
+                  <div style={{ textAlign: 'center', padding: '16px' }}>
+                    <div style={{ fontSize: '14px', color: '#6b7280' }}>Loading recent activities...</div>
                   </div>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: '500', color: '#111827', margin: 0 }}>Employee rating updated</p>
+                ) : recentActivitiesError ? (
+                  <div style={{ textAlign: 'center', padding: '16px' }}>
+                    <div style={{ fontSize: '14px', color: '#ef4444' }}>Error: {recentActivitiesError}</div>
                   </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
-                  <div style={{ padding: '6px', backgroundColor: '#f59e0b', borderRadius: '4px' }}>
-                    <Calendar size={12} color="white" />
+                ) : recentActivities.length > 0 ? (
+                  recentActivities.map((activity, index) => {
+                    // Get the appropriate icon component
+                    const getIconComponent = (iconName) => {
+                      switch (iconName) {
+                        case 'CheckCircle': return CheckCircle;
+                        case 'Users': return Users;
+                        case 'Calendar': return Calendar;
+                        case 'AlertCircle': return AlertCircle;
+                        default: return Activity;
+                      }
+                    };
+                    
+                    const IconComponent = getIconComponent(activity.icon);
+                    
+                    return (
+                      <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
+                        <div style={{ padding: '6px', backgroundColor: activity.color, borderRadius: '4px' }}>
+                          <IconComponent size={12} color="white" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: '12px', fontWeight: '500', color: '#111827', margin: 0 }}>
+                            {activity.message}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '16px' }}>
+                    <div style={{ fontSize: '14px', color: '#6b7280', fontStyle: 'italic' }}>
+                      No recent activity to display. Activities will appear as data is added.
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: '500', color: '#111827', margin: 0 }}>Task completed</p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

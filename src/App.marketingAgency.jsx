@@ -4,6 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainLayout from './components/layout/MainLayout.fixed';
 import LoginPage from './components/auth/LoginPage';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import theme from './theme';
 import { CircularProgress, Box, Typography, Button } from '@mui/material';
 
@@ -74,12 +75,14 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -307,7 +307,7 @@ const LoginPage = () => {
                  '& .MuiInputBase-input': {
                    color: '#1c242e',
                    '&::selection': {
-                     backgroundColor: '#f1f5f9',
+                     backgroundColor: '#a8abae',
                      color: '#1c242e',
                    },
                    '&::-moz-selection': {

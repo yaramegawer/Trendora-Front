@@ -19,6 +19,48 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Allow Google Translate but ensure layout stability */
+html {
+  direction: ltr;
+}
+
+/* Ensure sidebar maintains proper layout during translation */
+.MuiDrawer-root {
+  direction: ltr;
+}
+
+/* Prevent translation from breaking sidebar toggle functionality */
+.MuiDrawer-paper {
+  transition: width 0.3s ease;
+}
+
+/* Prevent Google Translate from interfering with React components */
+.goog-te-banner-frame,
+.goog-te-gadget,
+.goog-te-combo {
+  z-index: 9999 !important;
+}
+
+/* Ensure React components are not affected by Google Translate DOM manipulation */
+[data-reactroot] {
+  position: relative;
+}
+
+/* Prevent Google Translate from modifying React-managed elements */
+.MuiDrawer-root,
+.MuiDrawer-paper,
+.MuiList-root,
+.MuiListItem-root,
+.MuiListItemButton-root {
+  transform: translateZ(0);
+  will-change: auto;
+}
+
+/* Stabilize sidebar elements during translation */
+.MuiDrawer-paper * {
+  transform: translateZ(0);
+}
+
 #root {
   margin: auto;
 }

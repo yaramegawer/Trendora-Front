@@ -17,5 +17,118 @@
   <body>
     <div id="root"></div>
     <script type="module" src="./main.jsx"></script>
+    <script>
+      // Comprehensive solution to prevent Google Translate DOM conflicts
+      (function() {
+        let isTranslating = false;
+        let translateTimeout = null;
+        
+        // Override removeChild to prevent DOM errors
+        const originalRemoveChild = Node.prototype.removeChild;
+        Node.prototype.removeChild = function(child) {
+          try {
+            // Check if the child is actually a child of this node
+            if (child && child.parentNode === this) {
+              return originalRemoveChild.call(this, child);
+            } else {
+              // Log the attempt but don't throw error
+              console.warn('Prevented removeChild error: Node is not a child of parent');
+              return child;
+            }
+          } catch (error) {
+            console.warn('Caught removeChild error:', error.message);
+            return child;
+          }
+        };
+        
+        // Monitor for Google Translate activity
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+              const addedNodes = Array.from(mutation.addedNodes);
+              
+              // Check for Google Translate elements
+              const hasGoogleTranslateNodes = addedNodes.some(node => 
+                node.nodeType === Node.ELEMENT_NODE && 
+                (node.classList?.contains('goog-te-banner-frame') || 
+                 node.classList?.contains('goog-te-gadget') ||
+                 node.id?.includes('google_translate'))
+              );
+              
+              if (hasGoogleTranslateNodes) {
+                isTranslating = true;
+                
+                // Clear existing timeout
+                if (translateTimeout) {
+                  clearTimeout(translateTimeout);
+                }
+                
+                // Set new timeout
+                translateTimeout = setTimeout(() => {
+                  isTranslating = false;
+                  console.log('Google Translate activity ended');
+                }, 2000);
+              }
+            }
+          });
+        });
+        
+        // Start observing when DOM is ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            observer.observe(document.body, {
+              childList: true,
+              subtree: true
+            });
+          });
+        } else {
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+        }
+        
+        // Also override appendChild to prevent issues
+        const originalAppendChild = Node.prototype.appendChild;
+        Node.prototype.appendChild = function(child) {
+          try {
+            return originalAppendChild.call(this, child);
+          } catch (error) {
+            console.warn('Caught appendChild error:', error.message);
+            return child;
+          }
+        };
+        
+        // Override insertBefore as well
+        const originalInsertBefore = Node.prototype.insertBefore;
+        Node.prototype.insertBefore = function(newNode, referenceNode) {
+          try {
+            return originalInsertBefore.call(this, newNode, referenceNode);
+          } catch (error) {
+            console.warn('Caught insertBefore error:', error.message);
+            return newNode;
+          }
+        };
+        
+        // Global error handler for unhandled errors
+        window.addEventListener('error', function(event) {
+          if (event.message && event.message.includes('removeChild')) {
+            console.warn('Global error handler caught removeChild error:', event.message);
+            event.preventDefault();
+            return false;
+          }
+        });
+        
+        // Global unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event.reason && event.reason.message && event.reason.message.includes('removeChild')) {
+            console.warn('Global promise rejection handler caught removeChild error:', event.reason.message);
+            event.preventDefault();
+            return false;
+          }
+        });
+        
+      })();
+    </script>
   </body>
 </html>
