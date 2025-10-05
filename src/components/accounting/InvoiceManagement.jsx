@@ -50,6 +50,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     invoices,
     loading,
     error,
+    fieldErrors,
     addInvoice,
     updateInvoice,
     deleteInvoice,
@@ -69,6 +70,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     due_date: '',
     status: 'unpaid'
   });
+  const [formFieldErrors, setFormFieldErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
 
   // Handle external create invoice trigger
   useEffect(() => {
@@ -107,6 +110,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
         status: 'unpaid'
       });
     }
+    setFormFieldErrors({});
+    setSubmitError('');
     setOpenDialog(true);
     clearError();
   };
@@ -122,6 +127,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
       due_date: '',
       status: 'unpaid'
     });
+    setFormFieldErrors({});
+    setSubmitError('');
     clearError();
     // Call external close handler if provided
     if (onClose) {
@@ -134,10 +141,26 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
       ...prev,
       [field]: event.target.value
     }));
+
+    // Clear field error when user starts typing
+    if (formFieldErrors[field]) {
+      setFormFieldErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+
+    // Clear submit error when user makes changes
+    if (submitError) {
+      setSubmitError('');
+    }
   };
 
   const handleSubmit = async () => {
     try {
+      setSubmitError('');
+      setFormFieldErrors({});
+
       const invoiceData = {
         ...formData,
         amount: parseFloat(formData.amount)
@@ -152,9 +175,18 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
 
       if (result.success) {
         handleCloseDialog();
+      } else {
+        // Handle backend validation errors
+        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+          setFormFieldErrors(result.fieldErrors);
+        }
+        if (result.error) {
+          setSubmitError(result.error);
+        }
       }
     } catch (err) {
       console.error('Error submitting invoice:', err);
+      setSubmitError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -317,11 +349,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
       </Box>
 
       {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={clearError}>
-          {error}
-        </Alert>
-      )}
+      
 
       {/* Invoices Table */}
       <Card>
@@ -412,11 +440,36 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
+            {/* Error Alert */}
+            {submitError && (
+              <Alert 
+                severity="error" 
+                sx={{ mb: 2 }}
+                onClose={() => setSubmitError('')}
+              >
+                {submitError}
+              </Alert>
+            )}
+
+            {/* Debug: Show field errors */}
+            {Object.keys(formFieldErrors).length > 0 && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>Field Errors Found:</strong>
+                </Typography>
+                {Object.entries(formFieldErrors).map(([field, error]) => (
+                  <Typography key={field} variant="caption" display="block">
+                    {field}: {error}
+                  </Typography>
+                ))}
+              </Alert>
+            )}
+
             <Typography variant="h6" gutterBottom>
               Invoice Details
             </Typography>
 
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={!!formFieldErrors.invoice_type}>
               <InputLabel>Invoice Type</InputLabel>
               <Select
                 value={formData.invoice_type}
@@ -426,6 +479,11 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                 <MenuItem value="customer">Customer Invoice</MenuItem>
                 <MenuItem value="vendor">Vendor Invoice</MenuItem>
               </Select>
+              {formFieldErrors.invoice_type && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                  {formFieldErrors.invoice_type}
+                </Typography>
+              )}
             </FormControl>
 
             <TextField
@@ -435,8 +493,9 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               value={formData.amount}
               onChange={handleInputChange('amount')}
               required
+              error={!!formFieldErrors.amount}
+              helperText={formFieldErrors.amount || "Invoice amount in Egyptian Pounds (EGP)"}
               inputProps={{ min: 0, step: 0.01 }}
-              helperText="Invoice amount in Egyptian Pounds (EGP)"
             />
 
             <Divider />
@@ -451,7 +510,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               value={formData.client_name}
               onChange={handleInputChange('client_name')}
               required
-              helperText="Name of the client or company (3-100 characters)"
+              error={!!formFieldErrors.client_name}
+              helperText={formFieldErrors.client_name || "Name of the client or company (3-100 characters)"}
               inputProps={{ minLength: 3, maxLength: 100 }}
             />
 
@@ -469,10 +529,11 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               onChange={handleInputChange('due_date')}
               InputLabelProps={{ shrink: true }}
               required
-              helperText="Payment due date for this invoice"
+              error={!!formFieldErrors.due_date}
+              helperText={formFieldErrors.due_date || "Payment due date for this invoice"}
             />
 
-            <FormControl fullWidth>
+            <FormControl fullWidth error={!!formFieldErrors.status}>
               <InputLabel>Status</InputLabel>
               <Select
                 value={formData.status}
@@ -483,6 +544,11 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                 <MenuItem value="paid">Paid</MenuItem>
                 <MenuItem value="overdue">Overdue</MenuItem>
               </Select>
+              {formFieldErrors.status && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                  {formFieldErrors.status}
+                </Typography>
+              )}
             </FormControl>
 
             <Divider />
@@ -499,7 +565,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               value={formData.description}
               onChange={handleInputChange('description')}
               placeholder="Detailed description of services or products, terms and conditions, payment instructions..."
-              helperText="Detailed description of what this invoice covers (max 1000 characters)"
+              error={!!formFieldErrors.description}
+              helperText={formFieldErrors.description || "Detailed description of what this invoice covers (max 1000 characters)"}
               inputProps={{ maxLength: 1000 }}
             />
           </Stack>

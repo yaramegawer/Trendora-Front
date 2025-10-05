@@ -5,11 +5,13 @@ export const useAccountingData = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Fetch all invoices
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setFieldErrors({});
     
     try {
       const result = await accountingApi.getAllInvoices();
@@ -17,9 +19,11 @@ export const useAccountingData = () => {
         setInvoices(result.data || []);
       } else {
         setError(result.error);
+        setFieldErrors(result.fieldErrors || {});
       }
     } catch (err) {
       setError('Failed to fetch invoices');
+      setFieldErrors({});
       console.error('Error fetching invoices:', err);
     } finally {
       setLoading(false);
@@ -30,6 +34,7 @@ export const useAccountingData = () => {
   const addInvoice = async (invoiceData) => {
     setLoading(true);
     setError(null);
+    setFieldErrors({});
     
     try {
       const result = await accountingApi.addInvoice(invoiceData);
@@ -39,13 +44,15 @@ export const useAccountingData = () => {
         return { success: true, message: result.message };
       } else {
         setError(result.error);
-        return { success: false, error: result.error };
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
       }
     } catch (err) {
       const errorMsg = 'Failed to add invoice';
       setError(errorMsg);
+      setFieldErrors({});
       console.error('Error adding invoice:', err);
-      return { success: false, error: errorMsg };
+      return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);
     }
@@ -55,6 +62,7 @@ export const useAccountingData = () => {
   const updateInvoice = async (invoiceId, updateData) => {
     setLoading(true);
     setError(null);
+    setFieldErrors({});
     
     try {
       const result = await accountingApi.updateInvoice(invoiceId, updateData);
@@ -64,13 +72,15 @@ export const useAccountingData = () => {
         return { success: true, message: result.message };
       } else {
         setError(result.error);
-        return { success: false, error: result.error };
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
       }
     } catch (err) {
       const errorMsg = 'Failed to update invoice';
       setError(errorMsg);
+      setFieldErrors({});
       console.error('Error updating invoice:', err);
-      return { success: false, error: errorMsg };
+      return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);
     }
@@ -80,6 +90,7 @@ export const useAccountingData = () => {
   const deleteInvoice = async (invoiceId) => {
     setLoading(true);
     setError(null);
+    setFieldErrors({});
     
     try {
       const result = await accountingApi.deleteInvoice(invoiceId);
@@ -91,13 +102,15 @@ export const useAccountingData = () => {
         return { success: true, message: result.message };
       } else {
         setError(result.error);
-        return { success: false, error: result.error };
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
       }
     } catch (err) {
       const errorMsg = 'Failed to delete invoice';
       setError(errorMsg);
+      setFieldErrors({});
       console.error('Error deleting invoice:', err);
-      return { success: false, error: errorMsg };
+      return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);
     }
@@ -112,10 +125,14 @@ export const useAccountingData = () => {
     invoices,
     loading,
     error,
+    fieldErrors,
     fetchInvoices,
     addInvoice,
     updateInvoice,
     deleteInvoice,
-    clearError: () => setError(null)
+    clearError: () => {
+      setError(null);
+      setFieldErrors({});
+    }
   };
 };

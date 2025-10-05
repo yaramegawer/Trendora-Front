@@ -18,7 +18,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider
+  Divider,
+  Alert
 } from '@mui/material';
 import { AccountBalance, TrendingUp, AttachMoney, Assessment, Receipt, Timeline, CreditCard, Support, EventNote } from '@mui/icons-material';
 import InvoiceManagement from './InvoiceManagement';
@@ -43,6 +44,10 @@ const AccountingDepartment = () => {
     type: 'income',
     date: new Date().toISOString().split('T')[0]
   });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
+  const [transactionFieldErrors, setTransactionFieldErrors] = useState({});
+  const [transactionSubmitError, setTransactionSubmitError] = useState('');
 
   const { addInvoice } = useAccountingData();
 
@@ -51,10 +56,26 @@ const AccountingDepartment = () => {
       ...prev,
       [field]: event.target.value
     }));
+
+    // Clear field error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+
+    // Clear submit error when user makes changes
+    if (submitError) {
+      setSubmitError('');
+    }
   };
 
   const handleSubmit = async () => {
     try {
+      setSubmitError('');
+      setFieldErrors({});
+
       const invoiceData = {
         ...formData,
         amount: parseFloat(formData.amount)
@@ -71,9 +92,20 @@ const AccountingDepartment = () => {
           due_date: '',
           status: 'unpaid'
         });
+        setFieldErrors({});
+        setSubmitError('');
+      } else {
+        // Handle backend validation errors
+        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+          setFieldErrors(result.fieldErrors);
+        }
+        if (result.error) {
+          setSubmitError(result.error);
+        }
       }
     } catch (err) {
       console.error('Error submitting invoice:', err);
+      setSubmitError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -87,6 +119,8 @@ const AccountingDepartment = () => {
       due_date: '',
       status: 'unpaid'
     });
+    setFieldErrors({});
+    setSubmitError('');
   };
 
   const handleTransactionInputChange = (field) => (event) => {
@@ -94,10 +128,26 @@ const AccountingDepartment = () => {
       ...prev,
       [field]: event.target.value
     }));
+
+    // Clear field error when user starts typing
+    if (transactionFieldErrors[field]) {
+      setTransactionFieldErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+
+    // Clear submit error when user makes changes
+    if (transactionSubmitError) {
+      setTransactionSubmitError('');
+    }
   };
 
   const handleTransactionSubmit = async () => {
     try {
+      setTransactionSubmitError('');
+      setTransactionFieldErrors({});
+
       const transaction = {
         ...transactionData,
         amount: parseFloat(transactionData.amount)
@@ -114,11 +164,14 @@ const AccountingDepartment = () => {
         type: 'income',
         date: new Date().toISOString().split('T')[0]
       });
+      setTransactionFieldErrors({});
+      setTransactionSubmitError('');
       
       // Show success message (you can replace this with a proper notification)
       alert('Transaction created successfully!');
     } catch (err) {
       console.error('Error creating transaction:', err);
+      setTransactionSubmitError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -130,6 +183,8 @@ const AccountingDepartment = () => {
       type: 'income',
       date: new Date().toISOString().split('T')[0]
     });
+    setTransactionFieldErrors({});
+    setTransactionSubmitError('');
   };
 
   return (
@@ -427,11 +482,36 @@ const AccountingDepartment = () => {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
+            {/* Error Alert */}
+            {submitError && (
+              <Alert 
+                severity="error" 
+                sx={{ mb: 2 }}
+                onClose={() => setSubmitError('')}
+              >
+                {submitError}
+              </Alert>
+            )}
+
+            {/* Debug: Show field errors */}
+            {Object.keys(fieldErrors).length > 0 && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>Field Errors Found:</strong>
+                </Typography>
+                {Object.entries(fieldErrors).map(([field, error]) => (
+                  <Typography key={field} variant="caption" display="block">
+                    {field}: {error}
+                  </Typography>
+                ))}
+              </Alert>
+            )}
+
             <Typography variant="h6" gutterBottom>
               Invoice Details
             </Typography>
 
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={!!fieldErrors.invoice_type}>
               <InputLabel>Invoice Type</InputLabel>
               <Select
                 value={formData.invoice_type}
@@ -441,6 +521,11 @@ const AccountingDepartment = () => {
                 <MenuItem value="customer">Customer Invoice</MenuItem>
                 <MenuItem value="vendor">Vendor Invoice</MenuItem>
               </Select>
+              {fieldErrors.invoice_type && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                  {fieldErrors.invoice_type}
+                </Typography>
+              )}
             </FormControl>
 
             <TextField
@@ -450,8 +535,9 @@ const AccountingDepartment = () => {
               value={formData.amount}
               onChange={handleInputChange('amount')}
               required
+              error={!!fieldErrors.amount}
+              helperText={fieldErrors.amount || "Invoice amount in Egyptian Pounds (EGP)"}
               inputProps={{ min: 0, step: 0.01 }}
-              helperText="Invoice amount in Egyptian Pounds (EGP)"
             />
 
             <Divider />
@@ -466,7 +552,8 @@ const AccountingDepartment = () => {
               value={formData.client_name}
               onChange={handleInputChange('client_name')}
               required
-              helperText="Name of the client or company (3-100 characters)"
+              error={!!fieldErrors.client_name}
+              helperText={fieldErrors.client_name || "Name of the client or company (3-100 characters)"}
               inputProps={{ minLength: 3, maxLength: 100 }}
             />
 
@@ -484,10 +571,11 @@ const AccountingDepartment = () => {
               onChange={handleInputChange('due_date')}
               InputLabelProps={{ shrink: true }}
               required
-              helperText="Payment due date for this invoice"
+              error={!!fieldErrors.due_date}
+              helperText={fieldErrors.due_date || "Payment due date for this invoice"}
             />
 
-            <FormControl fullWidth>
+            <FormControl fullWidth error={!!fieldErrors.status}>
               <InputLabel>Status</InputLabel>
               <Select
                 value={formData.status}
@@ -498,6 +586,11 @@ const AccountingDepartment = () => {
                 <MenuItem value="paid">Paid</MenuItem>
                 <MenuItem value="overdue">Overdue</MenuItem>
               </Select>
+              {fieldErrors.status && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                  {fieldErrors.status}
+                </Typography>
+              )}
             </FormControl>
 
             <Divider />
@@ -514,7 +607,8 @@ const AccountingDepartment = () => {
               value={formData.description}
               onChange={handleInputChange('description')}
               placeholder="Detailed description of services or products, terms and conditions, payment instructions..."
-              helperText="Detailed description of what this invoice covers (max 1000 characters)"
+              error={!!fieldErrors.description}
+              helperText={fieldErrors.description || "Detailed description of what this invoice covers (max 1000 characters)"}
               inputProps={{ maxLength: 1000 }}
             />
           </Stack>
@@ -566,6 +660,17 @@ const AccountingDepartment = () => {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
+            {/* Error Alert */}
+            {transactionSubmitError && (
+              <Alert 
+                severity="error" 
+                sx={{ mb: 2 }}
+                onClose={() => setTransactionSubmitError('')}
+              >
+                {transactionSubmitError}
+              </Alert>
+            )}
+
             <Typography variant="h6" gutterBottom>
               Transaction Details
             </Typography>
@@ -576,7 +681,8 @@ const AccountingDepartment = () => {
               value={transactionData.description}
               onChange={handleTransactionInputChange('description')}
               required
-              helperText="Description of the transaction"
+              error={!!transactionFieldErrors.description}
+              helperText={transactionFieldErrors.description || "Description of the transaction"}
             />
 
             <TextField
@@ -586,8 +692,9 @@ const AccountingDepartment = () => {
               value={transactionData.amount}
               onChange={handleTransactionInputChange('amount')}
               required
+              error={!!transactionFieldErrors.amount}
+              helperText={transactionFieldErrors.amount || "Transaction amount in Egyptian Pounds (EGP)"}
               inputProps={{ min: 0, step: 0.01 }}
-              helperText="Transaction amount in Egyptian Pounds (EGP)"
             />
 
             <TextField
@@ -598,10 +705,11 @@ const AccountingDepartment = () => {
               onChange={handleTransactionInputChange('date')}
               InputLabelProps={{ shrink: true }}
               required
-              helperText="Transaction date"
+              error={!!transactionFieldErrors.date}
+              helperText={transactionFieldErrors.date || "Transaction date"}
             />
 
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={!!transactionFieldErrors.type}>
               <InputLabel>Transaction Type</InputLabel>
               <Select
                 value={transactionData.type}
@@ -611,6 +719,11 @@ const AccountingDepartment = () => {
                 <MenuItem value="income">Income</MenuItem>
                 <MenuItem value="expense">Expense</MenuItem>
               </Select>
+              {transactionFieldErrors.type && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                  {transactionFieldErrors.type}
+                </Typography>
+              )}
             </FormControl>
           </Stack>
         </DialogContent>
