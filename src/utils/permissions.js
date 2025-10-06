@@ -11,6 +11,13 @@ export const checkPermission = (user, requiredRoles = ['Admin', 'HR']) => {
     userRole = userRole.role || userRole.roleName || userRole.name || userRole.userRole;
   }
 
+  // Debug logging
+  ('Permission Debug - User object:', user);
+  ('Permission Debug - Raw user.role:', user.role);
+  ('Permission Debug - Processed userRole:', userRole);
+  ('Permission Debug - Required roles:', requiredRoles);
+  ('Permission Debug - Has permission:', requiredRoles.includes(userRole));
+
   return requiredRoles.includes(userRole);
 };
 
@@ -39,6 +46,11 @@ export const getRoleName = (user) => {
     // If role is an object, look for role name in common fields
     userRole = userRole.role || userRole.roleName || userRole.name || userRole.userRole;
   }
+
+  // Debug logging
+  ('getRoleName Debug - User object:', user);
+  ('getRoleName Debug - Raw user.role:', user.role);
+  ('getRoleName Debug - Final role name:', userRole);
 
   return userRole || 'User';
 };

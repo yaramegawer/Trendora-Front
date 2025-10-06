@@ -53,6 +53,7 @@ import { usePayroll } from '../../hooks/usePayrollData';
 import SimplePagination from '../common/SimplePagination';
 import { useEmployees } from '../../hooks/useHRData';
 import { useAuth } from '../../contexts/AuthContext';
+import { canEdit, canDelete, showPermissionError } from '../../utils/permissions';
 
 const PayrollStatus = {
   PENDING: 'Pending',
