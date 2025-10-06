@@ -24,6 +24,11 @@ const SimplePagination = ({
 
   const pageNumbers = getPageNumbers();
 
+  // Don't render pagination if there are no pages
+  if (totalPages <= 0) {
+    return null;
+  }
+
   return (
     <Box sx={{
       display: 'flex',

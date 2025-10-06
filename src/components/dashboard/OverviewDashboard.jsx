@@ -31,45 +31,68 @@ const OverviewDashboard = memo(() => {
       setUserLeavesLoading(true);
       setUserLeavesError('');
       try {
-('🔄 Fetching user leaves with pagination - Page:', page, 'Limit:', limit);
-('🔍 User role:', user?.role);
-('🔍 User object:', user);
-        
-        // Debug token and headers
         const token = localStorage.getItem('token');
-('🔑 Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
-('🔑 Full token:', token);
-('🔑 User from localStorage:', localStorage.getItem('user'));
         
         // Try multiple endpoints to find working one
         let leavesData = [];
         let totalLeaves = 0;
         
         // Use the correct dashboard leaves endpoint
-('🔄 Trying /dashboard/leaves endpoint...');
-('🔑 Request will be made to:', `${api.defaults.baseURL}/dashboard/leaves`);
-('🔑 With params:', { page, limit });
-('🔑 With token:', token ? 'YES' : 'NO');
         
         const response = await api.get('/dashboard/leaves', {
           params: { page, limit }
         });
-          
-('📡 Dashboard Leaves API Response:', response);
         
         // Process response data
         if (Array.isArray(response.data)) {
           leavesData = response.data;
+          // If response.data is an array, check if it's paginated or all data
+          if (leavesData.length === limit) {
+            // If we got exactly the limit, there might be more data
+            // Try to get total count by making another request
+            try {
+              const countResponse = await api.get('/dashboard/leaves', {
+                params: { page: 1, limit: 1000 }
+              });
+              if (Array.isArray(countResponse.data)) {
+                totalLeaves = countResponse.data.length;
+              } else {
+                totalLeaves = leavesData.length;
+              }
+            } catch {
+              totalLeaves = leavesData.length;
+            }
+          } else {
+            // If we got less than the limit, this is all the data
+            totalLeaves = leavesData.length;
+          }
         } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
           leavesData = response.data.data;
+          totalLeaves = response.data?.total || response.data?.totalLeaves || response.data?.count || response.data?.totalCount || 0;
         } else if (response.data && response.data.success && Array.isArray(response.data.data)) {
           leavesData = response.data.data;
+          totalLeaves = response.data?.total || response.data?.totalLeaves || response.data?.count || response.data?.totalCount || 0;
         }
         
-        totalLeaves = response.data?.total || response.data?.totalLeaves || leavesData.length;
-        
-('📊 Final leaves data:', leavesData);
-('📊 Total leaves:', totalLeaves);
+        // If totalLeaves is still 0 or equal to page size, we need to get the actual total
+        if (totalLeaves === 0 || (totalLeaves === leavesData.length && leavesData.length === limit)) {
+          try {
+            const countResponse = await api.get('/dashboard/leaves', {
+              params: { page: 1, limit: 1000 }
+            });
+            
+            if (Array.isArray(countResponse.data)) {
+              totalLeaves = countResponse.data.length;
+            } else if (countResponse.data && countResponse.data.data && Array.isArray(countResponse.data.data)) {
+              totalLeaves = countResponse.data.data.length;
+            } else {
+              totalLeaves = countResponse.data?.total || countResponse.data?.totalLeaves || countResponse.data?.count || countResponse.data?.totalCount || leavesData.length;
+            }
+          } catch (countError) {
+            // If counting fails, use a reasonable estimate
+            totalLeaves = leavesData.length;
+          }
+        }
         
         setUserLeaves(leavesData);
         setUserLeavesTotal(totalLeaves);
@@ -83,22 +106,7 @@ const OverviewDashboard = memo(() => {
         };
         setUserLeavesStatusCounts(statusCounts);
         
-('📊 Status counts:', statusCounts);
-        
         } catch (err) {
-('❌ User Leaves API Error:', err);
-('❌ Error details:', {
-            message: err.message,
-            status: err.response?.status,
-            statusText: err.response?.statusText,
-            data: err.response?.data,
-            config: {
-              url: err.config?.url,
-              method: err.config?.method,
-              headers: err.config?.headers,
-              baseURL: err.config?.baseURL
-            }
-          });
         
         // Provide more specific error messages but don't block the UI
         let errorMessage = 'Unable to fetch leaves data';
@@ -125,7 +133,6 @@ const OverviewDashboard = memo(() => {
 
     // Handle page change for user leaves
     const handleUserLeavesPageChange = (newPage) => {
-('OverviewDashboard: User leaves page change to:', newPage);
       setUserLeavesCurrentPage(newPage);
       fetchUserLeaves(newPage, userLeavesPageSize);
     };
@@ -133,7 +140,7 @@ const OverviewDashboard = memo(() => {
     // Fetch leaves when component mounts or when leaves tab is selected
     useEffect(() => {
       if (activeTab === 1) { // Leaves tab
-        fetchUserLeaves();
+        fetchUserLeaves(userLeavesCurrentPage, userLeavesPageSize);
       }
     }, [activeTab]);
 
@@ -439,14 +446,16 @@ const OverviewDashboard = memo(() => {
                     </Table>
                   </TableContainer>
                   
-                  {/* Pagination for User Leaves */}
-                  <SimplePagination
-                    currentPage={userLeavesCurrentPage}
-                    totalPages={Math.ceil(userLeavesTotal / userLeavesPageSize)}
-                    totalItems={userLeavesTotal}
-                    pageSize={userLeavesPageSize}
-                    onPageChange={handleUserLeavesPageChange}
-                  />
+                  {/* Pagination for User Leaves - Only show if there are leaves to paginate */}
+                  {userLeavesTotal > 0 && (
+                    <SimplePagination
+                      currentPage={userLeavesCurrentPage}
+                      totalPages={Math.ceil(userLeavesTotal / userLeavesPageSize)}
+                      totalItems={userLeavesTotal}
+                      pageSize={userLeavesPageSize}
+                      onPageChange={handleUserLeavesPageChange}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </>
