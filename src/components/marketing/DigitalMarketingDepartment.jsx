@@ -37,6 +37,20 @@ const DigitalMarketingDepartment = () => {
   // Get user from auth context
   const { user } = useAuth();
   
+  // Check if user has access to Digital Marketing department
+  // Since department info is not available in the user object, allow access
+  // The backend will handle the actual authorization
+  if (!user) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <h2 style={{ color: '#dc2626' }}>Access Denied</h2>
+        <p style={{ color: '#6b7280' }}>
+          You must be logged in to access the Digital Marketing department.
+        </p>
+      </div>
+    );
+  }
+  
   // Use real API data hooks
   const marketingEmployeesHook = useMarketingEmployees();
   const { 

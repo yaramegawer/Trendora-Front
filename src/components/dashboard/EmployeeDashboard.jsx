@@ -301,7 +301,20 @@ const EmployeeDashboard = () => {
     setLeavesError('');
     try {
       console.log('🔄 Fetching user leaves...');
-      const response = await api.get('/dashboard/leaves');
+      // Try HR leaves endpoint first (it's wrapped in authorization middleware)
+      let response;
+      try {
+        console.log('🔄 Trying /hr/leaves endpoint (authorized)...');
+        response = await api.get('/hr/leaves');
+      } catch (hrError) {
+        console.warn('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
+        try {
+          response = await api.get('/operation/leaves');
+        } catch (operationError) {
+          console.warn('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
+          response = await api.get('/it/leaves');
+        }
+      }
       console.log('📡 User Leaves API Response:', response);
       
       let leavesData = [];

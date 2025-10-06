@@ -104,7 +104,7 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
         errorMessage = 'Unauthorized. Please log in again.';
         break;
       case 403:
-        errorMessage = 'Access denied. Only Admin or Accountant can perform this action.';
+        errorMessage = 'Access denied for this department.';
         break;
       case 404:
         errorMessage = data.message || 'Invoice not found.';

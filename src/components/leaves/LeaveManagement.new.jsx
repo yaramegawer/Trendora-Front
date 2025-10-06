@@ -40,7 +40,7 @@ import { useLeaves, useEmployees } from '../../hooks/useHRData';
 import SimplePagination from '../common/SimplePagination';
 import { useITEmployees } from '../../hooks/useITData';
 import { useAuth } from '../../contexts/AuthContext';
-import { canAdd, canEdit, canDelete, canSubmitLeave, showPermissionError } from '../../utils/permissions';
+import { canSubmitLeave } from '../../utils/permissions';
 
 const LeaveStatus = {
   PENDING: 'Pending',
@@ -124,10 +124,7 @@ const LeaveManagement = () => {
   });
 
   const handleAddLeave = async () => {
-    if (!canAdd(user)) {
-      showPermissionError('add leaves', user);
-      return;
-    }
+    // Allow all authenticated users to add leaves
     
     try {
       setUserError('');
@@ -176,10 +173,7 @@ const LeaveManagement = () => {
   };
 
   const handleStatusUpdate = async () => {
-    if (!canEdit(user)) {
-      showPermissionError('update leave status', user);
-      return;
-    }
+    // Allow all authenticated users to update leave status
     
     try {
       setUserError('');
@@ -209,10 +203,7 @@ const LeaveManagement = () => {
   };
 
   const handleDeleteClick = (leave) => {
-    if (!canDelete(user)) {
-      showPermissionError('delete leaves', user);
-      return;
-    }
+    // Allow all authenticated users to delete leaves
     
     setUserError('');
     setUserSuccess('');
@@ -469,7 +460,7 @@ const LeaveManagement = () => {
                     <IconButton
                       onClick={() => handleEditStatus(leave)}
                       title="Update Status"
-                      disabled={!canEdit(user)}
+                      disabled={false}
                     >
                       <Edit />
                     </IconButton>
@@ -477,7 +468,7 @@ const LeaveManagement = () => {
                       onClick={() => handleDeleteClick(leave)}
                       title="Delete Leave"
                       color="error"
-                      disabled={!canDelete(user)}
+                      disabled={false}
                     >
                       <Delete />
                     </IconButton>
@@ -665,7 +656,7 @@ const LeaveManagement = () => {
           <Button 
             onClick={handleAddLeave} 
             variant="contained"
-            disabled={!canAdd(user)}
+            disabled={false}
           >
             Submit Request
           </Button>

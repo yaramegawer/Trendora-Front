@@ -31,10 +31,27 @@ import {
 import { useOperationEmployees, useOperationCampaigns, useOperationLeaves, useOperationRecentActivities } from '../../hooks/useOperationData';
 import { operationTicketApi } from '../../services/operationApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { canSubmitLeave, canCreateCampaigns, showPermissionError } from '../../utils/permissions';
+import { canSubmitLeave } from '../../utils/permissions';
 import SimplePagination from '../common/SimplePagination';
 
 const OperationDepartment = () => {
+  // Get user from auth context
+  const { user } = useAuth();
+  
+  // Check if user has access to Operation department
+  // Since department info is not available in the user object, allow access
+  // The backend will handle the actual authorization
+  if (!user) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <h2 style={{ color: '#dc2626' }}>Access Denied</h2>
+        <p style={{ color: '#6b7280' }}>
+          You must be logged in to access the Operation department.
+        </p>
+      </div>
+    );
+  }
+
   // Pagination state
   const [campaignsCurrentPage, setCampaignsCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -60,7 +77,6 @@ const OperationDepartment = () => {
   } = useOperationCampaigns(campaignsCurrentPage, pageSize);
   const { addLeave } = useOperationLeaves();
   const { recentActivities, loading: recentActivitiesLoading, error: recentActivitiesError } = useOperationRecentActivities();
-  const { user } = useAuth();
 
   // State for forms
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
@@ -279,10 +295,7 @@ const OperationDepartment = () => {
 
   // Campaign handlers
   const handleCreateCampaign = async () => {
-    if (!canCreateCampaigns(user)) {
-      showPermissionError('create campaigns', user);
-      return;
-    }
+    // Allow all authenticated users to create campaigns
 
     // Validate required fields
     if (!newCampaign.name || !newCampaign.customerName || !newCampaign.startDate || !newCampaign.endDate) {
@@ -733,32 +746,28 @@ const OperationDepartment = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <button
                   onClick={() => setShowCreateCampaign(true)}
-                  disabled={!canCreateCampaigns(user)}
+                  disabled={false}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                     padding: '10px 12px',
-                    backgroundColor: canCreateCampaigns(user) ? '#0891b2' : '#9ca3af',
+                    backgroundColor: '#0891b2',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: '500',
-                    cursor: canCreateCampaigns(user) ? 'pointer' : 'not-allowed',
+                    cursor: 'pointer',
                     transition: 'background-color 0.2s'
           }}
           onMouseOver={(e) => {
-                    if (canCreateCampaigns(user)) {
-                      e.target.style.backgroundColor = '#0e7490';
-                    }
+                    e.target.style.backgroundColor = '#0e7490';
           }}
           onMouseOut={(e) => {
-                    if (canCreateCampaigns(user)) {
-                      e.target.style.backgroundColor = '#0891b2';
-                    }
+                    e.target.style.backgroundColor = '#0891b2';
                   }}
-                  title={canCreateCampaigns(user) ? "Create new campaign" : "Permission denied - Admin only"}
+                  title="Create new campaign"
                 >
                   <Plus size={14} />
                   Create Campaign
@@ -1162,32 +1171,28 @@ const OperationDepartment = () => {
               <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>Marketing Campaigns</h2>
               <button
                 onClick={() => setShowCreateCampaign(true)}
-                disabled={!canCreateCampaigns(user)}
+                disabled={false}
                 style={{
                 display: 'flex',
                 alignItems: 'center',
                   gap: '8px',
                   padding: '10px 16px',
-                  backgroundColor: canCreateCampaigns(user) ? '#0891b2' : '#9ca3af',
+                  backgroundColor: '#0891b2',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  cursor: canCreateCampaigns(user) ? 'pointer' : 'not-allowed',
+                  cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
                 onMouseOver={(e) => {
-                  if (canCreateCampaigns(user)) {
-                    e.target.style.backgroundColor = '#0e7490';
-                  }
+                  e.target.style.backgroundColor = '#0e7490';
                 }}
                 onMouseOut={(e) => {
-                  if (canCreateCampaigns(user)) {
-                    e.target.style.backgroundColor = '#0891b2';
-                  }
+                  e.target.style.backgroundColor = '#0891b2';
                 }}
-                title={canCreateCampaigns(user) ? "Create new campaign" : "Permission denied - Admin only"}
+                title="Create new campaign"
               >
                 <Plus size={16} />
                 Create Campaign

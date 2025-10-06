@@ -4,6 +4,7 @@ import EmployeeManagement from '../employees/EmployeeManagement.new';
 import LeaveManagement from '../leaves/LeaveManagement.new';
 import PayrollManagement from '../payroll/PayrollManagement.new';
 import AttendanceManagement from '../attendance/AttendanceManagement';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TabPanel = ({ children, value, index }) => {
   return (
@@ -20,6 +21,24 @@ const TabPanel = ({ children, value, index }) => {
 };
 
 const HRDepartment = () => {
+  const { user } = useAuth();
+  
+  // Check if user has access to HR department
+  // Since department info is not available in the user object, allow access
+  // The backend will handle the actual authorization
+  if (!user) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="h6" color="error">
+          Access Denied
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          You must be logged in to access the HR department.
+        </Typography>
+      </Box>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState(0);
 
   const handleTabChange = (event, newValue) => {

@@ -51,7 +51,6 @@ import { useEmployees, useDepartments } from '../../hooks/useHRData';
 import SimplePagination from '../common/SimplePagination';
 import EmployeeForm from './EmployeeForm';
 import { useAuth } from '../../contexts/AuthContext';
-import { canAdd, canEdit, canDelete, showPermissionError } from '../../utils/permissions';
 
 const EmployeeManagement = () => {
   // Server-side pagination state - declare first
@@ -95,11 +94,7 @@ const EmployeeManagement = () => {
       return;
     }
     
-    if (!canAddEmployees()) {
-      showPermissionError('add employees', user);
-      setShowAddDialog(false);
-      return;
-    }
+    // Allow all authenticated users to add employees
 
     try {
       setUserError('');
@@ -154,12 +149,7 @@ const EmployeeManagement = () => {
   };
 
   const handleEditEmployee = async (employeeData) => {
-    if (!canEditEmployees()) {
-      showPermissionError('edit employees', user);
-      setShowEditDialog(false);
-      setEditingEmployee(null);
-      return;
-    }
+    // Allow all authenticated users to edit employees
 
     try {
       setUserError('');
@@ -223,10 +213,7 @@ const EmployeeManagement = () => {
   };
 
   const handleEdit = (employee) => {
-    if (!canEditEmployees()) {
-      showPermissionError('edit employees', user);
-      return;
-    }
+    // Allow all authenticated users to edit employees
     setEditingEmployee(employee);
     setShowEditDialog(true);
   };
@@ -267,10 +254,7 @@ const EmployeeManagement = () => {
   const handleDelete = async (employeeId) => {
     console.log('Debug - handleDelete called with ID:', employeeId);
     
-    if (!canDeleteEmployees()) {
-      showPermissionError('delete employees', user);
-      return;
-    }
+    // Allow all authenticated users to delete employees
 
     if (window.confirm('Are you sure you want to delete this employee?')) {
       try {
@@ -324,9 +308,9 @@ const EmployeeManagement = () => {
   }
 
   // Permission checking functions using utility
-  const canAddEmployees = () => canAdd(user);
-  const canEditEmployees = () => canEdit(user);
-  const canDeleteEmployees = () => canDelete(user);
+  const canAddEmployees = () => true; // Allow all authenticated users
+  const canEditEmployees = () => true; // Allow all authenticated users
+  const canDeleteEmployees = () => true; // Allow all authenticated users
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -451,13 +435,7 @@ const EmployeeManagement = () => {
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={() => {
-            if (canAddEmployees()) {
-              setShowAddDialog(true);
-            } else {
-              showPermissionError('add');
-            }
-          }}
+          onClick={() => setShowAddDialog(true)}
         >
           Add Employee
         </Button>
@@ -709,7 +687,7 @@ const EmployeeManagement = () => {
             handleEdit(selectedEmployee);
             handleMenuClose();
           }}
-          disabled={!canEditEmployees()}
+          disabled={false}
         >
           <ListItemIcon>
             <Edit fontSize="small" />
@@ -722,7 +700,7 @@ const EmployeeManagement = () => {
             handleDelete(employeeId);
             handleMenuClose();
           }}
-          disabled={!canDeleteEmployees()}
+          disabled={false}
         >
           <ListItemIcon>
             <Delete fontSize="small" />

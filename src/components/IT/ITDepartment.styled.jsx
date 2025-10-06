@@ -32,6 +32,20 @@ const ITDepartment = () => {
   // Get user from auth context
   const { user } = useAuth();
   
+  // Check if user has access to IT department
+  // Since department info is not available in the user object, allow access
+  // The backend will handle the actual authorization
+  if (!user) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <h2 style={{ color: '#dc2626' }}>Access Denied</h2>
+        <p style={{ color: '#6b7280' }}>
+          You must be logged in to access the IT department.
+        </p>
+      </div>
+    );
+  }
+  
   // Pagination state
   const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
   const [ticketsCurrentPage, setTicketsCurrentPage] = useState(1);
@@ -565,7 +579,7 @@ const ITDepartment = () => {
       } else if (error.response?.status === 401) {
         errorMessage = 'Unauthorized. Please check your authentication.';
       } else if (error.response?.status === 403) {
-        errorMessage = 'Forbidden. You may not have the required permissions.';
+        errorMessage = 'Access denied for this department.';
       } else if (error.response?.status === 400) {
         errorMessage = 'Bad request. Please check your data format.';
       }

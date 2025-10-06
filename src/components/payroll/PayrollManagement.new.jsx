@@ -53,7 +53,6 @@ import { usePayroll } from '../../hooks/usePayrollData';
 import SimplePagination from '../common/SimplePagination';
 import { useEmployees } from '../../hooks/useHRData';
 import { useAuth } from '../../contexts/AuthContext';
-import { canAdd, canEdit, canDelete, showPermissionError } from '../../utils/permissions';
 
 const PayrollStatus = {
   PENDING: 'Pending',
@@ -663,10 +662,7 @@ const PayrollManagement = () => {
   const [userSuccess, setUserSuccess] = useState('');
 
   const handleAddPayroll = async (payrollData) => {
-    if (!canAdd(user)) {
-      showPermissionError('add payroll', user);
-      return;
-    }
+    // Allow all authenticated users to add payroll
     
     try {
       setUserError('');
@@ -701,10 +697,7 @@ const PayrollManagement = () => {
   };
 
   const handleEdit = (payroll) => {
-    if (!canEdit(user)) {
-      showPermissionError('edit payroll', user);
-      return;
-    }
+    // Allow all authenticated users to edit payroll
     
     setUserError('');
     setUserSuccess('');
@@ -713,10 +706,7 @@ const PayrollManagement = () => {
   };
 
   const handleDelete = async (payrollId) => {
-    if (!canDelete(user)) {
-      showPermissionError('delete payroll', user);
-      return;
-    }
+    // Allow all authenticated users to delete payroll
     
     if (!payrollId) {
       setUserError('Invalid payroll ID for deletion');
@@ -742,10 +732,7 @@ const PayrollManagement = () => {
   };
 
   const handleAddClick = () => {
-    if (!canAdd(user)) {
-      showPermissionError('add payroll', user);
-      return;
-    }
+    // Allow all authenticated users to add payroll
     
     setUserError('');
     setUserSuccess('');
@@ -1143,7 +1130,7 @@ const PayrollManagement = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={handleAddClick}
-            disabled={!canAdd(user)}
+            disabled={false}
           >
             Generate Payroll
           </Button>
@@ -1367,7 +1354,7 @@ const PayrollManagement = () => {
             handleEdit(selectedPayroll);
             handleMenuClose();
           }}
-          disabled={!canEdit(user)}
+          disabled={false}
         >
           <ListItemIcon>
             <Edit fontSize="small" />
@@ -1393,7 +1380,7 @@ const PayrollManagement = () => {
             handleDelete(selectedPayroll?.id || selectedPayroll?._id);
             handleMenuClose();
           }}
-          disabled={!canDelete(user)}
+          disabled={false}
         >
           <ListItemIcon>
             <Delete fontSize="small" />

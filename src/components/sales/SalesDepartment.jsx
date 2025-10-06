@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
 
 const SalesDepartment = () => {
+
   return (
     <Box sx={{ 
       minHeight: '100vh', 

@@ -26,7 +26,7 @@ const apiCall = async (endpoint, options = {}) => {
     } else if (error.response?.status === 401) {
       throw new Error('Unauthorized. Please check your authentication.');
     } else if (error.response?.status === 403) {
-      throw new Error('Forbidden. You may not have the required permissions (Admin role required).');
+      throw new Error('Access denied for this department.');
     } else if (error.response?.status === 400) {
       throw new Error('Bad request. Please check your data format.');
     } else {

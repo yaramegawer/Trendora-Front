@@ -24,8 +24,27 @@ import {
 import { AccountBalance, TrendingUp, AttachMoney, Assessment, Receipt, Timeline, CreditCard, Support, EventNote } from '@mui/icons-material';
 import InvoiceManagement from './InvoiceManagement';
 import { useAccountingData } from '../../hooks/useAccountingData';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AccountingDepartment = () => {
+  const { user } = useAuth();
+  
+  // Check if user has access to Accounting department
+  // Since department info is not available in the user object, allow access
+  // The backend will handle the actual authorization
+  if (!user) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="h6" color="error">
+          Access Denied
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          You must be logged in to access the Accounting department.
+        </Typography>
+      </Box>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState('transactions');
   const [triggerCreateInvoice, setTriggerCreateInvoice] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
