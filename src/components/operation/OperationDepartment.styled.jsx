@@ -118,7 +118,7 @@ const OperationDepartment = () => {
 
   // Pagination handlers
   const handleCampaignsPageChange = (newPage) => {
-    console.log('Operation Department Styled: Campaigns page change to:', newPage);
+('Operation Department Styled: Campaigns page change to:', newPage);
     setCampaignsCurrentPage(newPage);
     
     // Use server-side pagination when no filters are applied
@@ -208,11 +208,11 @@ const OperationDepartment = () => {
       const autoNote = `Rating updated for employee - Performance: ${currentRatings.performance || 1}, Efficiency: ${currentRatings.efficiency || 1}, Teamwork: ${currentRatings.teamwork || 1}. This is an auto-generated note to meet minimum length requirements.`;
       const finalNote = currentNote && currentNote.trim().length > 0 ? currentNote.trim() : autoNote;
       
-      console.log('Note length check:');
-      console.log('- User note:', currentNote);
-      console.log('- Auto note:', autoNote);
-      console.log('- Final note:', finalNote);
-      console.log('- Final note length:', finalNote.length);
+('Note length check:');
+('- User note:', currentNote);
+('- Auto note:', autoNote);
+('- Final note:', finalNote);
+('- Final note length:', finalNote.length);
       
       // Final validation removed - backend will handle validation
       
@@ -238,11 +238,11 @@ const OperationDepartment = () => {
       
       // Note validation removed - backend will handle validation
       
-      console.log('Submitting rating for employee:', employeeId);
-      console.log('Rating data:', ratingData);
+('Submitting rating for employee:', employeeId);
+('Rating data:', ratingData);
       
       const result = await updateEmployeeRating(employeeId, ratingData);
-      console.log('Update result:', result);
+('Update result:', result);
       
       // Check if the result indicates success (either result.success or result.message contains success)
       if (result.success || (result.message && result.message.toLowerCase().includes('success'))) {
@@ -268,10 +268,10 @@ const OperationDepartment = () => {
         alert('Failed to submit rating: ' + (result.message || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error updating rating:', error);
-      console.error('Error response:', error.response);
-      console.error('Error status:', error.response?.status);
-      console.error('Error data:', error.response?.data);
+('Error updating rating:', error);
+('Error response:', error.response);
+('Error status:', error.response?.status);
+('Error data:', error.response?.data);
       
       // Provide more specific error message
       let errorMessage = 'Failed to submit rating. Please try again.';
@@ -369,7 +369,7 @@ const OperationDepartment = () => {
         alert('Failed to create campaign: ' + result.message);
       }
     } catch (error) {
-      console.error('Error creating campaign:', error);
+('Error creating campaign:', error);
       alert('Failed to create campaign: ' + error.message);
     }
   };
@@ -456,7 +456,7 @@ const OperationDepartment = () => {
         alert('Failed to update campaign: ' + result.message);
       }
     } catch (error) {
-      console.error('Error updating campaign:', error);
+('Error updating campaign:', error);
       alert('Failed to update campaign: ' + error.message);
     }
   };
@@ -468,7 +468,7 @@ const OperationDepartment = () => {
         await deleteCampaign(campaignId);
         alert('Campaign deleted successfully!');
       } catch (error) {
-        console.error('Error deleting campaign:', error);
+('Error deleting campaign:', error);
         alert('Failed to delete campaign: ' + error.message);
       }
     }
@@ -480,12 +480,12 @@ const OperationDepartment = () => {
       const result = await updateCampaign(campaignId, { status: newStatus });
       if (result.success) {
         // Status will be updated automatically due to fetchCampaigns() in the hook
-        console.log('Campaign status updated successfully');
+('Campaign status updated successfully');
       } else {
         alert('Failed to update campaign status: ' + result.message);
       }
     } catch (error) {
-      console.error('Error updating campaign status:', error);
+('Error updating campaign status:', error);
       alert('Failed to update campaign status: ' + error.message);
     }
   };
@@ -526,7 +526,7 @@ const OperationDepartment = () => {
         priority: newTicket.priority
       };
 
-      console.log('Creating ticket:', ticketData);
+('Creating ticket:', ticketData);
       const result = await operationTicketApi.addTicket(ticketData);
       
       if (result.success) {
@@ -541,7 +541,7 @@ const OperationDepartment = () => {
         alert('Failed to create ticket: ' + result.message);
       }
     } catch (error) {
-      console.error('Error creating ticket:', error);
+('Error creating ticket:', error);
       alert('Failed to create ticket: ' + error.message);
     }
   };
@@ -601,7 +601,7 @@ const OperationDepartment = () => {
         alert('Failed to submit leave request: ' + result.message);
       }
     } catch (error) {
-      console.error('Error submitting leave request:', error);
+('Error submitting leave request:', error);
       alert('Failed to submit leave request: ' + error.message);
     } finally {
       setLeaveFormLoading(false);

@@ -46,7 +46,7 @@ const AppContent = () => {
 
     return <MainLayout />;
   } catch (error) {
-    console.error('AppContent: Error rendering component:', error);
+('AppContent: Error rendering component:', error);
     return (
       <Box 
         display="flex" 

@@ -33,7 +33,7 @@ export const useOperationEmployees = () => {
   const updateEmployeeRating = async (id, ratingData) => {
     try {
       const response = await operationEmployeeApi.updateRating(id, ratingData);
-      console.log('Raw API response:', response);
+('Raw API response:', response);
       
       // Check for success in different possible formats
       if (response.success || 
@@ -45,7 +45,7 @@ export const useOperationEmployees = () => {
         return { success: false, message: response.message || 'Unknown error' };
       }
     } catch (err) {
-      console.error('Error in updateEmployeeRating:', err);
+('Error in updateEmployeeRating:', err);
       return { success: false, message: err.message || 'Failed to update rating' };
     }
   };
@@ -79,17 +79,17 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError(null);
-      console.log(`Fetching campaigns with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+(`Fetching campaigns with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
       // First, fetch all campaigns to get total count
-      console.log('🔄 Fetching all campaigns for total count...');
+('🔄 Fetching all campaigns for total count...');
       const allCampaignsResponse = await operationCampaignApi.getAllCampaigns(1, 1000); // Get all campaigns
       
       // Then fetch paginated data
       const paginatedResponse = await operationCampaignApi.getAllCampaigns(pageNum, pageLimit);
       
-      console.log('📡 All Campaigns API Response:', allCampaignsResponse);
-      console.log('📡 Paginated Campaigns API Response:', paginatedResponse);
+('📡 All Campaigns API Response:', allCampaignsResponse);
+('📡 Paginated Campaigns API Response:', paginatedResponse);
       
       // Process all campaigns for total count
       let allCampaignsData = [];
@@ -113,15 +113,15 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
       
       const totalCampaignsCount = allCampaignsData.length;
       
-      console.log('📊 All campaigns count:', totalCampaignsCount);
-      console.log('📊 Current page campaigns data:', campaignsData);
+('📊 All campaigns count:', totalCampaignsCount);
+('📊 Current page campaigns data:', campaignsData);
       
       setCampaigns(campaignsData);
       setTotalCampaigns(totalCampaignsCount);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-      console.error('Error fetching campaigns:', err);
+('Error fetching campaigns:', err);
       setError(err.message || 'Network Error');
       setCampaigns([]);
     } finally {
@@ -177,12 +177,12 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
 
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalCampaigns / pageSize);
-    console.log(`Operation Campaigns goToPage: pageNum=${pageNum}, totalCampaigns=${totalCampaigns}, pageSize=${pageSize}, maxPages=${maxPages}`);
+(`Operation Campaigns goToPage: pageNum=${pageNum}, totalCampaigns=${totalCampaigns}, pageSize=${pageSize}, maxPages=${maxPages}`);
     if (totalCampaigns === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-      console.log(`Operation Campaigns goToPage: Fetching page ${pageNum}`);
+(`Operation Campaigns goToPage: Fetching page ${pageNum}`);
       fetchCampaigns(pageNum, pageSize);
     } else {
-      console.log(`Operation Campaigns goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+(`Operation Campaigns goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 
@@ -233,7 +233,7 @@ export const useOperationLeaves = () => {
     setError(null);
     try {
       const response = await operationLeaveApi.getEmployeeLeaves();
-      console.log('Operation Employee Leaves API Response:', response);
+('Operation Employee Leaves API Response:', response);
       
       // Handle different response formats
       let leavesData = [];
@@ -244,17 +244,17 @@ export const useOperationLeaves = () => {
       } else if (response && response.data && Array.isArray(response.data)) {
         leavesData = response.data;
         userDepartment = response.department;
-        console.log('🏢 User department from response:', userDepartment);
+('🏢 User department from response:', userDepartment);
       } else if (response && response.success && Array.isArray(response.data)) {
         leavesData = response.data;
         userDepartment = response.department;
-        console.log('🏢 User department from response:', userDepartment);
+('🏢 User department from response:', userDepartment);
       }
       
       // Only show leaves if user is in Operation department
       if (userDepartment) {
         const departmentLower = userDepartment.toLowerCase();
-        console.log('🔍 Operation Department: Checking department:', userDepartment, '->', departmentLower);
+('🔍 Operation Department: Checking department:', userDepartment, '->', departmentLower);
         
         // Check for various Operation department name variations - be more specific
         const isOperationDepartment = departmentLower === 'operation' || 
@@ -264,21 +264,21 @@ export const useOperationLeaves = () => {
                                      (departmentLower.includes('operation') && !departmentLower.includes('it'));
         
         if (!isOperationDepartment) {
-          console.log('🚫 Operation Department: User is not in Operation department, not showing leaves');
-          console.log('🚫 Operation Department: User department:', userDepartment, 'Expected: Operation or Operations');
+('🚫 Operation Department: User is not in Operation department, not showing leaves');
+('🚫 Operation Department: User department:', userDepartment, 'Expected: Operation or Operations');
           setLeaves([]);
         } else {
-          console.log('✅ Operation Department: User is in Operation department, showing leaves');
-          console.log('📊 Operation Department: Processed employee leaves data:', leavesData);
-          console.log('📊 Operation Department: Number of leaves found:', leavesData.length);
+('✅ Operation Department: User is in Operation department, showing leaves');
+('📊 Operation Department: Processed employee leaves data:', leavesData);
+('📊 Operation Department: Number of leaves found:', leavesData.length);
           setLeaves(leavesData);
         }
       } else {
-        console.log('⚠️ Operation Department: No department info in response, not showing leaves');
+('⚠️ Operation Department: No department info in response, not showing leaves');
         setLeaves([]);
       }
     } catch (err) {
-      console.warn('Operation Employee Leaves API Error, using empty array:', err.message);
+('Operation Employee Leaves API Error, using empty array:', err.message);
       setError(err.message || 'Network Error');
       setLeaves([]);
     } finally {
@@ -292,15 +292,15 @@ export const useOperationLeaves = () => {
 
   const addLeave = async (leaveData) => {
     try {
-      console.log('Adding Operation employee leave:', leaveData);
+('Adding Operation employee leave:', leaveData);
       const response = await operationLeaveApi.submitEmployeeLeave(leaveData);
-      console.log('Operation employee leave add response:', response);
+('Operation employee leave add response:', response);
       
       // Refresh leaves data
       await fetchLeaves();
       return { success: true, data: response.data || response };
     } catch (err) {
-      console.error('Error adding Operation employee leave:', err);
+('Error adding Operation employee leave:', err);
       throw err;
     }
   };
@@ -347,7 +347,7 @@ export const useOperationTickets = () => {
     setError(null);
     try {
       const response = await operationTicketApi.getAllTickets();
-      console.log('Operation Tickets API Response:', response);
+('Operation Tickets API Response:', response);
       
       // Handle different response formats
       let ticketsData = [];
@@ -359,10 +359,10 @@ export const useOperationTickets = () => {
         ticketsData = response.data;
       }
       
-      console.log('Processed operation tickets data:', ticketsData);
+('Processed operation tickets data:', ticketsData);
       setTickets(ticketsData);
     } catch (err) {
-      console.warn('Operation Tickets API Error, using empty array:', err.message);
+('Operation Tickets API Error, using empty array:', err.message);
       setError(err.message);
       setTickets([]);
     } finally {
@@ -372,45 +372,45 @@ export const useOperationTickets = () => {
 
   const addTicket = async (ticketData) => {
     try {
-      console.log('Adding operation ticket:', ticketData);
+('Adding operation ticket:', ticketData);
       const response = await operationTicketApi.addTicket(ticketData);
-      console.log('Operation ticket add response:', response);
+('Operation ticket add response:', response);
       
       // Refresh tickets data
       await fetchTickets();
       return { success: true, data: response.data || response };
     } catch (err) {
-      console.error('Error adding operation ticket:', err);
+('Error adding operation ticket:', err);
       throw err;
     }
   };
 
   const updateTicket = async (id, ticketData) => {
     try {
-      console.log('Updating operation ticket:', id, ticketData);
+('Updating operation ticket:', id, ticketData);
       const response = await operationTicketApi.updateTicket(id, ticketData);
-      console.log('Operation ticket update response:', response);
+('Operation ticket update response:', response);
       
       // Refresh tickets data
       await fetchTickets();
       return { success: true, data: response.data || response };
     } catch (err) {
-      console.error('Error updating operation ticket:', err);
+('Error updating operation ticket:', err);
       throw err;
     }
   };
 
   const deleteTicket = async (id) => {
     try {
-      console.log('Deleting operation ticket:', id);
+('Deleting operation ticket:', id);
       const response = await operationTicketApi.deleteTicket(id);
-      console.log('Operation ticket deletion response:', response);
+('Operation ticket deletion response:', response);
       
       // Refresh tickets data
       await fetchTickets();
       return { success: true, data: response.data || response };
     } catch (err) {
-      console.error('Error deleting operation ticket:', err);
+('Error deleting operation ticket:', err);
       throw err;
     }
   };
@@ -600,7 +600,7 @@ export const useOperationRecentActivities = () => {
       const tickets = Array.isArray(ticketsResponse) ? ticketsResponse : 
         (ticketsResponse?.data || ticketsResponse?.success ? ticketsResponse.data : []);
 
-      console.log('Operation Recent Activities Data:', {
+('Operation Recent Activities Data:', {
         employees: employees.length,
         campaigns: campaigns.length,
         leaves: leaves.length,
@@ -611,9 +611,9 @@ export const useOperationRecentActivities = () => {
       const activities = generateRecentActivities(employees, campaigns, leaves, tickets);
       setRecentActivities(activities);
       
-      console.log('Generated recent activities:', activities);
+('Generated recent activities:', activities);
     } catch (err) {
-      console.error('Error fetching operation recent activities:', err);
+('Error fetching operation recent activities:', err);
       setError(err.message || 'Failed to fetch recent activities');
       setRecentActivities([]);
     } finally {

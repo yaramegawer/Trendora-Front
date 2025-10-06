@@ -185,7 +185,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
         }
       }
     } catch (err) {
-      console.error('Error submitting invoice:', err);
+('Error submitting invoice:', err);
       setSubmitError('An unexpected error occurred. Please try again.');
     }
   };
@@ -647,19 +647,19 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
                 <Typography variant="h6" gutterBottom>Invoice Information</Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Invoice ID</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {selectedInvoice._id ? selectedInvoice._id.substring(0, 12) + '...' : selectedInvoice.id ? selectedInvoice.id.substring(0, 12) + '...' : 'N/A'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Invoice Type</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {selectedInvoice.invoice_type ? selectedInvoice.invoice_type.charAt(0).toUpperCase() + selectedInvoice.invoice_type.slice(1) : 'N/A'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Status</Typography>
                     <Chip
                       label={selectedInvoice.status || 'unpaid'}
@@ -667,7 +667,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                       size="small"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Due Date</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {formatDate(selectedInvoice.due_date || selectedInvoice.dueDate)}

@@ -11,7 +11,11 @@ const apiCall = async (endpoint, options = {}) => {
     });
     return response.data;
   } catch (error) {
-    console.error(`Operation API Error to ${endpoint}:`, error);
+    // Silently handle 403 errors without throwing
+    if (error.response?.status === 403) {
+      return [];
+    }
+    (`Operation API Error to ${endpoint}:`, error);
     throw error;
   }
 };
@@ -83,14 +87,18 @@ export const operationLeaveApi = {
   // Get leaves for specific employee (authenticated user)
   getEmployeeLeaves: async () => {
     try {
-      console.log('🌐 Operation Employee Leaves API Call: /dashboard/leaves');
+('🌐 Operation Employee Leaves API Call: /dashboard/leaves');
       const response = await apiCall('/dashboard/leaves', {
         method: 'GET',
       });
-      console.log('📡 Operation Employee Leaves API Response:', response);
+('📡 Operation Employee Leaves API Response:', response);
       return response;
     } catch (error) {
-      console.error('❌ Operation Employee Leaves API Error:', error);
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+        return [];
+      }
+('❌ Operation Employee Leaves API Error:', error);
       throw error;
     }
   },
@@ -98,16 +106,20 @@ export const operationLeaveApi = {
   // Submit leave for specific employee (authenticated user)
   submitEmployeeLeave: async (leaveData) => {
     try {
-      console.log('🌐 Operation Employee Submit Leave API Call: /dashboard/leaves');
-      console.log('📤 Operation Employee Leave Data:', leaveData);
+('🌐 Operation Employee Submit Leave API Call: /dashboard/leaves');
+('📤 Operation Employee Leave Data:', leaveData);
       const response = await apiCall('/dashboard/leaves', {
         method: 'POST',
         data: leaveData,
       });
-      console.log('📡 Operation Employee Submit Leave API Response:', response);
+('📡 Operation Employee Submit Leave API Response:', response);
       return response;
     } catch (error) {
-      console.error('❌ Operation Employee Submit Leave API Error:', error);
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+        return [];
+      }
+('❌ Operation Employee Submit Leave API Error:', error);
       throw error;
     }
   },

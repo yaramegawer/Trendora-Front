@@ -224,8 +224,8 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         pendingDocuments: formData.pendingDocuments.length > 0 ? formData.pendingDocuments : undefined
       };
       
-      console.log('Debug - Form data being sent:', dataToSend);
-      console.log('Debug - Department name being sent:', formData.department);
+('Debug - Form data being sent:', dataToSend);
+('Debug - Department name being sent:', formData.department);
       onSave(dataToSend);
     }
   };

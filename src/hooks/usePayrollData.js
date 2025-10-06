@@ -13,17 +13,17 @@ export const usePayroll = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError('');
-      console.log(`usePayrollData: Fetching payroll with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+(`usePayrollData: Fetching payroll with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
       // First, fetch all payroll to get total count
-      console.log('usePayrollData: Fetching all payroll for total count...');
+('usePayrollData: Fetching all payroll for total count...');
       const allPayrollResponse = await payrollApi.getAllPayroll(1, 1000); // Get all payroll
       
       // Then fetch paginated data
       const paginatedResponse = await payrollApi.getAllPayroll(pageNum, pageLimit);
       
-      console.log('usePayrollData: All Payroll API Response:', allPayrollResponse);
-      console.log('usePayrollData: Paginated Payroll API Response:', paginatedResponse);
+('usePayrollData: All Payroll API Response:', allPayrollResponse);
+('usePayrollData: Paginated Payroll API Response:', paginatedResponse);
       
       // Process all payroll for total count
       let allPayrollData = [];
@@ -47,15 +47,15 @@ export const usePayroll = (page = 1, limit = 10) => {
       
       const totalPayrollCount = allPayrollData.length;
       
-      console.log('usePayrollData: All payroll count:', totalPayrollCount);
-      console.log('usePayrollData: Current page payroll data:', payrollData);
+('usePayrollData: All payroll count:', totalPayrollCount);
+('usePayrollData: Current page payroll data:', payrollData);
       
       setPayroll(payrollData);
       setTotalPayroll(totalPayrollCount);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-      console.error('usePayrollData: Error fetching payroll:', err);
+('usePayrollData: Error fetching payroll:', err);
       setError(err.message || 'Failed to fetch payroll data');
       setPayroll([]);
       setTotalPayroll(0);
@@ -112,15 +112,15 @@ export const usePayroll = (page = 1, limit = 10) => {
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalPayroll / pageSize);
-    console.log(`usePayrollData goToPage: pageNum=${pageNum}, totalPayroll=${totalPayroll}, pageSize=${pageSize}, maxPages=${maxPages}`);
+(`usePayrollData goToPage: pageNum=${pageNum}, totalPayroll=${totalPayroll}, pageSize=${pageSize}, maxPages=${maxPages}`);
     
     // Always allow page changes if totalPayroll is 0 (initial state) or if page is in valid range
     // This prevents the issue where totalPayroll might be stale
     if (totalPayroll === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-      console.log(`usePayrollData goToPage: Fetching page ${pageNum}`);
+(`usePayrollData goToPage: Fetching page ${pageNum}`);
       fetchPayroll(pageNum, pageSize);
     } else {
-      console.log(`usePayrollData goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+(`usePayrollData goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 

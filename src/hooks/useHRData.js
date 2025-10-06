@@ -14,11 +14,11 @@ export const useEmployees = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔍 useEmployees: Fetching all employees for client-side pagination');
+('🔍 useEmployees: Fetching all employees for client-side pagination');
       
       // Get all employees at once for client-side pagination
       const data = await employeeApi.getAllEmployees(1, 1000); // Get all employees
-      console.log('🔍 useEmployees: API response:', data);
+('🔍 useEmployees: API response:', data);
       
       // Handle response structure
       let allEmployees = [];
@@ -28,15 +28,15 @@ export const useEmployees = (page = 1, limit = 10) => {
         allEmployees = Array.isArray(data) ? data : [];
       }
       
-      console.log('🔍 useEmployees: Total employees fetched:', allEmployees.length);
+('🔍 useEmployees: Total employees fetched:', allEmployees.length);
       setTotalEmployees(allEmployees.length);
       setEmployees(allEmployees); // Store all employees for client-side pagination
       
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
-      console.log('🔍 useEmployees: Final state - totalEmployees:', allEmployees.length);
+('🔍 useEmployees: Final state - totalEmployees:', allEmployees.length);
     } catch (err) {
-      console.error('Error fetching employees:', err);
+('Error fetching employees:', err);
       setError(err.message || 'Failed to fetch employees');
       setEmployees([]);
       setTotalEmployees(0);
@@ -47,15 +47,15 @@ export const useEmployees = (page = 1, limit = 10) => {
 
   const addEmployee = async (employeeData) => {
     try {
-      console.log('Hook: Adding employee with data:', employeeData);
+('Hook: Adding employee with data:', employeeData);
       const newEmployee = await employeeApi.addEmployee(employeeData);
-      console.log('Hook: Add successful, refreshing data...');
+('Hook: Add successful, refreshing data...');
       // Refresh the entire employee list to ensure we have the latest data
       await fetchEmployees();
-      console.log('Hook: Data refresh completed');
+('Hook: Data refresh completed');
       return newEmployee;
     } catch (err) {
-      console.error('Hook: Add employee error:', err);
+('Hook: Add employee error:', err);
       
       // Don't set error state for duplicate email errors - they should only show as alerts
       const errorMessage = err.message || '';
@@ -72,15 +72,15 @@ export const useEmployees = (page = 1, limit = 10) => {
 
   const updateEmployee = async (id, employeeData) => {
     try {
-      console.log('Hook: Updating employee with ID:', id);
+('Hook: Updating employee with ID:', id);
       const updatedEmployee = await employeeApi.updateEmployee(id, employeeData);
-      console.log('Hook: Update successful, refreshing employees data...');
+('Hook: Update successful, refreshing employees data...');
       // Refresh the entire employee list to ensure we have the latest data
       await fetchEmployees();
-      console.log('Hook: Employee data refresh completed');
+('Hook: Employee data refresh completed');
       return updatedEmployee;
     } catch (err) {
-      console.error('Hook: Update employee error:', err);
+('Hook: Update employee error:', err);
       
       // Don't set error state for duplicate email errors - they should only show as alerts
       const errorMessage = err.message || '';
@@ -112,22 +112,22 @@ export const useEmployees = (page = 1, limit = 10) => {
 
   // Pagination functions
   const goToPage = (pageNum) => {
-    console.log('🔍 goToPage called with:', pageNum);
+('🔍 goToPage called with:', pageNum);
     const maxPages = Math.ceil(totalEmployees / pageSize);
-    console.log('🔍 Max pages:', maxPages, 'Total employees:', totalEmployees, 'Page size:', pageSize);
+('🔍 Max pages:', maxPages, 'Total employees:', totalEmployees, 'Page size:', pageSize);
     if (pageNum >= 1 && pageNum <= maxPages) {
       fetchEmployees(pageNum, pageSize);
     }
   };
 
   const changePageSize = (newPageSize) => {
-    console.log('🔍 changePageSize called with:', newPageSize);
+('🔍 changePageSize called with:', newPageSize);
     setPageSize(newPageSize);
     fetchEmployees(1, newPageSize); // Reset to first page when changing page size
   };
 
   const nextPage = () => {
-    console.log('🔍 nextPage called, current page:', currentPage);
+('🔍 nextPage called, current page:', currentPage);
     const maxPages = Math.ceil(totalEmployees / pageSize);
     if (currentPage < maxPages) {
       goToPage(currentPage + 1);
@@ -135,7 +135,7 @@ export const useEmployees = (page = 1, limit = 10) => {
   };
 
   const prevPage = () => {
-    console.log('🔍 prevPage called, current page:', currentPage);
+('🔍 prevPage called, current page:', currentPage);
     if (currentPage > 1) {
       goToPage(currentPage - 1);
     }
@@ -170,14 +170,14 @@ export const useDepartments = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🕐 Fetching departments at:', new Date().toISOString());
+('🕐 Fetching departments at:', new Date().toISOString());
       const data = await departmentApi.getAllDepartments();
-      console.log('🕐 Departments data received at:', new Date().toISOString());
-      console.log('🕐 Departments data:', data);
-      console.log('🕐 Number of departments:', data ? data.length : 'null');
+('🕐 Departments data received at:', new Date().toISOString());
+('🕐 Departments data:', data);
+('🕐 Number of departments:', data ? data.length : 'null');
       setDepartments(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('❌ Error fetching departments:', err);
+('❌ Error fetching departments:', err);
       setError(err.message || 'Failed to fetch departments');
       setDepartments([]);
     } finally {
@@ -187,15 +187,15 @@ export const useDepartments = () => {
 
   const addDepartment = async (departmentData) => {
     try {
-      console.log('Hook: Adding department with data:', departmentData);
+('Hook: Adding department with data:', departmentData);
       const newDepartment = await departmentApi.addDepartment(departmentData);
-      console.log('Hook: Add successful, refreshing departments data...');
+('Hook: Add successful, refreshing departments data...');
       // Refresh the entire department list to ensure we have the latest data
       await fetchDepartments();
-      console.log('Hook: Department data refresh completed');
+('Hook: Department data refresh completed');
       return newDepartment;
     } catch (err) {
-      console.error('Hook: Add department error:', err);
+('Hook: Add department error:', err);
       setError(err.message || 'Failed to add department');
       throw err;
     }
@@ -203,15 +203,15 @@ export const useDepartments = () => {
 
   const updateDepartment = async (id, departmentData) => {
     try {
-      console.log('Hook: Updating department with ID:', id);
+('Hook: Updating department with ID:', id);
       const updatedDepartment = await departmentApi.updateDepartment(id, departmentData);
-      console.log('Hook: Update successful, refreshing departments data...');
+('Hook: Update successful, refreshing departments data...');
       // Refresh the entire department list to ensure we have the latest data
       await fetchDepartments();
-      console.log('Hook: Department data refresh completed');
+('Hook: Department data refresh completed');
       return updatedDepartment;
     } catch (err) {
-      console.error('Hook: Update department error:', err);
+('Hook: Update department error:', err);
       setError(err.message || 'Failed to update department');
       throw err;
     }
@@ -219,14 +219,14 @@ export const useDepartments = () => {
 
   const deleteDepartment = async (id) => {
     try {
-      console.log('Hook: Deleting department with ID:', id);
+('Hook: Deleting department with ID:', id);
       await departmentApi.deleteDepartment(id);
-      console.log('Hook: Delete successful, refreshing departments data...');
+('Hook: Delete successful, refreshing departments data...');
       // Refresh the entire department list to ensure we have the latest data
       await fetchDepartments();
-      console.log('Hook: Department data refresh completed');
+('Hook: Department data refresh completed');
     } catch (err) {
-      console.error('Hook: Delete department error:', err);
+('Hook: Delete department error:', err);
       setError(err.message || 'Failed to delete department');
       throw err;
     }
@@ -260,9 +260,9 @@ export const useLeaves = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError(null);
-      console.log(`Fetching leaves - Page: ${pageNum}, Limit: ${pageLimit}, Current totalLeaves: ${totalLeaves}`);
+(`Fetching leaves - Page: ${pageNum}, Limit: ${pageLimit}, Current totalLeaves: ${totalLeaves}`);
       const data = await leaveApi.getAllLeaves(pageNum, pageLimit);
-      console.log('Leaves data received:', data);
+('Leaves data received:', data);
       
       // Handle paginated response structure
       if (data && typeof data === 'object' && data.data) {
@@ -282,7 +282,7 @@ export const useLeaves = (page = 1, limit = 10) => {
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-      console.error('Error fetching leaves:', err);
+('Error fetching leaves:', err);
       setError(err.message || 'Failed to fetch leaves');
       setLeaves([]);
       setTotalLeaves(0);
@@ -293,15 +293,15 @@ export const useLeaves = (page = 1, limit = 10) => {
 
   const addLeave = async (leaveData) => {
     try {
-      console.log('Hook: Adding leave with data:', leaveData);
+('Hook: Adding leave with data:', leaveData);
       const newLeave = await leaveApi.addLeave(leaveData);
-      console.log('Hook: Add successful, refreshing leaves data...');
+('Hook: Add successful, refreshing leaves data...');
       // Refresh the entire leave list to ensure we have the latest data
       await fetchLeaves();
-      console.log('Hook: Leave data refresh completed');
+('Hook: Leave data refresh completed');
       return newLeave;
     } catch (err) {
-      console.error('Hook: Add leave error:', err);
+('Hook: Add leave error:', err);
       setError(err.message || 'Failed to add leave');
       throw err;
     }
@@ -309,30 +309,33 @@ export const useLeaves = (page = 1, limit = 10) => {
 
   const updateLeaveStatus = async (id, leaveData) => {
     try {
-      console.log('Hook: Updating leave status with ID:', id);
+('Hook: Updating leave status with ID:', id);
       const updatedLeave = await leaveApi.updateLeaveStatus(id, leaveData);
-      console.log('Hook: Update successful, refreshing leaves data...');
+('Hook: Update successful, refreshing leaves data...');
       // Refresh the entire leave list to ensure we have the latest data
       await fetchLeaves();
-      console.log('Hook: Leave data refresh completed');
+('Hook: Leave data refresh completed');
       return updatedLeave;
     } catch (err) {
-      console.error('Hook: Update leave status error:', err);
-      setError(err.message || 'Failed to update leave status');
+('Hook: Update leave status error:', err);
+      // Silently handle 403 errors without showing error message
+      if (err.response?.status !== 403) {
+        setError(err.message || 'Failed to update leave status');
+      }
       throw err;
     }
   };
 
   const deleteLeave = async (id) => {
     try {
-      console.log('Hook: Deleting leave with ID:', id);
+('Hook: Deleting leave with ID:', id);
       await leaveApi.deleteLeave(id);
-      console.log('Hook: Delete successful, refreshing leaves data...');
+('Hook: Delete successful, refreshing leaves data...');
       // Refresh the entire leave list to ensure we have the latest data
       await fetchLeaves();
-      console.log('Hook: Leave data refresh completed');
+('Hook: Leave data refresh completed');
     } catch (err) {
-      console.error('Hook: Delete leave error:', err);
+('Hook: Delete leave error:', err);
       setError(err.message || 'Failed to delete leave');
       throw err;
     }
@@ -345,15 +348,15 @@ export const useLeaves = (page = 1, limit = 10) => {
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalLeaves / pageSize);
-    console.log(`goToPage: pageNum=${pageNum}, totalLeaves=${totalLeaves}, pageSize=${pageSize}, maxPages=${maxPages}`);
+(`goToPage: pageNum=${pageNum}, totalLeaves=${totalLeaves}, pageSize=${pageSize}, maxPages=${maxPages}`);
     
     // Always allow page changes if totalLeaves is 0 (initial state) or if page is in valid range
     // This prevents the issue where totalLeaves might be stale
     if (totalLeaves === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-      console.log(`goToPage: Fetching page ${pageNum}`);
+(`goToPage: Fetching page ${pageNum}`);
       fetchLeaves(pageNum, pageSize);
     } else {
-      console.log(`goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+(`goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 
@@ -406,17 +409,17 @@ export const usePayroll = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError(null);
-      console.log(`Fetching payroll with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+(`Fetching payroll with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
       // First, fetch all payroll to get total count
-      console.log('🔄 Fetching all payroll for total count...');
+('🔄 Fetching all payroll for total count...');
       const allPayrollResponse = await payrollApi.getAllPayroll(1, 1000); // Get all payroll
       
       // Then fetch paginated data
       const paginatedResponse = await payrollApi.getAllPayroll(pageNum, pageLimit);
       
-      console.log('📡 All Payroll API Response:', allPayrollResponse);
-      console.log('📡 Paginated Payroll API Response:', paginatedResponse);
+('📡 All Payroll API Response:', allPayrollResponse);
+('📡 Paginated Payroll API Response:', paginatedResponse);
       
       // Process all payroll for total count
       let allPayrollData = [];
@@ -440,15 +443,15 @@ export const usePayroll = (page = 1, limit = 10) => {
       
       const totalPayrollCount = allPayrollData.length;
       
-      console.log('📊 All payroll count:', totalPayrollCount);
-      console.log('📊 Current page payroll data:', payrollData);
+('📊 All payroll count:', totalPayrollCount);
+('📊 Current page payroll data:', payrollData);
       
       setPayroll(payrollData);
       setTotalPayroll(totalPayrollCount);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-      console.error('Error fetching payroll:', err);
+('Error fetching payroll:', err);
       setError(err.message || 'Failed to fetch payroll');
       setPayroll([]);
       setTotalPayroll(0);
@@ -459,15 +462,15 @@ export const usePayroll = (page = 1, limit = 10) => {
 
   const generatePayslip = async (id, payrollData) => {
     try {
-      console.log('Hook: Generating payslip for employee ID:', id);
-      console.log('Hook: Payroll data:', payrollData);
+('Hook: Generating payslip for employee ID:', id);
+('Hook: Payroll data:', payrollData);
       const payslip = await payrollApi.generatePayslip(id, payrollData);
-      console.log('Hook: Payslip generated successfully');
+('Hook: Payslip generated successfully');
       // Refresh payroll data after successful generation
       await fetchPayroll();
       return payslip;
     } catch (err) {
-      console.error('Hook: Generate payslip error:', err);
+('Hook: Generate payslip error:', err);
       setError(err.message || 'Failed to generate payslip');
       throw err;
     }
@@ -475,15 +478,15 @@ export const usePayroll = (page = 1, limit = 10) => {
 
   const updatePayroll = async (id, payrollData) => {
     try {
-      console.log('Hook: Updating payroll with ID:', id);
-      console.log('Hook: Payroll data:', payrollData);
+('Hook: Updating payroll with ID:', id);
+('Hook: Payroll data:', payrollData);
       const updatedPayroll = await payrollApi.updatePayroll(id, payrollData);
-      console.log('Hook: Payroll updated successfully');
+('Hook: Payroll updated successfully');
       // Refresh payroll data after successful update
       await fetchPayroll();
       return updatedPayroll;
     } catch (err) {
-      console.error('Hook: Update payroll error:', err);
+('Hook: Update payroll error:', err);
       setError(err.message || 'Failed to update payroll');
       throw err;
     }
@@ -491,13 +494,13 @@ export const usePayroll = (page = 1, limit = 10) => {
 
   const deletePayroll = async (id) => {
     try {
-      console.log('Hook: Deleting payroll with ID:', id);
+('Hook: Deleting payroll with ID:', id);
       await payrollApi.deletePayroll(id);
-      console.log('Hook: Payroll deleted successfully');
+('Hook: Payroll deleted successfully');
       // Refresh payroll data after successful deletion
       await fetchPayroll();
     } catch (err) {
-      console.error('Hook: Delete payroll error:', err);
+('Hook: Delete payroll error:', err);
       setError(err.message || 'Failed to delete payroll');
       throw err;
     }
@@ -505,12 +508,12 @@ export const usePayroll = (page = 1, limit = 10) => {
 
   const getPayslip = async (id) => {
     try {
-      console.log('Hook: Getting payslip with ID:', id);
+('Hook: Getting payslip with ID:', id);
       const payslip = await payrollApi.getPayslip(id);
-      console.log('Hook: Payslip retrieved successfully');
+('Hook: Payslip retrieved successfully');
       return payslip;
     } catch (err) {
-      console.error('Hook: Get payslip error:', err);
+('Hook: Get payslip error:', err);
       setError(err.message || 'Failed to fetch payslip');
       throw err;
     }
@@ -523,15 +526,15 @@ export const usePayroll = (page = 1, limit = 10) => {
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalPayroll / pageSize);
-    console.log(`Payroll goToPage: pageNum=${pageNum}, totalPayroll=${totalPayroll}, pageSize=${pageSize}, maxPages=${maxPages}`);
+(`Payroll goToPage: pageNum=${pageNum}, totalPayroll=${totalPayroll}, pageSize=${pageSize}, maxPages=${maxPages}`);
     
     // Always allow page changes if totalPayroll is 0 (initial state) or if page is in valid range
     // This prevents the issue where totalPayroll might be stale
     if (totalPayroll === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-      console.log(`Payroll goToPage: Fetching page ${pageNum}`);
+(`Payroll goToPage: Fetching page ${pageNum}`);
       fetchPayroll(pageNum, pageSize);
     } else {
-      console.log(`Payroll goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+(`Payroll goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 

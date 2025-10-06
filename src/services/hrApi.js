@@ -3,15 +3,6 @@ import { API_CONFIG } from '../config/api.js';
 
 // Helper function to handle API errors and return user-friendly messages
 const handleApiError = (error, defaultMessage = 'An error occurred') => {
-  console.error('API Error Details:', {
-    message: error.message,
-    status: error.response?.status,
-    statusText: error.response?.statusText,
-    data: error.response?.data,
-    url: error.config?.url,
-    method: error.config?.method,
-    headers: error.config?.headers
-  });
 
   let errorMessage = defaultMessage;
 
@@ -20,7 +11,6 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
     const status = error.response.status;
     const data = error.response.data;
     
-    console.error(`API Error ${status}:`, data);
     
     switch (status) {
       case 400:
@@ -30,8 +20,8 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
         errorMessage = 'Unauthorized. Please log in again.';
         break;
       case 403:
-        errorMessage = 'Access denied for this department.';
-        break;
+        // Silently handle 403 errors without throwing
+        return [];
       case 404:
         errorMessage = data.message || 'Resource not found.';
         break;
@@ -49,11 +39,11 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
     }
   } else if (error.request) {
     // Request was made but no response received
-    console.error('Network Error - No response received:', error.request);
+('Network Error - No response received:', error.request);
     errorMessage = 'Network error. Please check your internet connection.';
   } else {
     // Something else happened
-    console.error('Request Setup Error:', error.message);
+('Request Setup Error:', error.message);
     errorMessage = error.message || defaultMessage;
   }
 
@@ -65,19 +55,19 @@ export const employeeApi = {
   // Get all employees
   getAllEmployees: async (page = 1, limit = 10) => {
     try {
-      console.log('API: Fetching employees from', API_CONFIG.ENDPOINTS.HR.EMPLOYEES_HR_DEPT);
-      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+('API: Fetching employees from', API_CONFIG.ENDPOINTS.HR.EMPLOYEES_HR_DEPT);
+('API: Pagination params - Page:', page, 'Limit:', limit);
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.EMPLOYEES_HR_DEPT, {
         params: { page, limit }
       });
-      console.log('API: Employees response received:', response.data);
+('API: Employees response received:', response.data);
       
       // Debug: Log the actual data structure
       if (response.data && response.data.data && response.data.data.length > 0) {
-        console.log('Debug - First employee from API:', response.data.data[0]);
-        console.log('Debug - Employee keys:', Object.keys(response.data.data[0]));
-        console.log('Debug - Employee values:', Object.values(response.data.data[0]));
-        console.log('Debug - Full response structure:', JSON.stringify(response.data, null, 2));
+('Debug - First employee from API:', response.data.data[0]);
+('Debug - Employee keys:', Object.keys(response.data.data[0]));
+('Debug - Employee values:', Object.values(response.data.data[0]));
+('Debug - Full response structure:', JSON.stringify(response.data, null, 2));
       }
       
       // Check if response indicates an error
@@ -108,28 +98,28 @@ export const employeeApi = {
   // Add new employee
   addEmployee: async (employeeData) => {
     try {
-      console.log('API: Adding employee with data:', employeeData);
-      console.log('API: Add URL:', API_CONFIG.ENDPOINTS.HR.EMPLOYEES);
-      console.log('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}`);
-      console.log('API: Request headers will include token');
+('API: Adding employee with data:', employeeData);
+('API: Add URL:', API_CONFIG.ENDPOINTS.HR.EMPLOYEES);
+('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}`);
+('API: Request headers will include token');
       
       const response = await api.post(API_CONFIG.ENDPOINTS.HR.EMPLOYEES, employeeData);
-      console.log('API: Add response status:', response.status);
-      console.log('API: Add response headers:', response.headers);
-      console.log('API: Add response data:', response.data);
+('API: Add response status:', response.status);
+('API: Add response headers:', response.headers);
+('API: Add response data:', response.data);
       
       // Check if the response indicates success
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to add employee';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
       return response.data;
     } catch (error) {
-      console.error('API: Add error details:', error);
-      console.error('API: Error response:', error.response?.data);
-      console.error('API: Error status:', error.response?.status);
+('API: Add error details:', error);
+('API: Error response:', error.response?.data);
+('API: Error status:', error.response?.status);
       
       // Handle authentication errors specifically
       if (error.response?.status === 401) {
@@ -156,27 +146,27 @@ export const employeeApi = {
   // Update employee
   updateEmployee: async (id, employeeData) => {
     try {
-      console.log('API: Updating employee with ID:', id);
-      console.log('API: Update URL:', `${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`);
-      console.log('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`);
-      console.log('API: Employee data being sent:', employeeData);
+('API: Updating employee with ID:', id);
+('API: Update URL:', `${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`);
+('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`);
+('API: Employee data being sent:', employeeData);
       
       const response = await api.put(`${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`, employeeData);
-      console.log('API: Update response status:', response.status);
-      console.log('API: Update response data:', response.data);
+('API: Update response status:', response.status);
+('API: Update response data:', response.data);
       
       // Check if the response indicates success
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to update employee';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
       return response.data;
     } catch (error) {
-      console.error('API: Update error details:', error);
-      console.error('API: Error response:', error.response?.data);
-      console.error('API: Error status:', error.response?.status);
+('API: Update error details:', error);
+('API: Error response:', error.response?.data);
+('API: Error status:', error.response?.status);
       
       // Handle specific error types
       if (error.response?.data?.message && error.response.data.message.includes('Invalid objectId')) {
@@ -202,13 +192,13 @@ export const employeeApi = {
   // Delete employee
   deleteEmployee: async (id) => {
     try {
-      console.log('API: Deleting employee with ID:', id);
-      console.log('API: Delete URL:', `${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`);
+('API: Deleting employee with ID:', id);
+('API: Delete URL:', `${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`);
       const response = await api.delete(`${API_CONFIG.ENDPOINTS.HR.EMPLOYEES}/${id}`);
-      console.log('API: Delete response:', response.data);
+('API: Delete response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('API: Delete error:', error);
+('API: Delete error:', error);
       const errorMessage = handleApiError(error, 'Failed to delete employee');
       throw new Error(errorMessage);
     }
@@ -220,36 +210,36 @@ export const departmentApi = {
   // Get all departments
   getAllDepartments: async () => {
     try {
-      console.log('🔍 API: Fetching departments from', API_CONFIG.ENDPOINTS.HR.DEPARTMENTS);
-      console.log('🔍 API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.DEPARTMENTS}`);
+('🔍 API: Fetching departments from', API_CONFIG.ENDPOINTS.HR.DEPARTMENTS);
+('🔍 API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.DEPARTMENTS}`);
       // Add timestamp to prevent caching
       const timestamp = new Date().getTime();
       const response = await api.get(`${API_CONFIG.ENDPOINTS.HR.DEPARTMENTS}?t=${timestamp}`);
-      console.log('🔍 API: Response status:', response.status);
-      console.log('🔍 API: Response data:', response.data);
-      console.log('🔍 API: Response headers:', response.headers);
+('🔍 API: Response status:', response.status);
+('🔍 API: Response data:', response.data);
+('🔍 API: Response headers:', response.headers);
       
       // Check if response indicates an error
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to fetch departments';
-        console.log('❌ API: Backend returned error:', errorMessage);
+('❌ API: Backend returned error:', errorMessage);
         throw new Error(errorMessage);
       }
       
       // Extract data from the response structure
       if (response.data && response.data.success === true && response.data.data) {
-        console.log('✅ API: Departments data extracted:', response.data.data);
-        console.log('✅ API: Number of departments:', response.data.data.length);
+('✅ API: Departments data extracted:', response.data.data);
+('✅ API: Number of departments:', response.data.data.length);
         return Array.isArray(response.data.data) ? response.data.data : [];
       }
       
       // Fallback to direct response data (for backward compatibility)
-      console.log('⚠️ API: Using direct response data:', response.data);
-      console.log('⚠️ API: Direct response type:', typeof response.data);
-      console.log('⚠️ API: Direct response is array:', Array.isArray(response.data));
+('⚠️ API: Using direct response data:', response.data);
+('⚠️ API: Direct response type:', typeof response.data);
+('⚠️ API: Direct response is array:', Array.isArray(response.data));
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
-      console.error('❌ API: Department fetch error:', error);
+('❌ API: Department fetch error:', error);
       const errorMessage = handleApiError(error, 'Failed to fetch departments');
       throw new Error(errorMessage);
     }
@@ -258,16 +248,16 @@ export const departmentApi = {
   // Add new department
   addDepartment: async (departmentData) => {
     try {
-      console.log('API: Adding department with data:', departmentData);
-      console.log('API: Department name being sent:', departmentData.name);
-      console.log('API: Add department URL:', API_CONFIG.ENDPOINTS.HR.DEPARTMENTS);
+('API: Adding department with data:', departmentData);
+('API: Department name being sent:', departmentData.name);
+('API: Add department URL:', API_CONFIG.ENDPOINTS.HR.DEPARTMENTS);
       const response = await api.post(API_CONFIG.ENDPOINTS.HR.DEPARTMENTS, departmentData);
-      console.log('API: Add department response:', response.data);
+('API: Add department response:', response.data);
       
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to add department';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -286,7 +276,7 @@ export const departmentApi = {
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to update department';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -305,7 +295,7 @@ export const departmentApi = {
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to delete department';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -322,8 +312,8 @@ export const leaveApi = {
   // Get all leaves
   getAllLeaves: async (page = 1, limit = 10) => {
     try {
-      console.log('API: Fetching leaves from', API_CONFIG.ENDPOINTS.HR.LEAVES);
-      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+('API: Fetching leaves from', API_CONFIG.ENDPOINTS.HR.LEAVES);
+('API: Pagination params - Page:', page, 'Limit:', limit);
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.LEAVES, {
         params: { 
           page, 
@@ -332,7 +322,7 @@ export const leaveApi = {
           sortOrder: 'desc'
         }
       });
-      console.log('API: Leaves response received:', response.data);
+('API: Leaves response received:', response.data);
       
       // Check if response indicates an error
       if (response.data && response.data.success === false) {
@@ -351,15 +341,15 @@ export const leaveApi = {
   // Update leave status
   updateLeaveStatus: async (id, leaveData) => {
     try {
-      console.log('API: Updating leave status with ID:', id);
-      console.log('API: Leave data being sent:', leaveData);
+('API: Updating leave status with ID:', id);
+('API: Leave data being sent:', leaveData);
       const response = await api.put(`${API_CONFIG.ENDPOINTS.HR.LEAVES}/${id}`, leaveData);
-      console.log('API: Update leave status response:', response.data);
+('API: Update leave status response:', response.data);
       
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to update leave status';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -373,15 +363,15 @@ export const leaveApi = {
   // Add new leave
   addLeave: async (leaveData) => {
     try {
-      console.log('API: Adding leave with data:', leaveData);
-      console.log('API: Add leave URL:', API_CONFIG.ENDPOINTS.HR.LEAVES);
+('API: Adding leave with data:', leaveData);
+('API: Add leave URL:', API_CONFIG.ENDPOINTS.HR.LEAVES);
       const response = await api.post(API_CONFIG.ENDPOINTS.HR.LEAVES, leaveData);
-      console.log('API: Add leave response:', response.data);
+('API: Add leave response:', response.data);
       
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to add leave';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -395,14 +385,14 @@ export const leaveApi = {
   // Delete leave
   deleteLeave: async (id) => {
     try {
-      console.log('API: Deleting leave with ID:', id);
+('API: Deleting leave with ID:', id);
       const response = await api.delete(`${API_CONFIG.ENDPOINTS.HR.LEAVES}/${id}`);
-      console.log('API: Delete leave response:', response.data);
+('API: Delete leave response:', response.data);
       
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to delete leave';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -419,8 +409,8 @@ export const payrollApi = {
   // Get all payroll
   getAllPayroll: async (page = 1, limit = 10) => {
     try {
-      console.log('API: Fetching payroll from', API_CONFIG.ENDPOINTS.HR.PAYROLL);
-      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+('API: Fetching payroll from', API_CONFIG.ENDPOINTS.HR.PAYROLL);
+('API: Pagination params - Page:', page, 'Limit:', limit);
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.PAYROLL, {
         params: { 
           page, 
@@ -429,14 +419,14 @@ export const payrollApi = {
           sortOrder: 'desc'
         }
       });
-      console.log('API: Payroll response received:', response.data);
+('API: Payroll response received:', response.data);
       
       // Debug: Log the actual data structure
       if (response.data && response.data.data && response.data.data.length > 0) {
-        console.log('Debug - First payroll record from API:', response.data.data[0]);
-        console.log('Debug - Payroll keys:', Object.keys(response.data.data[0]));
-        console.log('Debug - Payroll employeeId field:', response.data.data[0].employeeId);
-        console.log('Debug - Full response structure:', JSON.stringify(response.data, null, 2));
+('Debug - First payroll record from API:', response.data.data[0]);
+('Debug - Payroll keys:', Object.keys(response.data.data[0]));
+('Debug - Payroll employeeId field:', response.data.data[0].employeeId);
+('Debug - Full response structure:', JSON.stringify(response.data, null, 2));
       }
       
       // Check if response indicates an error
@@ -467,15 +457,15 @@ export const payrollApi = {
   // Generate payslip
   generatePayslip: async (id, payrollData) => {
     try {
-      console.log('API: Generating payslip for employee ID:', id);
-      console.log('API: Payroll data being sent:', payrollData);
+('API: Generating payslip for employee ID:', id);
+('API: Payroll data being sent:', payrollData);
       const response = await api.post(`${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`, payrollData);
-      console.log('API: Generate payslip response:', response.data);
+('API: Generate payslip response:', response.data);
       
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to generate payslip';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -489,27 +479,27 @@ export const payrollApi = {
   // Update payroll
   updatePayroll: async (id, payrollData) => {
     try {
-      console.log('API: Updating payroll with ID:', id);
-      console.log('API: Payroll data being sent:', payrollData);
-      console.log('API: Update URL:', `${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
-      console.log('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
+('API: Updating payroll with ID:', id);
+('API: Payroll data being sent:', payrollData);
+('API: Update URL:', `${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
+('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
       
       const response = await api.put(`${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`, payrollData);
-      console.log('API: Update payroll response status:', response.status);
-      console.log('API: Update payroll response headers:', response.headers);
-      console.log('API: Update payroll response data:', response.data);
-      console.log('API: Full response object:', response);
+('API: Update payroll response status:', response.status);
+('API: Update payroll response headers:', response.headers);
+('API: Update payroll response data:', response.data);
+('API: Full response object:', response);
       
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to update payroll';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
       return response.data;
     } catch (error) {
-      console.error('API: Update payroll error details:', {
+('API: Update payroll error details:', {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -524,24 +514,24 @@ export const payrollApi = {
   // Delete payroll
   deletePayroll: async (id) => {
     try {
-      console.log('API: Deleting payroll with ID:', id);
-      console.log('API: Delete URL:', `${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
-      console.log('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
+('API: Deleting payroll with ID:', id);
+('API: Delete URL:', `${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
+('API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
       
       const response = await api.delete(`${API_CONFIG.ENDPOINTS.HR.PAYROLL}/${id}`);
-      console.log('API: Delete payroll response status:', response.status);
-      console.log('API: Delete payroll response data:', response.data);
+('API: Delete payroll response status:', response.status);
+('API: Delete payroll response data:', response.data);
       
       // Check if the response indicates an error even with 200 status
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to delete payroll';
-        console.error('API: Backend returned success: false:', errorMessage);
+('API: Backend returned success: false:', errorMessage);
         throw new Error(errorMessage);
       }
       
       return response.data;
     } catch (error) {
-      console.error('API: Delete payroll error details:', {
+('API: Delete payroll error details:', {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -559,8 +549,8 @@ export const attendanceApi = {
   // Get all attendance records with pagination
   getAttendance: async (page = 1, limit = 10) => {
     try {
-      console.log('API: Fetching attendance from', API_CONFIG.ENDPOINTS.HR.ATTENDANCE);
-      console.log('API: Pagination params - Page:', page, 'Limit:', limit);
+('API: Fetching attendance from', API_CONFIG.ENDPOINTS.HR.ATTENDANCE);
+('API: Pagination params - Page:', page, 'Limit:', limit);
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.ATTENDANCE, {
         params: { 
           page, 
@@ -569,7 +559,7 @@ export const attendanceApi = {
           sortOrder: 'desc'
         }
       });
-      console.log('API: Attendance response received:', response.data);
+('API: Attendance response received:', response.data);
       
       // Check if response indicates an error
       if (response.data && response.data.success === false) {
@@ -588,26 +578,26 @@ export const attendanceApi = {
   // Delete attendance record
   deleteAttendance: async (id) => {
     try {
-      console.log('🔍 API: Deleting attendance record with ID:', id);
-      console.log('🔍 API: Delete URL:', `${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
-      console.log('🔍 API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
+('🔍 API: Deleting attendance record with ID:', id);
+('🔍 API: Delete URL:', `${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
+('🔍 API: Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
       
       const response = await api.delete(`${API_CONFIG.ENDPOINTS.HR.ATTENDANCE}/${id}`);
-      console.log('🔍 API: Delete response status:', response.status);
-      console.log('🔍 API: Delete response headers:', response.headers);
-      console.log('🔍 API: Delete response data:', response.data);
+('🔍 API: Delete response status:', response.status);
+('🔍 API: Delete response headers:', response.headers);
+('🔍 API: Delete response data:', response.data);
       
       // Check if response indicates an error
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to delete attendance record';
-        console.error('❌ API: Backend returned error:', errorMessage);
+('❌ API: Backend returned error:', errorMessage);
         throw new Error(errorMessage);
       }
       
-      console.log('✅ API: Delete successful');
+('✅ API: Delete successful');
       return response.data;
     } catch (error) {
-      console.error('❌ API: Delete error details:', {
+('❌ API: Delete error details:', {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,

@@ -14,41 +14,41 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  console.log('AuthProvider: Component starting to render');
+('AuthProvider: Component starting to render');
   
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  console.log('AuthProvider: Initial state:', { user, isAuthenticated, loading });
+('AuthProvider: Initial state:', { user, isAuthenticated, loading });
 
   useEffect(() => {
-    console.log('AuthProvider: useEffect running');
+('AuthProvider: useEffect running');
     
     // Check if user is already logged in (from localStorage)
     const checkAuth = () => {
       try {
-        console.log('AuthProvider: Checking authentication from localStorage');
+('AuthProvider: Checking authentication from localStorage');
         
         const storedUser = localStorage.getItem('user');
         const storedAuth = localStorage.getItem('isAuthenticated');
         
-        console.log('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
+('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
         
         if (storedUser && storedAuth === 'true') {
-          console.log('AuthProvider: User found in localStorage, setting authenticated state');
+('AuthProvider: User found in localStorage, setting authenticated state');
           setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
         } else {
-          console.log('AuthProvider: No valid user data in localStorage');
+('AuthProvider: No valid user data in localStorage');
         }
       } catch (error) {
-        console.error('AuthProvider: Error checking authentication:', error);
+('AuthProvider: Error checking authentication:', error);
         // Clear invalid data
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
       } finally {
-        console.log('AuthProvider: Setting loading to false');
+('AuthProvider: Setting loading to false');
         setLoading(false);
       }
     };
@@ -87,13 +87,13 @@ export const AuthProvider = ({ children }) => {
       const data = response.data;
       
       // Debug logging
-      console.log('Login response data:', data);
-      console.log('Response success field:', data.success);
-      console.log('Response message:', data.message);
-      console.log('Data keys:', Object.keys(data));
-      console.log('Data.user:', data.user);
-      console.log('Data.id:', data.id);
-      console.log('Data.token:', data.token);
+('Login response data:', data);
+('Response success field:', data.success);
+('Response message:', data.message);
+('Data keys:', Object.keys(data));
+('Data.user:', data.user);
+('Data.id:', data.id);
+('Data.token:', data.token);
       
       // Validate that we have a valid response
       if (!data) {
@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }) => {
       
       // Check if the response indicates authentication failure (backend returns success: false)
       if (data.success === false) {
-        console.log('Login failed - success is false');
+('Login failed - success is false');
         const errorMessage = data.message || 'Invalid credentials';
         // Provide more helpful error message for invalid credentials
         if (errorMessage.includes('invalid credentials')) {
@@ -119,13 +119,13 @@ export const AuthProvider = ({ children }) => {
       // Check if we have a token in the response
       const token = data.token || data.accessToken || data.access_token || data.jwt;
       if (!token) {
-        console.log('No token found in response. Available fields:', Object.keys(data));
+('No token found in response. Available fields:', Object.keys(data));
         throw new Error('No authentication token received from server. Please check your credentials.');
       }
       
       // Debug: Log the token to see its structure
-      console.log('🔍 Token received:', token.substring(0, 50) + '...');
-      console.log('🔍 Full response data:', data);
+('🔍 Token received:', token.substring(0, 50) + '...');
+('🔍 Full response data:', data);
       
       // Try to decode token immediately to see its structure
       try {
@@ -133,14 +133,14 @@ export const AuthProvider = ({ children }) => {
         if (tokenParts.length === 3) {
           const header = JSON.parse(atob(tokenParts[0]));
           const payload = JSON.parse(atob(tokenParts[1]));
-          console.log('🔍 Token header:', header);
-          console.log('🔍 Token payload (raw):', payload);
-          console.log('🔍 Token payload keys:', Object.keys(payload));
+('🔍 Token header:', header);
+('🔍 Token payload (raw):', payload);
+('🔍 Token payload keys:', Object.keys(payload));
         } else {
-          console.log('❌ Token is not a valid JWT format');
+('❌ Token is not a valid JWT format');
         }
       } catch (e) {
-        console.log('❌ Could not decode token for debugging:', e);
+('❌ Could not decode token for debugging:', e);
       }
       
       // Check if user data exists and is valid
@@ -154,8 +154,8 @@ export const AuthProvider = ({ children }) => {
         try {
           // Decode JWT token to extract user ID and role
           const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-          console.log('🔍 JWT Token payload:', tokenPayload);
-          console.log('🔍 All token payload fields:', Object.keys(tokenPayload));
+('🔍 JWT Token payload:', tokenPayload);
+('🔍 All token payload fields:', Object.keys(tokenPayload));
           
           // Extract user ID from various possible field names
           userIdFromToken = tokenPayload.user_id || tokenPayload.sub || tokenPayload.id || 
@@ -171,7 +171,7 @@ export const AuthProvider = ({ children }) => {
           for (const field of roleFields) {
             if (tokenPayload[field]) {
               roleFromToken = tokenPayload[field];
-              console.log(`🔍 Found role in field '${field}':`, roleFromToken);
+(`🔍 Found role in field '${field}':`, roleFromToken);
               break;
             }
           }
@@ -179,32 +179,32 @@ export const AuthProvider = ({ children }) => {
           // Also check nested objects
           if (!roleFromToken && tokenPayload.user && tokenPayload.user.role) {
             roleFromToken = tokenPayload.user.role;
-            console.log('🔍 Found role in nested user object:', roleFromToken);
+('🔍 Found role in nested user object:', roleFromToken);
           }
           
           // Check profile object
           if (!roleFromToken && tokenPayload.profile && tokenPayload.profile.role) {
             roleFromToken = tokenPayload.profile.role;
-            console.log('🔍 Found role in profile object:', roleFromToken);
+('🔍 Found role in profile object:', roleFromToken);
           }
           
           // Check data object
           if (!roleFromToken && tokenPayload.data && tokenPayload.data.role) {
             roleFromToken = tokenPayload.data.role;
-            console.log('🔍 Found role in data object:', roleFromToken);
+('🔍 Found role in data object:', roleFromToken);
           }
           
-          console.log('🔍 Extracted user ID from token:', userIdFromToken);
-          console.log('🔍 Extracted role from token:', roleFromToken);
+('🔍 Extracted user ID from token:', userIdFromToken);
+('🔍 Extracted role from token:', roleFromToken);
           
         } catch (error) {
-          console.log('❌ Could not decode JWT token:', error);
-          console.log('❌ Token format might be invalid or not a JWT');
+('❌ Could not decode JWT token:', error);
+('❌ Token format might be invalid or not a JWT');
         }
       }
       
       if (!hasUserData && !userIdFromToken) {
-        console.log('No user data found in response or token:', data);
+('No user data found in response or token:', data);
         throw new Error('Invalid user data received from server');
       }
       
@@ -222,27 +222,27 @@ export const AuthProvider = ({ children }) => {
       // Override role with token role if found (highest priority)
       if (roleFromToken) {
         userData.role = roleFromToken;
-        console.log('🔍 Overriding role with token role:', roleFromToken);
+('🔍 Overriding role with token role:', roleFromToken);
       }
       
-      console.log('🔍 Role extraction debug:');
-      console.log('  - roleFromToken:', roleFromToken);
-      console.log('  - data.user?.role:', data.user?.role);
-      console.log('  - data.role:', data.role);
-      console.log('  - data.user:', data.user);
-      console.log('  - Final role:', userData.role);
-      console.log('🔍 Constructed user data:', userData);
+('🔍 Role extraction debug:');
+('  - roleFromToken:', roleFromToken);
+('  - data.user?.role:', data.user?.role);
+('  - data.role:', data.role);
+('  - data.user:', data.user);
+('  - Final role:', userData.role);
+('🔍 Constructed user data:', userData);
       
       // Additional debugging - check if role is in the response but not being captured
-      console.log('🔍 Full response structure check:');
-      console.log('  - data keys:', Object.keys(data));
+('🔍 Full response structure check:');
+('  - data keys:', Object.keys(data));
       if (data.user) {
-        console.log('  - data.user keys:', Object.keys(data.user));
+('  - data.user keys:', Object.keys(data.user));
       }
       
       // If we still don't have a role, try fallback methods
       if (!userData.role || userData.role === 'User') {
-        console.log('No role found in token, trying fallback methods...');
+('No role found in token, trying fallback methods...');
         
         // Fallback: Check if this is a known admin user by email or ID
         const adminEmails = ['admin@trendora.com', 'admin@example.com'];
@@ -250,23 +250,23 @@ export const AuthProvider = ({ children }) => {
         
         if (adminEmails.includes(userData.email) || adminIds.includes(userData.id)) {
           userData.role = 'Admin';
-          console.log('Set role to Admin based on email/ID fallback');
+('Set role to Admin based on email/ID fallback');
         } else {
           // TEMPORARY: Force Admin role for testing
-          console.log('🔧 TEMPORARY: Setting role to Admin for testing purposes');
+('🔧 TEMPORARY: Setting role to Admin for testing purposes');
           userData.role = 'Admin';
           
           // Try to fetch from database if endpoint exists
           try {
-            console.log('Attempting to fetch user role from database for ID:', userData.id);
+('Attempting to fetch user role from database for ID:', userData.id);
             const userDetails = await userApiService.getUserDetails(userData.id);
             
             if (userDetails && userDetails.role) {
               userData.role = userDetails.role;
-              console.log('Updated user role from database:', userData.role);
+('Updated user role from database:', userData.role);
             }
           } catch (error) {
-            console.log('Could not fetch user role from database:', error.message);
+('Could not fetch user role from database:', error.message);
             // Keep default 'User' role if we can't determine it
           }
         }
@@ -280,13 +280,13 @@ export const AuthProvider = ({ children }) => {
       // Store token (already extracted above)
       localStorage.setItem('token', token);
       
-      console.log('Login successful. Token stored:', token?.substring(0, 20) + '...');
-      console.log('Token verification - stored token:', localStorage.getItem('token')?.substring(0, 20) + '...');
-      console.log('Final user data with role:', userData);
+('Login successful. Token stored:', token?.substring(0, 20) + '...');
+('Token verification - stored token:', localStorage.getItem('token')?.substring(0, 20) + '...');
+('Final user data with role:', userData);
       
       return data;
     } catch (error) {
-      console.error('Login error:', error);
+('Login error:', error);
       
       // Handle different types of errors
       let errorMessage = 'Login failed. Please try again.';

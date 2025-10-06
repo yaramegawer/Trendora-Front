@@ -58,7 +58,7 @@ const useOptimizedData = () => {
               operationCampaigns: operationCampaignsRes.data?.data || []
             }));
           } catch (err) {
-            console.error('Background data fetch error:', err);
+('Background data fetch error:', err);
           }
         }, 100);
       } catch (err) {
@@ -80,7 +80,7 @@ const useOptimizedData = () => {
 const StatsSkeleton = () => (
   <Grid container spacing={3}>
     {[1, 2, 3, 4].map((i) => (
-      <Grid item xs={12} sm={6} md={3} key={i}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
         <Card>
           <CardContent>
             <Skeleton variant="text" width="60%" height={24} />

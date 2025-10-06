@@ -83,9 +83,9 @@ const DepartmentManagement = () => {
     setSubmitError(null);
     
     try {
-      console.log('Submitting department:', formData);
+('Submitting department:', formData);
       const result = await addDepartment(formData);
-      console.log('Department added successfully:', result);
+('Department added successfully:', result);
       
       if (result.success) {
         setIsAddDialogOpen(false);
@@ -94,7 +94,7 @@ const DepartmentManagement = () => {
         alert('Department added successfully!');
       }
     } catch (error) {
-      console.error('Error adding department:', error);
+('Error adding department:', error);
       setSubmitError(error.message || 'Failed to add department');
     } finally {
       setIsSubmitting(false);
@@ -113,9 +113,9 @@ const DepartmentManagement = () => {
     setSubmitError(null);
     
     try {
-      console.log('Updating department:', selectedDepartment.id, formData);
+('Updating department:', selectedDepartment.id, formData);
       const result = await updateDepartment(selectedDepartment.id, formData);
-      console.log('Department updated successfully:', result);
+('Department updated successfully:', result);
       
       if (result.success) {
         setIsEditDialogOpen(false);
@@ -124,7 +124,7 @@ const DepartmentManagement = () => {
         alert('Department updated successfully!');
       }
     } catch (error) {
-      console.error('Error updating department:', error);
+('Error updating department:', error);
       setSubmitError(error.message || 'Failed to update department');
     } finally {
       setIsSubmitting(false);
@@ -142,7 +142,7 @@ const DepartmentManagement = () => {
         await deleteDepartment(departmentId);
         setAnchorEl(null);
       } catch (error) {
-        console.error('Error deleting department:', error);
+('Error deleting department:', error);
       }
     }
   };
@@ -238,7 +238,7 @@ const DepartmentManagement = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <TextField
                 fullWidth
                 placeholder="Search departments..."
@@ -250,7 +250,7 @@ const DepartmentManagement = () => {
                 sx={{ borderRadius: 2 }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Typography variant="body2" color="text.secondary">
                 {filteredDepartments.length} departments
               </Typography>
@@ -262,7 +262,7 @@ const DepartmentManagement = () => {
       {/* Departments Grid */}
       <Grid container spacing={3}>
         {filteredDepartments.map((department, index) => (
-          <Grid item xs={12} md={6} lg={4} key={department.id || department._id || `department-${index}`}>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }} key={department.id || department._id || `department-${index}`}>
             <Card sx={{ height: '100%', position: 'relative' }}>
               <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
@@ -400,7 +400,7 @@ const DepartmentManagement = () => {
             </Alert>
           )}
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Department Name"
@@ -436,7 +436,7 @@ const DepartmentManagement = () => {
             </Alert>
           )}
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Department Name"

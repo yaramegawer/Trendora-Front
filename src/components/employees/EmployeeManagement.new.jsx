@@ -85,7 +85,7 @@ const EmployeeManagement = () => {
   const [userSuccess, setUserSuccess] = useState('');
 
   const handleAddEmployee = async (employeeData) => {
-    console.log('Debug - handleAddEmployee called with data:', employeeData);
+('Debug - handleAddEmployee called with data:', employeeData);
     
     // Check if user is authenticated first
     if (!user || !isAuthenticated) {
@@ -99,16 +99,16 @@ const EmployeeManagement = () => {
     try {
       setUserError('');
       setUserSuccess('');
-      console.log('Debug - Calling addEmployee API...');
+('Debug - Calling addEmployee API...');
       await addEmployee(employeeData);
-      console.log('Debug - Add successful, closing dialog...');
+('Debug - Add successful, closing dialog...');
       setUserSuccess('Employee added successfully!');
       setShowAddDialog(false);
-      console.log('Debug - Dialog closed, refreshing data...');
+('Debug - Dialog closed, refreshing data...');
     } catch (error) {
-      console.error('Error adding employee:', error);
-      console.error('Error message:', error.message);
-      console.error('Error response:', error.response);
+('Error adding employee:', error);
+('Error message:', error.message);
+('Error response:', error.response);
       
       // Clear any existing error first
       setUserError('');
@@ -155,12 +155,12 @@ const EmployeeManagement = () => {
       setUserError('');
       setUserSuccess('');
       const employeeId = editingEmployee.id || editingEmployee._id;
-      console.log('Debug - editingEmployee:', editingEmployee);
-      console.log('Debug - employeeId extracted:', employeeId);
-      console.log('Debug - employeeData to update:', employeeData);
+('Debug - editingEmployee:', editingEmployee);
+('Debug - employeeId extracted:', employeeId);
+('Debug - employeeData to update:', employeeData);
       
       if (!employeeId) {
-        console.error('No employee ID found for update');
+('No employee ID found for update');
         setUserError('Error: No employee ID found for update');
         return;
       }
@@ -170,9 +170,9 @@ const EmployeeManagement = () => {
       setShowEditDialog(false);
       setEditingEmployee(null);
     } catch (error) {
-      console.error('Error updating employee:', error);
-      console.error('Error message:', error.message);
-      console.error('Error response:', error.response);
+('Error updating employee:', error);
+('Error message:', error.message);
+('Error response:', error.response);
       
       // Clear any existing error first
       setUserError('');
@@ -246,27 +246,27 @@ const EmployeeManagement = () => {
         setViewingEmployee(updatedEmployee);
       }
     } catch (error) {
-      console.error('Error submitting document:', error);
+('Error submitting document:', error);
       setUserError(`Error submitting document: ${error.message}`);
     }
   };
 
   const handleDelete = async (employeeId) => {
-    console.log('Debug - handleDelete called with ID:', employeeId);
+('Debug - handleDelete called with ID:', employeeId);
     
     // Allow all authenticated users to delete employees
 
     if (window.confirm('Are you sure you want to delete this employee?')) {
       try {
         if (!employeeId) {
-          console.error('No employee ID provided for deletion');
+('No employee ID provided for deletion');
           return;
         }
-        console.log('Debug - Calling deleteEmployee with ID:', employeeId);
+('Debug - Calling deleteEmployee with ID:', employeeId);
         await deleteEmployee(employeeId);
-        console.log('Debug - Delete successful, refreshing data...');
+('Debug - Delete successful, refreshing data...');
       } catch (error) {
-        console.error('Error deleting employee:', error);
+('Error deleting employee:', error);
         // Check if error is permission-related
         if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
           alert(`Error: ${error.message}`);
@@ -278,7 +278,7 @@ const EmployeeManagement = () => {
   };
 
   const handleMenuClick = (event, employee) => {
-    console.log('Debug - handleMenuClick called with employee:', employee);
+('Debug - handleMenuClick called with employee:', employee);
     setAnchorEl(event.currentTarget);
     setSelectedEmployee(employee);
   };
@@ -293,18 +293,18 @@ const EmployeeManagement = () => {
   const currentDepartments = departments || [];
 
   // Debug: Log the actual employee data structure
-  console.log('Debug - Raw employees data:', employees);
-  console.log('Debug - Current employees:', currentEmployees);
-  console.log('Debug - Raw departments data:', departments);
-  console.log('Debug - Current departments:', currentDepartments);
-  console.log('Debug - Current user:', user);
-  console.log('Debug - User role:', user?.role);
-  console.log('Debug - User role type:', typeof user?.role);
+('Debug - Raw employees data:', employees);
+('Debug - Current employees:', currentEmployees);
+('Debug - Raw departments data:', departments);
+('Debug - Current departments:', currentDepartments);
+('Debug - Current user:', user);
+('Debug - User role:', user?.role);
+('Debug - User role type:', typeof user?.role);
   if (currentEmployees.length > 0) {
-    console.log('Debug - First employee structure:', currentEmployees[0]);
+('Debug - First employee structure:', currentEmployees[0]);
   }
   if (currentDepartments.length > 0) {
-    console.log('Debug - First department structure:', currentDepartments[0]);
+('Debug - First department structure:', currentDepartments[0]);
   }
 
   // Permission checking functions using utility
@@ -443,7 +443,7 @@ const EmployeeManagement = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -463,7 +463,7 @@ const EmployeeManagement = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -483,7 +483,7 @@ const EmployeeManagement = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -503,7 +503,7 @@ const EmployeeManagement = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -528,7 +528,7 @@ const EmployeeManagement = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="Search"
@@ -539,7 +539,7 @@ const EmployeeManagement = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     select
@@ -555,7 +555,7 @@ const EmployeeManagement = () => {
                     ))}
                   </TextField>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 select
@@ -756,7 +756,7 @@ const EmployeeManagement = () => {
                 <Box sx={{ mt: 2 }}>
                   <Grid container spacing={3}>
                     {/* Basic Information */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <Typography variant="h6" gutterBottom>Basic Information</Typography>
                       <Stack spacing={2}>
                         <Box>
@@ -789,7 +789,7 @@ const EmployeeManagement = () => {
                     </Grid>
 
                     {/* Work Information */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <Typography variant="h6" gutterBottom>Work Information</Typography>
                       <Stack spacing={2}>
                         <Box>
@@ -811,7 +811,7 @@ const EmployeeManagement = () => {
 
 
                     {/* Document Information */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <Typography variant="h6" gutterBottom>Document Status</Typography>
                       <Stack spacing={2}>
                         <Box>

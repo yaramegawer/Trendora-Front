@@ -24,7 +24,7 @@ export const useAccountingData = () => {
     } catch (err) {
       setError('Failed to fetch invoices');
       setFieldErrors({});
-      console.error('Error fetching invoices:', err);
+('Error fetching invoices:', err);
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export const useAccountingData = () => {
       const errorMsg = 'Failed to add invoice';
       setError(errorMsg);
       setFieldErrors({});
-      console.error('Error adding invoice:', err);
+('Error adding invoice:', err);
       return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);
@@ -79,7 +79,7 @@ export const useAccountingData = () => {
       const errorMsg = 'Failed to update invoice';
       setError(errorMsg);
       setFieldErrors({});
-      console.error('Error updating invoice:', err);
+('Error updating invoice:', err);
       return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ export const useAccountingData = () => {
       const errorMsg = 'Failed to delete invoice';
       setError(errorMsg);
       setFieldErrors({});
-      console.error('Error deleting invoice:', err);
+('Error deleting invoice:', err);
       return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);

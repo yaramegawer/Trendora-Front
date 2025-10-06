@@ -89,11 +89,11 @@ const LeaveManagement = () => {
   const sortedLeaves = currentLeaves;
   
   // Debug logging
-  console.log('HR Leave Management - Leaves data from backend:', currentLeaves);
+('HR Leave Management - Leaves data from backend:', currentLeaves);
   
   // Debug when leaves data changes
   React.useEffect(() => {
-    console.log('🔍 Leaves data changed:', {
+('🔍 Leaves data changed:', {
       leavesLength: leaves.length,
       currentLeavesLength: currentLeaves.length,
       sortedLeavesLength: sortedLeaves.length,
@@ -153,7 +153,7 @@ const LeaveManagement = () => {
         status: 'pending' // Default status for new leaves
       };
       
-      console.log('Frontend: Adding leave with data:', leaveData);
+('Frontend: Adding leave with data:', leaveData);
       await addLeave(leaveData);
       setUserSuccess('Leave request submitted successfully!');
       setShowAddDialog(false);
@@ -167,8 +167,11 @@ const LeaveManagement = () => {
       // Auto-dismiss success message after 3 seconds
       setTimeout(() => setUserSuccess(''), 3000);
     } catch (error) {
-      console.error('Error adding leave:', error);
-      setUserError(`Failed to submit leave request: ${error.message}`);
+('Error adding leave:', error);
+      // Silently handle 403 errors without showing error message
+      if (error.response?.status !== 403) {
+        setUserError(`Failed to submit leave request: ${error.message}`);
+      }
     }
   };
 
@@ -180,7 +183,7 @@ const LeaveManagement = () => {
       setUserSuccess('');
       // Convert status to lowercase for backend compatibility
       const statusToSend = newStatus.toLowerCase();
-      console.log('Frontend: Converting status for backend:', { original: newStatus, converted: statusToSend });
+('Frontend: Converting status for backend:', { original: newStatus, converted: statusToSend });
       await updateLeaveStatus(editingLeave.id || editingLeave._id, { status: statusToSend });
       setUserSuccess(`Leave status updated to "${newStatus}" successfully!`);
       setShowStatusDialog(false);
@@ -189,8 +192,11 @@ const LeaveManagement = () => {
       // Auto-dismiss success message after 3 seconds
       setTimeout(() => setUserSuccess(''), 3000);
     } catch (error) {
-      console.error('Error updating leave status:', error);
-      setUserError(`Failed to update leave status: ${error.message}`);
+('Error updating leave status:', error);
+      // Silently handle 403 errors without showing error message
+      if (error.response?.status !== 403) {
+        setUserError(`Failed to update leave status: ${error.message}`);
+      }
     }
   };
 
@@ -222,8 +228,11 @@ const LeaveManagement = () => {
       // Auto-dismiss success message after 3 seconds
       setTimeout(() => setUserSuccess(''), 3000);
     } catch (error) {
-      console.error('Error deleting leave:', error);
-      setUserError(`Failed to delete leave request: ${error.message}`);
+('Error deleting leave:', error);
+      // Silently handle 403 errors without showing error message
+      if (error.response?.status !== 403) {
+        setUserError(`Failed to delete leave request: ${error.message}`);
+      }
     }
   };
 
@@ -259,7 +268,7 @@ const LeaveManagement = () => {
       }
     }
     
-    console.log('Employee not found for leave:', leave);
+('Employee not found for leave:', leave);
     return `Unknown Employee (ID: ${leave.employeeId || 'N/A'})`;
   };
 
@@ -309,7 +318,7 @@ const LeaveManagement = () => {
   }
 
   // Debug logging after all variables are declared
-  console.log('🔍 Pagination Debug:', {
+('🔍 Pagination Debug:', {
     displayCurrentPage,
     displayTotalPages,
     hasActiveFilters,
@@ -325,22 +334,22 @@ const LeaveManagement = () => {
   
   // Handle page change
   const handlePageChange = (newPage) => {
-    console.log(`🔍 LeaveManagement: handlePageChange called`);
-    console.log(`🔍 - newPage: ${newPage}`);
-    console.log(`🔍 - displayCurrentPage: ${displayCurrentPage}`);
-    console.log(`🔍 - displayTotalPages: ${displayTotalPages}`);
-    console.log(`🔍 - hasActiveFilters: ${hasActiveFilters}`);
-    console.log(`🔍 - filteredLeaves.length: ${filteredLeaves.length}`);
-    console.log(`🔍 - totalLeaves: ${totalLeaves}`);
-    console.log(`🔍 - paginatedLeaves.length: ${paginatedLeaves.length}`);
+(`🔍 LeaveManagement: handlePageChange called`);
+(`🔍 - newPage: ${newPage}`);
+(`🔍 - displayCurrentPage: ${displayCurrentPage}`);
+(`🔍 - displayTotalPages: ${displayTotalPages}`);
+(`🔍 - hasActiveFilters: ${hasActiveFilters}`);
+(`🔍 - filteredLeaves.length: ${filteredLeaves.length}`);
+(`🔍 - totalLeaves: ${totalLeaves}`);
+(`🔍 - paginatedLeaves.length: ${paginatedLeaves.length}`);
     
     if (!hasActiveFilters) {
       // Server-side pagination
-      console.log(`🔍 - Calling goToPage(${newPage}) for server-side pagination`);
+(`🔍 - Calling goToPage(${newPage}) for server-side pagination`);
       goToPage(newPage);
     } else {
       // Client-side pagination
-      console.log(`🔍 - Setting clientCurrentPage to ${newPage} for client-side pagination`);
+(`🔍 - Setting clientCurrentPage to ${newPage} for client-side pagination`);
       setClientCurrentPage(newPage);
     }
   };
@@ -387,7 +396,7 @@ const LeaveManagement = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Search"
@@ -398,7 +407,7 @@ const LeaveManagement = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Status Filter</InputLabel>
                 <Select
@@ -487,13 +496,6 @@ const LeaveManagement = () => {
         )}
         
         {/* Pagination - Always visible */}
-        {console.log('🔍 Rendering SimplePagination with:', {
-          displayCurrentPage,
-          displayTotalPages,
-          totalItems: hasActiveFilters ? filteredLeaves.length : totalLeaves,
-          pageSize,
-          hasActiveFilters
-        })}
         <SimplePagination
           currentPage={displayCurrentPage}
           totalPages={displayTotalPages}
@@ -618,7 +620,7 @@ const LeaveManagement = () => {
             </FormControl>
 
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   label="Start Date *"
@@ -628,7 +630,7 @@ const LeaveManagement = () => {
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   label="End Date *"

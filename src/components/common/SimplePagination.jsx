@@ -57,11 +57,7 @@ const SimplePagination = ({
       <Button
         variant="outlined"
         startIcon={<ChevronLeft />}
-        onClick={() => {
-          console.log(`🔍 SimplePagination: Previous button clicked`);
-          console.log(`🔍 - currentPage: ${currentPage}, going to: ${currentPage - 1}`);
-          onPageChange(currentPage - 1);
-        }}
+        onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
         sx={{
           minWidth: '80px',
@@ -87,12 +83,7 @@ const SimplePagination = ({
               <Button
                 key={page}
                 variant={currentPage === page ? 'contained' : 'outlined'}
-                onClick={() => {
-                  console.log(`🔍 SimplePagination: Page ${page} clicked`);
-                  console.log(`🔍 - currentPage: ${currentPage}`);
-                  console.log(`🔍 - totalPages: ${totalPages}`);
-                  onPageChange(page);
-                }}
+                onClick={() => onPageChange(page)}
                 sx={{
               minWidth: '40px',
               height: '40px',
@@ -117,11 +108,7 @@ const SimplePagination = ({
       <Button
         variant="outlined"
         endIcon={<ChevronRight />}
-        onClick={() => {
-          console.log(`🔍 SimplePagination: Next button clicked`);
-          console.log(`🔍 - currentPage: ${currentPage}, going to: ${currentPage + 1}`);
-          onPageChange(currentPage + 1);
-        }}
+        onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
         sx={{
           minWidth: '80px',

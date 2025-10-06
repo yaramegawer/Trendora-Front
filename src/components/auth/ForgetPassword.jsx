@@ -80,7 +80,7 @@ const ForgetPassword = ({ onBack, onSuccess }) => {
       }, 2000);
       
     } catch (err) {
-      console.error('Forget password error:', err);
+('Forget password error:', err);
       
       let errorMessage = err.message || 'Failed to send reset code. Please try again.';
       

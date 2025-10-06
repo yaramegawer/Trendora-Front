@@ -127,13 +127,13 @@ const EmployeeDashboard = () => {
     }
 
     try {
-      console.log('User object:', user);
-      console.log('User ID:', user?.id);
+('User object:', user);
+('User ID:', user?.id);
       
       // Check if token exists
       const token = localStorage.getItem('token');
-      console.log('Token exists:', !!token);
-      console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
+('Token exists:', !!token);
+('Token preview:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
       
       // Try to decode the token to see its structure
       if (token) {
@@ -142,15 +142,15 @@ const EmployeeDashboard = () => {
           if (tokenParts.length === 3) {
             const header = JSON.parse(atob(tokenParts[0]));
             const payload = JSON.parse(atob(tokenParts[1]));
-            console.log('🔍 Token header:', header);
-            console.log('🔍 Token payload:', payload);
-            console.log('🔍 Token payload keys:', Object.keys(payload));
-            console.log('🔍 Looking for user ID in token:', payload.user_id || payload.sub || payload.id || payload._id);
+('🔍 Token header:', header);
+('🔍 Token payload:', payload);
+('🔍 Token payload keys:', Object.keys(payload));
+('🔍 Looking for user ID in token:', payload.user_id || payload.sub || payload.id || payload._id);
           } else {
-            console.log('❌ Token is not a valid JWT format');
+('❌ Token is not a valid JWT format');
           }
         } catch (e) {
-          console.log('❌ Could not decode token:', e);
+('❌ Could not decode token:', e);
         }
       }
       
@@ -161,11 +161,11 @@ const EmployeeDashboard = () => {
         status: 'pending'
       };
 
-      console.log('Submitting leave request:', leaveData);
+('Submitting leave request:', leaveData);
       
       const response = await api.post('/operation/leaves', leaveData);
       
-      console.log('Leave request response:', response.data);
+('Leave request response:', response.data);
       
       if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Failed to submit leave request');
@@ -180,7 +180,7 @@ const EmployeeDashboard = () => {
         leaveType: 'annual'
       });
     } catch (err) {
-      console.error('Leave submission error:', err);
+('Leave submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit leave request. Please try again.';
       alert(errorMessage);
       setError(errorMessage);
@@ -239,13 +239,13 @@ const EmployeeDashboard = () => {
     }
 
     try {
-      console.log('User object for ticket:', user);
-      console.log('User ID for ticket:', user?.id);
+('User object for ticket:', user);
+('User ID for ticket:', user?.id);
       
       // Check if token exists
       const token = localStorage.getItem('token');
-      console.log('Token exists for ticket:', !!token);
-      console.log('Token preview for ticket:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
+('Token exists for ticket:', !!token);
+('Token preview for ticket:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
       
       const ticketData = {
         title: ticketForm.title,
@@ -253,11 +253,11 @@ const EmployeeDashboard = () => {
         priority: ticketForm.priority
       };
 
-      console.log('Submitting support ticket:', ticketData);
+('Submitting support ticket:', ticketData);
       
       const response = await api.post('/operation/tickets', ticketData);
       
-      console.log('Ticket submission response:', response.data);
+('Ticket submission response:', response.data);
       
       if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Failed to submit support ticket');
@@ -272,7 +272,7 @@ const EmployeeDashboard = () => {
         priority: 'medium'
       });
     } catch (err) {
-      console.error('Ticket submission error:', err);
+('Ticket submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit support ticket. Please try again.';
       alert(errorMessage);
       setError(errorMessage);
@@ -300,22 +300,22 @@ const EmployeeDashboard = () => {
     setLeavesLoading(true);
     setLeavesError('');
     try {
-      console.log('🔄 Fetching user leaves...');
+('🔄 Fetching user leaves...');
       // Try HR leaves endpoint first (it's wrapped in authorization middleware)
       let response;
       try {
-        console.log('🔄 Trying /hr/leaves endpoint (authorized)...');
+('🔄 Trying /hr/leaves endpoint (authorized)...');
         response = await api.get('/hr/leaves');
       } catch (hrError) {
-        console.warn('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
+('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
         try {
           response = await api.get('/operation/leaves');
         } catch (operationError) {
-          console.warn('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
+('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
           response = await api.get('/it/leaves');
         }
       }
-      console.log('📡 User Leaves API Response:', response);
+('📡 User Leaves API Response:', response);
       
       let leavesData = [];
       if (Array.isArray(response.data)) {
@@ -326,10 +326,10 @@ const EmployeeDashboard = () => {
         leavesData = response.data.data;
       }
       
-      console.log('📊 Processed user leaves data:', leavesData);
+('📊 Processed user leaves data:', leavesData);
       setLeaves(leavesData);
     } catch (err) {
-      console.error('❌ User Leaves API Error:', err);
+('❌ User Leaves API Error:', err);
       setLeavesError(err.message || 'Failed to fetch leaves');
       setLeaves([]);
     } finally {
@@ -415,7 +415,7 @@ const EmployeeDashboard = () => {
             {/* Action Cards */}
             <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
         {/* Submit Leave Card */}
-        <Grid item xs={12} md={9} sx={{ display: 'flex' }}>
+        <Grid size={{ xs: 12, md: 9 }} sx={{ display: 'flex' }}>
           <Card sx={{ 
             height: 280, 
             width: '800px',
@@ -472,7 +472,7 @@ const EmployeeDashboard = () => {
         </Grid>
 
         {/* Submit Ticket Card */}
-        <Grid item xs={12} md={3} sx={{ display: 'flex' }}>
+        <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex' }}>
           <Card sx={{ 
             height: 280, 
             width: '800px',

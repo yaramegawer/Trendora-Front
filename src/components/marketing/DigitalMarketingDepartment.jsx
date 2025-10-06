@@ -60,8 +60,8 @@ const DigitalMarketingDepartment = () => {
   } = marketingEmployeesHook;
   const updateRating = marketingEmployeesHook.updateRating;
   
-  console.log('🔍 Full hook object:', marketingEmployeesHook);
-  console.log('🔍 updateRating function:', updateRating, typeof updateRating);
+('🔍 Full hook object:', marketingEmployeesHook);
+('🔍 updateRating function:', updateRating, typeof updateRating);
   
   // Pagination state for projects
   const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
@@ -175,7 +175,7 @@ const DigitalMarketingDepartment = () => {
 
   // Pagination handlers
   const handleProjectsPageChange = (newPage) => {
-    console.log('Digital Marketing Department: Projects page change to:', newPage);
+('Digital Marketing Department: Projects page change to:', newPage);
     setProjectsCurrentPage(newPage);
     
     // Use server-side pagination when no filters are active
@@ -188,9 +188,9 @@ const DigitalMarketingDepartment = () => {
     setProjectSearchTerm(searchTerm);
     setProjectsCurrentPage(1); // Reset to first page when search changes
     
-    console.log('🔍 Search term:', searchTerm);
-    console.log('🔍 Show customer sections:', showCustomerSections);
-    console.log('🔍 Customers:', customers);
+('🔍 Search term:', searchTerm);
+('🔍 Show customer sections:', showCustomerSections);
+('🔍 Customers:', customers);
     
     // No longer automatically going back to customer list
     // This allows searching for projects within the customer view
@@ -260,9 +260,9 @@ const DigitalMarketingDepartment = () => {
   const fetchCustomers = async () => {
     try {
       setCustomersLoading(true);
-      console.log('🔄 Fetching customers from API...');
+('🔄 Fetching customers from API...');
       const customersData = await marketingCustomerApi.getAllCustomers();
-      console.log('📡 Customers API Response:', customersData);
+('📡 Customers API Response:', customersData);
       
       // Handle different response structures
       let customersList = [];
@@ -274,11 +274,11 @@ const DigitalMarketingDepartment = () => {
         customersList = customersData.data;
       }
       
-      console.log('📊 Customers loaded:', customersList.length);
-      console.log('📊 Customers data:', customersList);
+('📊 Customers loaded:', customersList.length);
+('📊 Customers data:', customersList);
       setCustomers(customersList);
     } catch (error) {
-      console.error('Error fetching customers:', error);
+('Error fetching customers:', error);
       setCustomers([]);
     } finally {
       setCustomersLoading(false);
@@ -289,11 +289,11 @@ const DigitalMarketingDepartment = () => {
   const fetchCustomerProjects = async (customerName, page = 1, pageSize = 10) => {
     try {
       setCustomerProjectsLoading(true);
-      console.log('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize);
-      console.log('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
+('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize);
+('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
       const projectsData = await marketingCustomerApi.getCustomerProjects(customerName, page, pageSize);
-      console.log('📡 Customer Projects API Response:', projectsData);
-      console.log('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
+('📡 Customer Projects API Response:', projectsData);
+('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
       
       // Handle different response structures
       let projectsList = [];
@@ -310,12 +310,12 @@ const DigitalMarketingDepartment = () => {
         totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
       }
       
-      console.log('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
+('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
       setCustomerProjects(projectsList);
       setCustomerProjectsTotal(totalProjects);
       return { projects: projectsList, total: totalProjects };
     } catch (error) {
-      console.error('Error fetching customer projects:', error);
+('Error fetching customer projects:', error);
       setCustomerProjects([]);
       setCustomerProjectsTotal(0);
       return { projects: [], total: 0 };
@@ -349,8 +349,8 @@ const DigitalMarketingDepartment = () => {
     setCustomerProjectsCurrentPage(1); // Reset to first page
     // Fetch projects for this specific customer using customer name
     const customerName = customer.name || customer.customerName || customer.title;
-    console.log('🔍 Customer object:', customer);
-    console.log('🔍 Extracted customer name:', customerName);
+('🔍 Customer object:', customer);
+('🔍 Extracted customer name:', customerName);
     await fetchCustomerProjects(customerName, 1, customerProjectsPageSize);
   };
   
@@ -417,11 +417,11 @@ const DigitalMarketingDepartment = () => {
 
   // Function to submit rating with note to backend
   const submitRatingWithNote = async (employeeId, note = '') => {
-    console.log('🔍 submitRatingWithNote called with:', { employeeId, note });
-    console.log('🔍 updateRating available:', updateRating, typeof updateRating);
+('🔍 submitRatingWithNote called with:', { employeeId, note });
+('🔍 updateRating available:', updateRating, typeof updateRating);
     
     if (typeof updateRating !== 'function') {
-      console.error('❌ updateRating is not a function!', updateRating);
+('❌ updateRating is not a function!', updateRating);
       alert('Error: Rating function not available. Please refresh the page.');
       return;
     }
@@ -440,17 +440,17 @@ const DigitalMarketingDepartment = () => {
         note: note || `Rating updated - Performance: ${performance}, Efficiency: ${efficiency}, Teamwork: ${teamwork}`
       };
       
-      console.log('📤 Sending rating data with note:', ratingData);
-      console.log('📤 Employee ID:', employeeId);
+('📤 Sending rating data with note:', ratingData);
+('📤 Employee ID:', employeeId);
       
       const result = await updateRating(employeeId, ratingData);
-      console.log('✅ Rating update result:', result);
-      console.log(`Rating saved with note for employee ${employeeId}`);
+('✅ Rating update result:', result);
+(`Rating saved with note for employee ${employeeId}`);
       return { success: true, data: result };
     } catch (error) {
-      console.error('❌ Failed to save rating:', error);
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error response:', error.response);
+('❌ Failed to save rating:', error);
+('❌ Error details:', error.message);
+('❌ Error response:', error.response);
       
       // Re-throw the error with original message
       throw error;
@@ -568,9 +568,9 @@ const DigitalMarketingDepartment = () => {
         projectData.customerName = newProject.customerName;
       }
       
-      console.log('📤 Sending project data:', projectData);
-      console.log('📤 Members array:', newProject.members);
-      console.log('📤 Members length:', newProject.members.length);
+('📤 Sending project data:', projectData);
+('📤 Members array:', newProject.members);
+('📤 Members length:', newProject.members.length);
       
       try {
         await createProject(projectData);
@@ -594,7 +594,7 @@ const DigitalMarketingDepartment = () => {
       } catch (customerNameError) {
         // If customerName field is not allowed, retry without it
         if (customerNameError.message && customerNameError.message.includes('customerName') && customerNameError.message.includes('not allowed')) {
-          console.log('🔄 Backend doesn\'t support customerName field yet, retrying without it...');
+('🔄 Backend doesn\'t support customerName field yet, retrying without it...');
           const fallbackProjectData = {
             name: newProject.name,
             description: newProject.description,
@@ -628,7 +628,7 @@ const DigitalMarketingDepartment = () => {
         }
       }
     } catch (error) {
-      console.error('Error creating project:', error);
+('Error creating project:', error);
       alert('Failed to create project: ' + error.message);
     }
   };
@@ -658,7 +658,7 @@ const DigitalMarketingDepartment = () => {
         priority: newTicket.priority
       };
       
-      console.log('📤 Creating ticket:', ticketData);
+('📤 Creating ticket:', ticketData);
       await createTicket(ticketData);
       alert('Ticket submitted successfully!');
       setNewTicket({
@@ -668,7 +668,7 @@ const DigitalMarketingDepartment = () => {
       });
       setShowSubmitTicket(false);
     } catch (error) {
-      console.error('Error creating ticket:', error);
+('Error creating ticket:', error);
       alert('Failed to submit ticket: ' + error.message);
     }
   };
@@ -706,7 +706,7 @@ const DigitalMarketingDepartment = () => {
         status: 'pending'
       };
       
-      console.log('📤 Submitting leave data:', leaveData);
+('📤 Submitting leave data:', leaveData);
       await submitLeave(leaveData);
       alert('Leave request submitted successfully!');
       setNewLeave({
@@ -716,7 +716,7 @@ const DigitalMarketingDepartment = () => {
       });
       setShowLeaveForm(false);
     } catch (error) {
-      console.error('Error submitting leave:', error);
+('Error submitting leave:', error);
       alert('Failed to submit leave: ' + error.message);
     }
   };
@@ -728,7 +728,7 @@ const DigitalMarketingDepartment = () => {
         ticket.id === ticketId ? { ...ticket, ...updates } : ticket
       ));
     } catch (error) {
-      console.error('Error updating ticket:', error);
+('Error updating ticket:', error);
     }
   };
 
@@ -847,11 +847,11 @@ const DigitalMarketingDepartment = () => {
       setEditingProject(null);
       
     } catch (error) {
-      console.error('Error updating project:', error);
+('Error updating project:', error);
       
       // If customerName field is not allowed, retry without it
       if (error.message && error.message.includes('customerName') && error.message.includes('not allowed')) {
-        console.log('🔄 Backend doesn\'t support customerName field in updates, retrying without it...');
+('🔄 Backend doesn\'t support customerName field in updates, retrying without it...');
         
         try {
           // Remove customerName from updateData and ensure it's in notes
@@ -874,7 +874,7 @@ const DigitalMarketingDepartment = () => {
           setEditingProject(null);
           return;
         } catch (fallbackError) {
-          console.error('Error updating project (fallback):', fallbackError);
+('Error updating project (fallback):', fallbackError);
           alert('Failed to update project: ' + fallbackError.message);
         }
       } else {
@@ -898,7 +898,7 @@ const DigitalMarketingDepartment = () => {
       await deleteProject(projectId);
       alert('Project deleted successfully!');
     } catch (error) {
-      console.error('Error deleting project:', error);
+('Error deleting project:', error);
       alert('Failed to delete project: ' + error.message);
     }
   };
@@ -909,7 +909,7 @@ const DigitalMarketingDepartment = () => {
         // Mock ticket deletion - replace with actual API
         setTickets(prev => prev.filter(ticket => ticket.id !== ticketId));
       } catch (error) {
-        console.error('Error deleting ticket:', error);
+('Error deleting ticket:', error);
       }
     }
   };
@@ -1463,7 +1463,7 @@ const DigitalMarketingDepartment = () => {
                           
                           alert('Rating submitted successfully!');
                         } catch (error) {
-                          console.error('Failed to submit rating:', error);
+('Failed to submit rating:', error);
                           alert('Failed to submit rating: ' + error.message);
                         }
                       }}
@@ -1864,7 +1864,7 @@ const DigitalMarketingDepartment = () => {
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
                       {filteredCustomers.map((customer, index) => {
-                        console.log(`🔍 Customer ${index + 1}:`, customer, 'Type:', typeof customer);
+(`🔍 Customer ${index + 1}:`, customer, 'Type:', typeof customer);
                         
                         // Handle both string and object formats
                         let displayName;
@@ -1876,16 +1876,16 @@ const DigitalMarketingDepartment = () => {
                           displayName = 'Unknown Customer';
                         }
                         
-                        console.log(`🔍 Customer ${index + 1} displayName:`, displayName);
+(`🔍 Customer ${index + 1} displayName:`, displayName);
                         
                         // Count projects for this customer from the projects data
                         const customerProjects = projects.filter(project => {
                           const projectCustomer = extractCustomerFromProject(project);
-                          console.log(`🔍 Project "${project.name}" customer: "${projectCustomer}", looking for: "${displayName}"`);
+(`🔍 Project "${project.name}" customer: "${projectCustomer}", looking for: "${displayName}"`);
                           return projectCustomer === displayName;
                         });
                         
-                        console.log(`🔍 Customer "${displayName}" has ${customerProjects.length} projects:`, customerProjects.map(p => p.name));
+(`🔍 Customer "${displayName}" has ${customerProjects.length} projects:`, customerProjects.map(p => p.name));
                         
                         return (
                           <div

@@ -107,7 +107,7 @@ const ResetPassword = ({ email, onBack, onSuccess }) => {
       }, 2000);
       
     } catch (err) {
-      console.error('Reset password error:', err);
+('Reset password error:', err);
       
       let errorMessage = err.message || 'Failed to reset password. Please try again.';
       

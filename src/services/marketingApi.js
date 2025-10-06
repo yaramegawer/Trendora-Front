@@ -26,7 +26,8 @@ const apiCall = async (endpoint, options = {}) => {
     } else if (error.response?.status === 401) {
       throw new Error('Unauthorized. Please check your authentication.');
     } else if (error.response?.status === 403) {
-      throw new Error('Access denied for this department.');
+      // Silently handle 403 errors without throwing
+      return [];
     } else if (error.response?.status === 400) {
       throw new Error('Bad request. Please check your data format.');
     } else {
@@ -81,6 +82,10 @@ export const marketingProjectApi = {
         data: projectData
       });
     } catch (error) {
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+        return [];
+      }
       if (error.message.includes('Page not found')) {
         throw new Error('Digital Marketing projects endpoint not found. Please check if the backend route is properly configured at /api/digitalMarketing/projects');
       }
@@ -98,6 +103,10 @@ export const marketingProjectApi = {
         data: projectData
       });
     } catch (error) {
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+        return [];
+      }
       throw error;
     }
   },
@@ -192,7 +201,7 @@ export const marketingCustomerApi = {
     try {
       return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.CUSTOMERS);
     } catch (error) {
-      console.error('Error fetching customers:', error);
+('Error fetching customers:', error);
       return []; // Return empty array as fallback
     }
   },
@@ -206,7 +215,7 @@ export const marketingCustomerApi = {
         params: { page, limit }
       });
     } catch (error) {
-      console.error('Error fetching customer projects:', error);
+('Error fetching customer projects:', error);
       return []; // Return empty array as fallback
     }
   }

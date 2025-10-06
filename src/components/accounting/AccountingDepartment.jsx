@@ -123,7 +123,7 @@ const AccountingDepartment = () => {
         }
       }
     } catch (err) {
-      console.error('Error submitting invoice:', err);
+('Error submitting invoice:', err);
       setSubmitError('An unexpected error occurred. Please try again.');
     }
   };
@@ -173,7 +173,7 @@ const AccountingDepartment = () => {
       };
 
       // For now, we'll just log it since we don't have a transaction API
-      console.log('New Transaction:', transaction);
+('New Transaction:', transaction);
       
       // Close dialog and reset form
       setShowTransactionDialog(false);
@@ -189,7 +189,7 @@ const AccountingDepartment = () => {
       // Show success message (you can replace this with a proper notification)
       alert('Transaction created successfully!');
     } catch (err) {
-      console.error('Error creating transaction:', err);
+('Error creating transaction:', err);
       setTransactionSubmitError('An unexpected error occurred. Please try again.');
     }
   };
@@ -225,7 +225,7 @@ const AccountingDepartment = () => {
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -245,7 +245,7 @@ const AccountingDepartment = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -265,7 +265,7 @@ const AccountingDepartment = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -285,7 +285,7 @@ const AccountingDepartment = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -313,7 +313,7 @@ const AccountingDepartment = () => {
             Quick Actions
           </Typography>
           <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6} md={2.4}>
+            <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
               <Button
                 variant="outlined"
                 fullWidth
@@ -323,7 +323,7 @@ const AccountingDepartment = () => {
                 Record Payment
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
+            <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
               <Button
                 variant="outlined"
                 fullWidth
@@ -334,7 +334,7 @@ const AccountingDepartment = () => {
                 Generate Invoice
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
+            <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
               <Button
                 variant="outlined"
                 fullWidth
@@ -345,7 +345,7 @@ const AccountingDepartment = () => {
                 View Reports
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
+            <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
               <Button
                 variant="outlined"
                 fullWidth
@@ -355,7 +355,7 @@ const AccountingDepartment = () => {
                 Submit Ticket
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
+            <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
               <Button
                 variant="outlined"
                 fullWidth

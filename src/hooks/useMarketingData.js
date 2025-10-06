@@ -26,7 +26,7 @@ export const useMarketingEmployees = () => {
       
       setEmployees(employeesData);
     } catch (err) {
-      console.error('Marketing Employees API Error:', err);
+('Marketing Employees API Error:', err);
       setError(err.message);
       setEmployees([]);
     } finally {
@@ -35,13 +35,13 @@ export const useMarketingEmployees = () => {
   };
 
   const updateRating = async (id, ratingData) => {
-    console.log('🔍 updateRating called in hook with:', { id, ratingData });
+('🔍 updateRating called in hook with:', { id, ratingData });
     try {
       const updatedEmployee = await marketingEmployeeApi.updateRating(id, ratingData);
       await fetchEmployees(); // Refresh the list
       return updatedEmployee;
     } catch (err) {
-      console.error('Error updating employee rating:', err);
+('Error updating employee rating:', err);
       throw err;
     }
   };
@@ -50,7 +50,7 @@ export const useMarketingEmployees = () => {
     try {
       return await marketingEmployeeApi.getRating(id);
     } catch (err) {
-      console.error('Error getting employee rating:', err);
+('Error getting employee rating:', err);
       throw err;
     }
   };
@@ -82,12 +82,12 @@ export const useMarketingProjects = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError(null);
-      console.log(`Fetching marketing projects with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+(`Fetching marketing projects with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
       // Fetch paginated data
       const paginatedResponse = await marketingProjectApi.getAllProjects(pageNum, pageLimit);
       
-      console.log('📡 Marketing Projects API Response:', paginatedResponse);
+('📡 Marketing Projects API Response:', paginatedResponse);
       
       // Process paginated data for current page
       let projectsData = [];
@@ -110,7 +110,7 @@ export const useMarketingProjects = (page = 1, limit = 10) => {
       
       // If we don't have a total count from the API, fetch all projects to get the count
       if (totalCount === 0 || totalCount === projectsData.length) {
-        console.log('🔄 No total count from API, fetching all projects for total count...');
+('🔄 No total count from API, fetching all projects for total count...');
         const allProjectsResponse = await marketingProjectApi.getAllProjects(1, 1000);
         
         let allProjectsData = [];
@@ -125,15 +125,15 @@ export const useMarketingProjects = (page = 1, limit = 10) => {
         totalCount = allProjectsData.length;
       }
       
-      console.log('📊 Marketing projects total count:', totalCount);
-      console.log('📊 Current page marketing projects data:', projectsData);
+('📊 Marketing projects total count:', totalCount);
+('📊 Current page marketing projects data:', projectsData);
       
       setProjects(projectsData);
       setTotalProjects(totalCount);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-      console.error('Error fetching marketing projects:', err);
+('Error fetching marketing projects:', err);
       setError(err.message || 'Network Error');
       setProjects([]);
       setTotalProjects(0);
@@ -148,7 +148,7 @@ export const useMarketingProjects = (page = 1, limit = 10) => {
       fetchProjects(currentPage, pageSize); // Refresh current page
       return newProject;
     } catch (err) {
-      console.error('Error creating project:', err);
+('Error creating project:', err);
       throw err;
     }
   };
@@ -159,7 +159,7 @@ export const useMarketingProjects = (page = 1, limit = 10) => {
       fetchProjects(currentPage, pageSize); // Refresh current page
       return updatedProject;
     } catch (err) {
-      console.error('Error updating project:', err);
+('Error updating project:', err);
       throw err;
     }
   };
@@ -169,19 +169,19 @@ export const useMarketingProjects = (page = 1, limit = 10) => {
       await marketingProjectApi.deleteProject(id);
       fetchProjects(currentPage, pageSize); // Refresh current page
     } catch (err) {
-      console.error('Error deleting project:', err);
+('Error deleting project:', err);
       throw err;
     }
   };
 
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalProjects / pageSize);
-    console.log(`Marketing Projects goToPage: pageNum=${pageNum}, totalProjects=${totalProjects}, pageSize=${pageSize}, maxPages=${maxPages}`);
+(`Marketing Projects goToPage: pageNum=${pageNum}, totalProjects=${totalProjects}, pageSize=${pageSize}, maxPages=${maxPages}`);
     if (totalProjects === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-      console.log(`Marketing Projects goToPage: Fetching page ${pageNum}`);
+(`Marketing Projects goToPage: Fetching page ${pageNum}`);
       fetchProjects(pageNum, pageSize);
     } else {
-      console.log(`Marketing Projects goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+(`Marketing Projects goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 
@@ -250,7 +250,7 @@ export const useMarketingTickets = () => {
       
       setTickets(ticketsData);
     } catch (err) {
-      console.error('Marketing Tickets API Error:', err);
+('Marketing Tickets API Error:', err);
       setError(err.message);
       setTickets([]);
     } finally {
@@ -264,7 +264,7 @@ export const useMarketingTickets = () => {
       await fetchTickets(); // Refresh the list
       return newTicket;
     } catch (err) {
-      console.error('Error creating ticket:', err);
+('Error creating ticket:', err);
       throw err;
     }
   };
@@ -275,7 +275,7 @@ export const useMarketingTickets = () => {
       await fetchTickets(); // Refresh the list
       return updatedTicket;
     } catch (err) {
-      console.error('Error updating ticket:', err);
+('Error updating ticket:', err);
       throw err;
     }
   };
@@ -285,7 +285,7 @@ export const useMarketingTickets = () => {
       await marketingTicketApi.deleteTicket(id);
       await fetchTickets(); // Refresh the list
     } catch (err) {
-      console.error('Error deleting ticket:', err);
+('Error deleting ticket:', err);
       throw err;
     }
   };
@@ -330,7 +330,7 @@ export const useMarketingLeaves = () => {
       
       setLeaves(leavesData);
     } catch (err) {
-      console.error('Marketing Leaves API Error:', err);
+('Marketing Leaves API Error:', err);
       setError(err.message);
       setLeaves([]);
     } finally {
@@ -344,7 +344,7 @@ export const useMarketingLeaves = () => {
       await fetchLeaves(); // Refresh the list
       return newLeave;
     } catch (err) {
-      console.error('Error submitting leave:', err);
+('Error submitting leave:', err);
       throw err;
     }
   };
@@ -355,7 +355,7 @@ export const useMarketingLeaves = () => {
       await fetchLeaves(); // Refresh the list
       return updatedLeave;
     } catch (err) {
-      console.error('Error updating leave status:', err);
+('Error updating leave status:', err);
       throw err;
     }
   };
@@ -365,7 +365,7 @@ export const useMarketingLeaves = () => {
       await marketingLeaveApi.deleteLeave(id);
       await fetchLeaves(); // Refresh the list
     } catch (err) {
-      console.error('Error deleting leave:', err);
+('Error deleting leave:', err);
       throw err;
     }
   };

@@ -13,11 +13,11 @@ const userApi = axios.create({
 // Add request interceptor for logging
 userApi.interceptors.request.use(
   (config) => {
-    console.log(`[User API] ${config.method?.toUpperCase()} ${config.url}`);
+(`[User API] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
-    console.error('[User API] Request error:', error);
+('[User API] Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -25,8 +25,8 @@ userApi.interceptors.request.use(
 // Add response interceptor for error handling
 userApi.interceptors.response.use(
   (response) => {
-    console.log(`[User API] Response:`, response.data);
-    console.log(`[User API] Full Response Structure:`, {
+(`[User API] Response:`, response.data);
+(`[User API] Full Response Structure:`, {
       status: response.status,
       statusText: response.statusText,
       data: response.data,
@@ -35,7 +35,7 @@ userApi.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('[User API] Response error:', error.response?.data || error.message);
+('[User API] Response error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -48,7 +48,7 @@ export const userApiService = {
       const response = await userApi.post(API_CONFIG.ENDPOINTS.USER.LOGIN, credentials);
       
       // Log the response structure for debugging
-      console.log('Login API Response:', response.data);
+('Login API Response:', response.data);
       
       // Validate response structure
       if (!response.data) {
@@ -63,7 +63,7 @@ export const userApiService = {
       
       return response;
     } catch (error) {
-      console.error('Login API Error:', error.response?.data || error.message);
+('Login API Error:', error.response?.data || error.message);
       
       // Handle different error response structures
       if (error.response?.status === 401) {
@@ -85,7 +85,7 @@ export const userApiService = {
   // Get user details by ID (including role)
   getUserDetails: async (userId) => {
     try {
-      console.log('Fetching user details for ID:', userId);
+('Fetching user details for ID:', userId);
       
       // Add token to request headers
       const token = localStorage.getItem('token');
@@ -99,7 +99,7 @@ export const userApiService = {
       
       const response = await userApi.get(`/user/${userId}`, { headers });
       
-      console.log('User details response:', response.data);
+('User details response:', response.data);
       
       // Check if the response indicates an error
       if (response.data && response.data.success === false) {
@@ -109,7 +109,7 @@ export const userApiService = {
       
       return response.data;
     } catch (error) {
-      console.error('Get user details error:', error.response?.data || error.message);
+('Get user details error:', error.response?.data || error.message);
       
       if (error.response?.status === 401) {
         throw new Error('Authentication required');
@@ -126,38 +126,38 @@ export const userApiService = {
   // Forget password - send reset code to email
   forgetPassword: async (email) => {
     try {
-      console.log('🔍 Forget Password Debug Info:');
-      console.log('📧 Email:', email);
-      console.log('🌐 API URL:', userApi.defaults.baseURL);
-      console.log('🔗 Endpoint:', API_CONFIG.ENDPOINTS.USER.FORGET_PASSWORD);
+('🔍 Forget Password Debug Info:');
+('📧 Email:', email);
+('🌐 API URL:', userApi.defaults.baseURL);
+('🔗 Endpoint:', API_CONFIG.ENDPOINTS.USER.FORGET_PASSWORD);
       
       const requestData = { email: email.trim() };
-      console.log('📦 Request data:', requestData);
+('📦 Request data:', requestData);
       
       // Test if the backend is reachable
       try {
-        console.log('🔍 Testing backend connectivity...');
+('🔍 Testing backend connectivity...');
         const testResponse = await fetch(`${userApi.defaults.baseURL}/user/log_in`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-        console.log('🔍 Backend test response status:', testResponse.status);
+('🔍 Backend test response status:', testResponse.status);
       } catch (testError) {
-        console.log('🔍 Backend test failed:', testError.message);
+('🔍 Backend test failed:', testError.message);
       }
       
       // Send only the email as expected by the Joi schema
-      console.log('📦 Sending request data:', requestData);
+('📦 Sending request data:', requestData);
       
       const response = await userApi.post(API_CONFIG.ENDPOINTS.USER.FORGET_PASSWORD, requestData);
       
-      console.log('📡 Response status:', response.status);
-      console.log('📄 Response data:', response.data);
+('📡 Response status:', response.status);
+('📄 Response data:', response.data);
       
       if (response.data && response.data.success === false) {
         const errorMessage = response.data.message || 'Failed to send reset code';
-        console.error('❌ Backend error:', errorMessage);
-        console.error('❌ Full response:', response.data);
+('❌ Backend error:', errorMessage);
+('❌ Full response:', response.data);
         
         // Provide more specific error messages based on the backend response
         if (errorMessage.includes('Something went wrong')) {
@@ -173,7 +173,7 @@ export const userApiService = {
       
       return response.data;
     } catch (error) {
-      console.error('❌ Forget password error:', error);
+('❌ Forget password error:', error);
       
       if (error.response?.status === 400) {
         throw new Error('Invalid email address. Please check your email and try again.');
@@ -196,11 +196,11 @@ export const userApiService = {
   // Reset password with code
   resetPassword: async (resetData) => {
     try {
-      console.log('Resetting password with data:', { email: resetData.email, hasCode: !!resetData.forgetCode });
+('Resetting password with data:', { email: resetData.email, hasCode: !!resetData.forgetCode });
       
       const response = await userApi.put(API_CONFIG.ENDPOINTS.USER.RESET_PASSWORD, resetData);
       
-      console.log('Reset password response:', response.data);
+('Reset password response:', response.data);
       
       // Check if the response indicates an error
       if (response.data && response.data.success === false) {
@@ -210,7 +210,7 @@ export const userApiService = {
       
       return response.data;
     } catch (error) {
-      console.error('Reset password error:', error.response?.data || error.message);
+('Reset password error:', error.response?.data || error.message);
       
       if (error.response?.status === 400) {
         const errorMessage = error.response.data?.message || 'Invalid reset data';

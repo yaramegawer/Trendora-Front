@@ -53,7 +53,7 @@ const AttendanceManagement = () => {
   const attendanceRecords = allAttendanceRecords.slice(startIndex, endIndex);
   
   // Debug pagination values
-  console.log('🔍 Attendance Pagination Debug:', {
+('🔍 Attendance Pagination Debug:', {
     totalRecords,
     hookCurrentPage,
     hookPageSize,
@@ -81,13 +81,13 @@ const AttendanceManagement = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('🔄 Page became visible, refreshing attendance records...');
+('🔄 Page became visible, refreshing attendance records...');
         fetchAttendanceRecords();
       }
     };
 
     const handleFocus = () => {
-      console.log('🔄 Window focused, refreshing attendance records...');
+('🔄 Window focused, refreshing attendance records...');
       fetchAttendanceRecords();
     };
 
@@ -105,7 +105,7 @@ const AttendanceManagement = () => {
   // Periodic refresh every 2 minutes
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log('🔄 Periodic refresh: fetching attendance records...');
+('🔄 Periodic refresh: fetching attendance records...');
       fetchAttendanceRecords();
     }, 120000); // 2 minutes
 
@@ -125,16 +125,16 @@ const AttendanceManagement = () => {
 
   // Delete handlers
   const handleDeleteClick = (record) => {
-    console.log('🔍 Frontend: Delete button clicked');
-    console.log('🔍 Frontend: Full record object:', record);
-    console.log('🔍 Frontend: Record keys:', Object.keys(record || {}));
-    console.log('🔍 Frontend: Record._id:', record._id);
-    console.log('🔍 Frontend: Record.id:', record.id);
-    console.log('🔍 Frontend: Record.sheet:', record.sheet);
+('🔍 Frontend: Delete button clicked');
+('🔍 Frontend: Full record object:', record);
+('🔍 Frontend: Record keys:', Object.keys(record || {}));
+('🔍 Frontend: Record._id:', record._id);
+('🔍 Frontend: Record.id:', record.id);
+('🔍 Frontend: Record.sheet:', record.sheet);
     if (record.sheet) {
-      console.log('🔍 Frontend: Record.sheet keys:', Object.keys(record.sheet || {}));
-      console.log('🔍 Frontend: Record.sheet._id:', record.sheet._id);
-      console.log('🔍 Frontend: Record.sheet.id:', record.sheet.id);
+('🔍 Frontend: Record.sheet keys:', Object.keys(record.sheet || {}));
+('🔍 Frontend: Record.sheet._id:', record.sheet._id);
+('🔍 Frontend: Record.sheet.id:', record.sheet.id);
     }
     
     setRecordToDelete(record);
@@ -148,8 +148,8 @@ const AttendanceManagement = () => {
       setDeleting(true);
       setSuccess('');
       
-      console.log('🔍 Frontend: Starting delete process');
-      console.log('🔍 Frontend: Record to delete:', recordToDelete);
+('🔍 Frontend: Starting delete process');
+('🔍 Frontend: Record to delete:', recordToDelete);
       
       // Extract the record ID from the record structure
       // Try multiple possible locations for the ID
@@ -157,8 +157,8 @@ const AttendanceManagement = () => {
                       recordToDelete.id || 
                       recordToDelete.sheet?._id || 
                       recordToDelete.sheet?.id;
-      console.log('🔍 Frontend: Extracted record ID:', recordId);
-      console.log('🔍 Frontend: All possible IDs:', {
+('🔍 Frontend: Extracted record ID:', recordId);
+('🔍 Frontend: All possible IDs:', {
         'record._id': recordToDelete._id,
         'record.id': recordToDelete.id,
         'record.sheet._id': recordToDelete.sheet?._id,
@@ -166,7 +166,7 @@ const AttendanceManagement = () => {
       });
       
       if (!recordId) {
-        console.error('❌ Frontend: No record ID found');
+('❌ Frontend: No record ID found');
         setSuccess('Cannot delete: Record ID not found');
         setTimeout(() => setSuccess(null), 3000);
         setDeleteDialog(false);
@@ -174,15 +174,15 @@ const AttendanceManagement = () => {
         return;
       }
 
-      console.log('🔍 Frontend: Calling deleteAttendance with ID:', recordId);
+('🔍 Frontend: Calling deleteAttendance with ID:', recordId);
       await deleteAttendance(recordId);
-      console.log('✅ Frontend: Delete successful');
+('✅ Frontend: Delete successful');
       setSuccess('Attendance record deleted successfully!');
       setTimeout(() => setSuccess(null), 3000);
       
     } catch (error) {
-      console.error('❌ Frontend: Error deleting attendance record:', error);
-      console.error('❌ Frontend: Error details:', {
+('❌ Frontend: Error deleting attendance record:', error);
+('❌ Frontend: Error details:', {
         message: error.message,
         stack: error.stack,
         response: error.response
@@ -585,7 +585,7 @@ const AttendanceManagement = () => {
                 style={{ border: 'none' }}
                 title="PDF Viewer"
                 onError={() => {
-                  console.error('Error loading PDF:', selectedPdfUrl);
+('Error loading PDF:', selectedPdfUrl);
                   setError('Failed to load PDF. Please try downloading the file instead.');
                 }}
               />

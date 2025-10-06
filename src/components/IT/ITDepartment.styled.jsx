@@ -137,7 +137,7 @@ const ITDepartment = () => {
 
   // Pagination handlers
   const handleProjectsPageChange = (newPage) => {
-    console.log('IT Department Styled: Projects page change to:', newPage);
+('IT Department Styled: Projects page change to:', newPage);
     setProjectsCurrentPage(newPage);
     
     // Use server-side pagination when no filters are active
@@ -147,7 +147,7 @@ const ITDepartment = () => {
   };
 
   const handleTicketsPageChange = (newPage) => {
-    console.log('IT Department Styled: Tickets page change to:', newPage);
+('IT Department Styled: Tickets page change to:', newPage);
     setTicketsCurrentPage(newPage);
     
     // Use server-side pagination when no filters are active
@@ -216,28 +216,28 @@ const ITDepartment = () => {
       const token = localStorage.getItem('token');
       
       // Debug: Log authentication status
-      console.log('🔍 Upload Debug Info:');
-      console.log('  - localStorage keys:', Object.keys(localStorage));
-      console.log('  - token value:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-      console.log('  - user from AuthContext:', user);
-      console.log('  - isAuthenticated from AuthContext:', user ? 'User object exists' : 'No user object');
+('🔍 Upload Debug Info:');
+('  - localStorage keys:', Object.keys(localStorage));
+('  - token value:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+('  - user from AuthContext:', user);
+('  - isAuthenticated from AuthContext:', user ? 'User object exists' : 'No user object');
       
       if (!token) {
         const availableKeys = Object.keys(localStorage);
-        console.error('❌ No token found in localStorage');
-        console.error('❌ Available localStorage keys:', availableKeys);
-        console.error('❌ User object:', user);
+('❌ No token found in localStorage');
+('❌ Available localStorage keys:', availableKeys);
+('❌ User object:', user);
         throw new Error(`Please sign in first. No authentication token found. Available localStorage keys: ${availableKeys.join(', ')}`);
       }
       
-      console.log('✅ Token found, proceeding with upload...');
+('✅ Token found, proceeding with upload...');
 
       // Get the correct API base URL
       const baseURL = import.meta.env.VITE_API_URL || 'https://trendora-nine.vercel.app/api';
       const uploadURL = `${baseURL}/it/attendance`;
       
-      console.log('🔍 Upload URL:', uploadURL);
-      console.log('🔍 Base URL:', baseURL);
+('🔍 Upload URL:', uploadURL);
+('🔍 Base URL:', baseURL);
       
       // Prepare headers (same format as axios interceptor)
       const headers = {
@@ -247,8 +247,8 @@ const ITDepartment = () => {
         'token': `Trendora ${token}`,
       };
       
-      console.log('🔍 Request headers:', headers);
-      console.log('🔍 Token (first 20 chars):', token.substring(0, 20) + '...');
+('🔍 Request headers:', headers);
+('🔍 Token (first 20 chars):', token.substring(0, 20) + '...');
       
       // Upload to the API endpoint
       const response = await fetch(uploadURL, {
@@ -287,7 +287,7 @@ const ITDepartment = () => {
       setTimeout(() => setUploadSuccess(null), 3000);
       
     } catch (error) {
-      console.error('Upload error:', error);
+('Upload error:', error);
       setUploadError(`Failed to upload attendance sheet: ${error.message}`);
     } finally {
       setUploadLoading(false);
@@ -386,8 +386,8 @@ const ITDepartment = () => {
   });
   
   // Debug logging
-  console.log('IT Department - showEmployeeForm:', showEmployeeForm);
-  console.log('IT Department - editingEmployee:', editingEmployee);
+('IT Department - showEmployeeForm:', showEmployeeForm);
+('IT Department - editingEmployee:', editingEmployee);
 
   // Function to get rating for a specific employee and category
   const getRating = (employeeId, category) => {
@@ -455,9 +455,9 @@ const ITDepartment = () => {
         performance: performance,
         teamwork: teamwork
       });
-      console.log(`Rating saved to backend: ${category} = ${value} for employee ${employeeId}`);
+(`Rating saved to backend: ${category} = ${value} for employee ${employeeId}`);
     } catch (error) {
-      console.error('Failed to save rating to backend:', error);
+('Failed to save rating to backend:', error);
     }
   };
 
@@ -504,8 +504,8 @@ const ITDepartment = () => {
   };
 
   const handleCreateProject = async () => {
-    console.log('🚀 Starting project creation process...');
-    console.log('📝 New project data:', newProject);
+('🚀 Starting project creation process...');
+('📝 New project data:', newProject);
     
     // Validate required fields
     if (!newProject.name.trim()) {
@@ -545,12 +545,12 @@ const ITDepartment = () => {
         }
       }
       
-      console.log('📤 Creating project with filtered data:', createData);
-      console.log('🔗 API endpoint:', '/it/projects');
-      console.log('🔑 Auth token present:', !!localStorage.getItem('token'));
+('📤 Creating project with filtered data:', createData);
+('🔗 API endpoint:', '/it/projects');
+('🔑 Auth token present:', !!localStorage.getItem('token'));
       
       const result = await createProject(createData);
-      console.log('✅ Project creation result:', result);
+('✅ Project creation result:', result);
       
       alert('Project created successfully!');
       setNewProject({
@@ -564,8 +564,8 @@ const ITDepartment = () => {
       });
       setShowCreateProject(false);
     } catch (error) {
-      console.error('❌ Error creating project:', error);
-      console.error('❌ Error details:', {
+('❌ Error creating project:', error);
+('❌ Error details:', {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -592,7 +592,7 @@ const ITDepartment = () => {
     try {
       await updateRating(employeeId, { rating: newRating });
     } catch (error) {
-      console.error('Error updating rating:', error);
+('Error updating rating:', error);
     }
   };
 
@@ -607,7 +607,7 @@ const ITDepartment = () => {
         await updateTicket(ticketId, { status: updates.status });
       }
     } catch (error) {
-      console.error('Error updating ticket:', error);
+('Error updating ticket:', error);
     }
   };
 
@@ -618,8 +618,8 @@ const ITDepartment = () => {
 
   // Project edit handlers
   const handleEditProject = (project) => {
-    console.log('Editing project:', project);
-    console.log('Project ID:', project.id || project._id);
+('Editing project:', project);
+('Project ID:', project.id || project._id);
     setEditingProject(project);
     setShowEditProject(true);
   };
@@ -672,14 +672,14 @@ const ITDepartment = () => {
         }
       }
       
-      console.log('Updating project with ID:', projectId);
-      console.log('Updating project with filtered data:', updateData);
+('Updating project with ID:', projectId);
+('Updating project with filtered data:', updateData);
       await updateProject(projectId, updateData);
       alert('Project updated successfully!');
       setShowEditProject(false);
       setEditingProject(null);
     } catch (error) {
-      console.error('Error updating project:', error);
+('Error updating project:', error);
       alert('Failed to update project: ' + error.message);
     }
   };
@@ -695,11 +695,11 @@ const ITDepartment = () => {
     }
     
     try {
-      console.log('Deleting project with ID:', projectId);
+('Deleting project with ID:', projectId);
       await deleteProject(projectId);
       alert('Project deleted successfully!');
     } catch (error) {
-      console.error('Error deleting project:', error);
+('Error deleting project:', error);
       alert('Failed to delete project: ' + error.message);
     }
   };
@@ -709,7 +709,7 @@ const ITDepartment = () => {
       try {
         await deleteTicket(ticketId);
       } catch (error) {
-        console.error('Error deleting ticket:', error);
+('Error deleting ticket:', error);
       }
     }
   };
@@ -727,7 +727,7 @@ const ITDepartment = () => {
   // Leave form handler
   const handleCreateLeave = async () => {
     try {
-      console.log('IT Department: Submitting leave request with data:', newLeave);
+('IT Department: Submitting leave request with data:', newLeave);
       
       if (!newLeave.type || !newLeave.startDate || !newLeave.endDate) {
         alert('Please fill in all required fields');
@@ -750,9 +750,9 @@ const ITDepartment = () => {
         status: 'pending'
       };
 
-      console.log('IT Department: Calling itLeaveApi.submitEmployeeLeave with:', leaveData);
+('IT Department: Calling itLeaveApi.submitEmployeeLeave with:', leaveData);
       const result = await itLeaveApi.submitEmployeeLeave(leaveData);
-      console.log('IT Department: Leave submission result:', result);
+('IT Department: Leave submission result:', result);
       
       // The API returns data directly on success, or throws error on failure
       alert('Leave request submitted successfully!');
@@ -763,8 +763,8 @@ const ITDepartment = () => {
       });
       setShowLeaveForm(false);
     } catch (error) {
-      console.error('IT Department: Error creating leave:', error);
-      console.error('IT Department: Error details:', {
+('IT Department: Error creating leave:', error);
+('IT Department: Error details:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status
@@ -1295,7 +1295,7 @@ const ITDepartment = () => {
                                 ...prev,
                                 [key]: parseInt(value)
                               }));
-                              console.log(`Performance rating for ${employee.name || employee.firstName || 'Employee'} set to: ${value}`);
+(`Performance rating for ${employee.name || employee.firstName || 'Employee'} set to: ${value}`);
                             }}
                           />
                         </div>
@@ -1330,7 +1330,7 @@ const ITDepartment = () => {
                                 ...prev,
                                 [key]: parseInt(value)
                               }));
-                              console.log(`Efficiency rating for ${employee.name || employee.firstName || 'Employee'} set to: ${value}`);
+(`Efficiency rating for ${employee.name || employee.firstName || 'Employee'} set to: ${value}`);
                             }}
                           />
                         </div>
@@ -1365,7 +1365,7 @@ const ITDepartment = () => {
                                 ...prev,
                                 [key]: parseInt(value)
                               }));
-                              console.log(`Teamwork rating for ${employee.name || employee.firstName || 'Employee'} set to: ${value}`);
+(`Teamwork rating for ${employee.name || employee.firstName || 'Employee'} set to: ${value}`);
                             }}
                           />
                       </div>
@@ -1476,11 +1476,11 @@ const ITDepartment = () => {
                             const autoNote = `Rating updated for ${employeeName} - Performance: ${performance}, Efficiency: ${efficiency}, Teamwork: ${teamwork}`;
                             const finalNote = note || autoNote;
                             
-                            console.log('Note length check:');
-                            console.log('- User note:', note);
-                            console.log('- Auto note:', autoNote);
-                            console.log('- Final note:', finalNote);
-                            console.log('- Final note length:', finalNote.length);
+('Note length check:');
+('- User note:', note);
+('- Auto note:', autoNote);
+('- Final note:', finalNote);
+('- Final note length:', finalNote.length);
                             
                             // Final validation removed - backend will handle validation
                             
@@ -1491,9 +1491,9 @@ const ITDepartment = () => {
                               note: finalNote
                             };
                             
-                            console.log('Sending rating data:', ratingData);
+('Sending rating data:', ratingData);
                             await updateRating(employeeId, ratingData);
-                            console.log(`Rating submitted for ${employee.name || employee.firstName}:`, ratingData);
+(`Rating submitted for ${employee.name || employee.firstName}:`, ratingData);
                             
                             // Clear the note field after successful submission
                             const noteKey = `${employeeId}-note`;
@@ -1507,11 +1507,11 @@ const ITDepartment = () => {
                             // Note: The employee data will be refreshed on next page load
                             // The note will appear after page refresh
                           } catch (error) {
-                            console.error('Failed to submit rating:', error);
-                            console.error('Error details:', error.message);
-                            console.error('Error response:', error.response);
-                            console.error('Error status:', error.response?.status);
-                            console.error('Error data:', error.response?.data);
+('Failed to submit rating:', error);
+('Error details:', error.message);
+('Error response:', error.response);
+('Error status:', error.response?.status);
+('Error data:', error.response?.data);
                             
                             // Provide more specific error message
                             let errorMessage = 'Failed to submit rating. Please try again.';
@@ -1534,9 +1534,6 @@ const ITDepartment = () => {
             ) : (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>No employees found</div>
-                <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '8px' }}>
-                  Debug: employees={JSON.stringify(employees)}, isArray={Array.isArray(employees)}, length={employees?.length}
-                </div>
               </div>
             )}
           </div>
@@ -2194,7 +2191,7 @@ const ITDepartment = () => {
             
             <form onSubmit={(e) => {
               e.preventDefault();
-              console.log('Form submitted for employee:', editingEmployee);
+('Form submitted for employee:', editingEmployee);
               setShowEmployeeForm(false);
               setEditingEmployee(null);
             }}>

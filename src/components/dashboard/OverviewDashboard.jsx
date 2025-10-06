@@ -31,31 +31,31 @@ const OverviewDashboard = memo(() => {
       setUserLeavesLoading(true);
       setUserLeavesError('');
       try {
-        console.log('🔄 Fetching user leaves with pagination - Page:', page, 'Limit:', limit);
-        console.log('🔍 User role:', user?.role);
-        console.log('🔍 User object:', user);
+('🔄 Fetching user leaves with pagination - Page:', page, 'Limit:', limit);
+('🔍 User role:', user?.role);
+('🔍 User object:', user);
         
         // Debug token and headers
         const token = localStorage.getItem('token');
-        console.log('🔑 Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
-        console.log('🔑 Full token:', token);
-        console.log('🔑 User from localStorage:', localStorage.getItem('user'));
+('🔑 Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
+('🔑 Full token:', token);
+('🔑 User from localStorage:', localStorage.getItem('user'));
         
         // Try multiple endpoints to find working one
         let leavesData = [];
         let totalLeaves = 0;
         
         // Use the correct dashboard leaves endpoint
-        console.log('🔄 Trying /dashboard/leaves endpoint...');
-        console.log('🔑 Request will be made to:', `${api.defaults.baseURL}/dashboard/leaves`);
-        console.log('🔑 With params:', { page, limit });
-        console.log('🔑 With token:', token ? 'YES' : 'NO');
+('🔄 Trying /dashboard/leaves endpoint...');
+('🔑 Request will be made to:', `${api.defaults.baseURL}/dashboard/leaves`);
+('🔑 With params:', { page, limit });
+('🔑 With token:', token ? 'YES' : 'NO');
         
         const response = await api.get('/dashboard/leaves', {
           params: { page, limit }
         });
           
-        console.log('📡 Dashboard Leaves API Response:', response);
+('📡 Dashboard Leaves API Response:', response);
         
         // Process response data
         if (Array.isArray(response.data)) {
@@ -68,8 +68,8 @@ const OverviewDashboard = memo(() => {
         
         totalLeaves = response.data?.total || response.data?.totalLeaves || leavesData.length;
         
-        console.log('📊 Final leaves data:', leavesData);
-        console.log('📊 Total leaves:', totalLeaves);
+('📊 Final leaves data:', leavesData);
+('📊 Total leaves:', totalLeaves);
         
         setUserLeaves(leavesData);
         setUserLeavesTotal(totalLeaves);
@@ -83,11 +83,11 @@ const OverviewDashboard = memo(() => {
         };
         setUserLeavesStatusCounts(statusCounts);
         
-        console.log('📊 Status counts:', statusCounts);
+('📊 Status counts:', statusCounts);
         
         } catch (err) {
-          console.error('❌ User Leaves API Error:', err);
-          console.error('❌ Error details:', {
+('❌ User Leaves API Error:', err);
+('❌ Error details:', {
             message: err.message,
             status: err.response?.status,
             statusText: err.response?.statusText,
@@ -125,7 +125,7 @@ const OverviewDashboard = memo(() => {
 
     // Handle page change for user leaves
     const handleUserLeavesPageChange = (newPage) => {
-      console.log('OverviewDashboard: User leaves page change to:', newPage);
+('OverviewDashboard: User leaves page change to:', newPage);
       setUserLeavesCurrentPage(newPage);
       fetchUserLeaves(newPage, userLeavesPageSize);
     };
@@ -180,7 +180,7 @@ const OverviewDashboard = memo(() => {
         <Tabs 
           value={activeTab} 
           onChange={(e, newValue) => {
-            console.log('🔄 Tab changed to:', newValue);
+('🔄 Tab changed to:', newValue);
             setActiveTab(newValue);
           }} 
           sx={{ borderBottom: 1, borderColor: 'divider' }}
@@ -307,7 +307,7 @@ const OverviewDashboard = memo(() => {
             <>
               {/* Leaves Summary Cards */}
               <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Stack direction="row" alignItems="center" spacing={2}>
@@ -326,7 +326,7 @@ const OverviewDashboard = memo(() => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Stack direction="row" alignItems="center" spacing={2}>
@@ -345,7 +345,7 @@ const OverviewDashboard = memo(() => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Stack direction="row" alignItems="center" spacing={2}>
@@ -364,7 +364,7 @@ const OverviewDashboard = memo(() => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Stack direction="row" alignItems="center" spacing={2}>

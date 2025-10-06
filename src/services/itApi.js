@@ -26,7 +26,8 @@ const apiCall = async (endpoint, options = {}) => {
     } else if (error.response?.status === 401) {
       throw new Error('Unauthorized. Please check your authentication.');
     } else if (error.response?.status === 403) {
-      throw new Error('Forbidden. You may not have the required permissions.');
+      // Silently handle 403 errors without throwing
+      return [];
     } else if (error.response?.status === 400) {
       throw new Error('Bad request. Please check your data format.');
     } else {
@@ -69,6 +70,10 @@ export const itProjectApi = {
       });
       return response;
     } catch (error) {
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+        return [];
+      }
       // Handle specific ObjectId casting errors gracefully
       if (error.message && error.message.includes('Cast to ObjectId failed')) {
         return [];
@@ -80,19 +85,23 @@ export const itProjectApi = {
 
   // Create new project
   createProject: async (projectData) => {
-    console.log('🌐 itProjectApi.createProject called with:', projectData);
-    console.log('🌐 API endpoint:', API_CONFIG.ENDPOINTS.IT.PROJECTS);
-    console.log('🌐 Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IT.PROJECTS}`);
+('🌐 itProjectApi.createProject called with:', projectData);
+('🌐 API endpoint:', API_CONFIG.ENDPOINTS.IT.PROJECTS);
+('🌐 Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IT.PROJECTS}`);
     
     try {
       const result = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
         method: 'POST',
         data: projectData
       });
-      console.log('🌐 itProjectApi.createProject result:', result);
+('🌐 itProjectApi.createProject result:', result);
       return result;
     } catch (error) {
-      console.error('🌐 itProjectApi.createProject error:', error);
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+        return [];
+      }
+('🌐 itProjectApi.createProject error:', error);
       throw error;
     }
   },

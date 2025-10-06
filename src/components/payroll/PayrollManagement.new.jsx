@@ -240,21 +240,21 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
     e.stopPropagation();
     
     // Temporary debugging
-    console.log('PayrollForm: handleSubmit called');
-    console.log('PayrollForm: isEditing:', isEditing);
-    console.log('PayrollForm: formData:', formData);
-    console.log('PayrollForm: onSave exists:', !!onSave);
+('PayrollForm: handleSubmit called');
+('PayrollForm: isEditing:', isEditing);
+('PayrollForm: formData:', formData);
+('PayrollForm: onSave exists:', !!onSave);
     
     const isValid = validateForm();
-    console.log('PayrollForm: Form is valid:', isValid);
+('PayrollForm: Form is valid:', isValid);
     
     if (!isValid) {
-      console.log('PayrollForm: Form validation failed');
+('PayrollForm: Form validation failed');
       return;
     }
     
     if (!onSave) {
-      console.log('PayrollForm: onSave function not provided');
+('PayrollForm: onSave function not provided');
       setSubmitError('Save function not available');
       return;
     }
@@ -309,11 +309,11 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
         backendData.status = formData.status;
       }
       
-      console.log('PayrollForm: Calling onSave with data:', backendData);
+('PayrollForm: Calling onSave with data:', backendData);
       await onSave(backendData);
-      console.log('PayrollForm: onSave completed successfully');
+('PayrollForm: onSave completed successfully');
     } catch (error) {
-      console.error('PayrollForm: Error in handleSubmit:', error);
+('PayrollForm: Error in handleSubmit:', error);
       setSubmitError(error.message || 'Failed to save payroll');
     }
   };
@@ -498,7 +498,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             </Typography>
             <Stack spacing={2}>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Base Salary:
                   </Typography>
@@ -506,7 +506,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     EGP {parseFloat(formData.baseSalary || 0).toLocaleString()}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Benefits:
                   </Typography>
@@ -514,7 +514,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     +EGP {parseFloat(formData.benefits || 0).toLocaleString()}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Overtime Pay:
                   </Typography>
@@ -522,7 +522,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     +EGP {((parseFloat(formData.overtimeHours || 0) * parseFloat(formData.overtimeRate || 0))).toLocaleString()}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Bonuses:
                   </Typography>
@@ -541,7 +541,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
               <Divider />
               
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Deductions:
                   </Typography>
@@ -549,7 +549,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
                     -EGP {parseFloat(formData.deductions || 0).toLocaleString()}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Taxes:
                   </Typography>
@@ -718,14 +718,14 @@ const PayrollManagement = () => {
         setUserError('');
         setUserSuccess('');
         
-        console.log('PayrollManagement: Deleting payroll with ID:', payrollId);
+('PayrollManagement: Deleting payroll with ID:', payrollId);
         await deletePayroll(payrollId);
         
         setUserSuccess('Payroll deleted successfully!');
         // Auto-dismiss success message after 3 seconds
         setTimeout(() => setUserSuccess(''), 3000);
       } catch (error) {
-        console.error('PayrollManagement: Error deleting payroll:', error);
+('PayrollManagement: Error deleting payroll:', error);
         setUserError(`Failed to delete payroll: ${error.message}`);
       }
     }
@@ -903,8 +903,8 @@ const PayrollManagement = () => {
     }
     
     // Debug: Log employee lookup
-    console.log('Looking up employee with ID:', employeeId);
-    console.log('Available employees:', currentEmployees.map(emp => ({ id: emp.id || emp._id, name: `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() })));
+('Looking up employee with ID:', employeeId);
+('Available employees:', currentEmployees.map(emp => ({ id: emp.id || emp._id, name: `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() })));
     
     // Check manual mappings first
     const employeeIdStr = String(employeeId);
@@ -936,11 +936,11 @@ const PayrollManagement = () => {
     
     if (employee) {
       const name = `${employee.firstName || employee.first_name || ''} ${employee.lastName || employee.last_name || ''}`.trim();
-      console.log('Found employee:', { id: employee.id || employee._id, name });
+('Found employee:', { id: employee.id || employee._id, name });
       return name || 'Unknown Employee';
     }
     
-    console.log('No employee found for ID:', employeeIdStr);
+('No employee found for ID:', employeeIdStr);
     return `Unknown Employee (ID: ${employeeIdStr.substring(0, 8)}...)`;
   };
 
@@ -951,7 +951,7 @@ const PayrollManagement = () => {
     }
     
     // Debug: Log the payroll record structure
-    console.log('PayrollRecord structure:', {
+('PayrollRecord structure:', {
       id: payrollRecord.id || payrollRecord._id,
       employeeId: payrollRecord.employeeId,
       employee: payrollRecord.employee,
@@ -1014,7 +1014,7 @@ const PayrollManagement = () => {
         day: 'numeric'
       });
     } catch (error) {
-      console.error('Error formatting date:', error);
+('Error formatting date:', error);
       return 'Invalid Date';
     }
   };
@@ -1140,7 +1140,7 @@ const PayrollManagement = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -1160,7 +1160,7 @@ const PayrollManagement = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -1184,7 +1184,7 @@ const PayrollManagement = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -1208,7 +1208,7 @@ const PayrollManagement = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -1233,7 +1233,7 @@ const PayrollManagement = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Search"
@@ -1244,7 +1244,7 @@ const PayrollManagement = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Status Filter</InputLabel>
                 <Select

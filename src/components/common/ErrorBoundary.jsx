@@ -14,11 +14,11 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log the error to console
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+('ErrorBoundary caught an error:', error, errorInfo);
     
     // Check if it's a DOM-related error
     if (error.message && error.message.includes('removeChild')) {
-      console.warn('DOM removeChild error caught by ErrorBoundary');
+('DOM removeChild error caught by ErrorBoundary');
       // Don't show error UI for DOM errors, just log them
       this.setState({ hasError: false });
       return;
