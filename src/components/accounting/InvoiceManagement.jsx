@@ -41,7 +41,10 @@ import {
   Receipt,
   MoreVert,
   Print,
-  Info
+  Info,
+  Search,
+  FilterList,
+  Clear
 } from '@mui/icons-material';
 import { useAccountingData } from '../../hooks/useAccountingData';
 import SimplePagination from '../common/SimplePagination';
@@ -73,6 +76,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
   const [detailedInvoice, setDetailedInvoice] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [formData, setFormData] = useState({
     invoice_type: 'customer',
     client_name: '',
@@ -98,6 +105,40 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
       onClose();
     }
   }, [openDialog, onClose]);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Filter invoices based on search term and status
+  useEffect(() => {
+    let filtered = [...invoices];
+
+    // Filter by search term
+    if (debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(invoice => 
+        (invoice.client_name && invoice.client_name.toLowerCase().includes(searchLower)) ||
+        (invoice.description && invoice.description.toLowerCase().includes(searchLower)) ||
+        (invoice._id && invoice._id.toLowerCase().includes(searchLower)) ||
+        (invoice.invoice_type && invoice.invoice_type.toLowerCase().includes(searchLower)) ||
+        (invoice.amount && invoice.amount.toString().includes(debouncedSearchTerm)) ||
+        (invoice.status && invoice.status.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(invoice => invoice.status === statusFilter);
+    }
+
+    setFilteredInvoices(filtered);
+  }, [invoices, debouncedSearchTerm, statusFilter]);
 
   const handleOpenDialog = (invoice = null) => {
     if (invoice) {
@@ -215,6 +256,20 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedInvoice(null);
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleStatusFilterChange = (event) => {
+    setStatusFilter(event.target.value);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDebouncedSearchTerm('');
+    setStatusFilter('all');
   };
 
   const handleViewDetails = async () => {
@@ -370,20 +425,81 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Invoice Management
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-          sx={{ borderRadius: 2 }}
-        >
-          Create Invoice
-        </Button>
-      </Box>
+      {/* Header and Search Bar */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+            Invoice Management
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Search Input */}
+            <TextField
+              placeholder="Search by client name, description, ID, type, amount, or status..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />,
+                endAdornment: searchTerm && (
+                  <IconButton
+                    size="small"
+                    onClick={() => setSearchTerm('')}
+                    sx={{ mr: -1 }}
+                  >
+                    <Clear fontSize="small" />
+                  </IconButton>
+                )
+              }}
+              sx={{ 
+                minWidth: 450,
+                flex: 1,
+                maxWidth: 600,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+            />
+
+            {/* Status Filter */}
+            <FormControl sx={{ minWidth: 200, maxWidth: 250 }}>
+              <InputLabel>Filter by Status</InputLabel>
+              <Select
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                label="Filter by Status"
+                startAdornment={<FilterList sx={{ color: 'text.secondary', mr: 1 }} />}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="unpaid">Unpaid</MenuItem>
+                <MenuItem value="paid">Paid</MenuItem>
+                <MenuItem value="overdue">Overdue</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Clear Filters Button */}
+            {(searchTerm || statusFilter !== 'all') && (
+              <Button
+                variant="outlined"
+                startIcon={<Clear />}
+                onClick={clearFilters}
+                sx={{ borderRadius: 2 }}
+              >
+                Clear Filters
+              </Button>
+            )}
+
+            {/* Generate Invoice Button */}
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenDialog()}
+              sx={{ borderRadius: 2, ml: 'auto' }}
+            >
+              Generate Invoice
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Error Alert */}
       {error && (
@@ -428,16 +544,19 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {invoices.length === 0 ? (
+                  {filteredInvoices.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} align="center">
                         <Typography variant="body2" color="text.secondary">
-                          No invoices found. Create your first invoice to get started.
+                          {invoices.length === 0 
+                            ? 'No invoices found. Create your first invoice to get started.'
+                            : 'No invoices match your search criteria. Try adjusting your filters.'
+                          }
                         </Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    invoices.map((invoice) => (
+                    filteredInvoices.map((invoice) => (
                       <TableRow key={invoice._id} hover>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -495,7 +614,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               borderTop: '1px solid #e2e8f0'
             }}>
               <Typography variant="body2" color="text.secondary">
-                Showing {invoices.length} of {totalInvoices} invoices
+                {filteredInvoices.length} invoices
+                {(searchTerm || statusFilter !== 'all') && ' (filtered)'}
               </Typography>
               
               <FormControl size="small" sx={{ minWidth: 80 }}>
