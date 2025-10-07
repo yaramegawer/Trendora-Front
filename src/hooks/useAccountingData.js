@@ -216,6 +216,32 @@ export const useAccountingData = () => {
     }
   };
 
+  // Get single invoice by ID
+  const getInvoice = async (invoiceId) => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    
+    try {
+      const result = await accountingApi.getInvoice(invoiceId);
+      if (result.success) {
+        return { success: true, data: result.data, message: result.message };
+      } else {
+        setError(result.error);
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
+      }
+    } catch (err) {
+      const errorMsg = 'Failed to fetch invoice';
+      setError(errorMsg);
+      setFieldErrors({});
+      console.log('Error fetching invoice:', err);
+      return { success: false, error: errorMsg, fieldErrors: {} };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Pagination functions
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -241,6 +267,7 @@ export const useAccountingData = () => {
     addInvoice,
     updateInvoice,
     deleteInvoice,
+    getInvoice,
     submitLeave,
     submitTicket,
     goToPage,

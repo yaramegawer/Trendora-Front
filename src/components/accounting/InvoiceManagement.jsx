@@ -59,6 +59,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     addInvoice,
     updateInvoice,
     deleteInvoice,
+    getInvoice,
     goToPage,
     changePageSize,
     clearError
@@ -69,6 +70,9 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  const [detailedInvoice, setDetailedInvoice] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
   const [formData, setFormData] = useState({
     invoice_type: 'customer',
     client_name: '',
@@ -213,9 +217,35 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     setSelectedInvoice(null);
   };
 
-  const handleViewDetails = () => {
+  const handleViewDetails = async () => {
+    if (!selectedInvoice || !selectedInvoice._id) {
+      console.error('No invoice selected or missing ID');
+      return;
+    }
+
     setViewDetailsOpen(true);
+    setDetailsLoading(true);
+    setDetailsError('');
+    setDetailedInvoice(null);
     handleMenuClose();
+
+    try {
+      const result = await getInvoice(selectedInvoice._id);
+      if (result.success) {
+        setDetailedInvoice(result.data);
+      } else {
+        setDetailsError(result.error || 'Failed to fetch invoice details');
+        // Fallback to using the selected invoice data if API fails
+        setDetailedInvoice(selectedInvoice);
+      }
+    } catch (err) {
+      console.error('Error fetching invoice details:', err);
+      setDetailsError('Failed to fetch invoice details');
+      // Fallback to using the selected invoice data if API fails
+      setDetailedInvoice(selectedInvoice);
+    } finally {
+      setDetailsLoading(false);
+    }
   };
 
   const handlePrintInvoice = (invoice) => {
@@ -692,40 +722,51 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
           </Box>
         </DialogTitle>
         <DialogContent>
-          {selectedInvoice ? (
+          {detailsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+              <CircularProgress />
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                Loading invoice details...
+              </Typography>
+            </Box>
+          ) : detailsError ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {detailsError}
+              </Alert>
+              <Typography variant="body2" color="text.secondary">
+                Showing cached data below
+              </Typography>
+            </Box>
+          ) : detailedInvoice ? (
             <Stack spacing={3} sx={{ mt: 1 }}>
-              {/* Debug info - remove this in production */}
-              <Box sx={{ p: 1, bgcolor: 'grey.100', borderRadius: 1, fontSize: '12px' }}>
-                <Typography variant="caption">Debug: {JSON.stringify(selectedInvoice, null, 2)}</Typography>
-              </Box>
-
               <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
                 <Typography variant="h6" gutterBottom>Invoice Information</Typography>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Invoice ID</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {selectedInvoice._id ? selectedInvoice._id.substring(0, 12) + '...' : selectedInvoice.id ? selectedInvoice.id.substring(0, 12) + '...' : 'N/A'}
+                      {detailedInvoice._id ? detailedInvoice._id.substring(0, 12) + '...' : detailedInvoice.id ? detailedInvoice.id.substring(0, 12) + '...' : 'N/A'}
                     </Typography>
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Invoice Type</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {selectedInvoice.invoice_type ? selectedInvoice.invoice_type.charAt(0).toUpperCase() + selectedInvoice.invoice_type.slice(1) : 'N/A'}
+                      {detailedInvoice.invoice_type ? detailedInvoice.invoice_type.charAt(0).toUpperCase() + detailedInvoice.invoice_type.slice(1) : 'N/A'}
                     </Typography>
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Status</Typography>
                     <Chip
-                      label={selectedInvoice.status || 'unpaid'}
-                      color={getStatusColor(selectedInvoice.status)}
+                      label={detailedInvoice.status || 'unpaid'}
+                      color={getStatusColor(detailedInvoice.status)}
                       size="small"
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Due Date</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatDate(selectedInvoice.due_date || selectedInvoice.dueDate)}
+                      {formatDate(detailedInvoice.due_date || detailedInvoice.dueDate)}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -735,38 +776,53 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                 <Typography variant="h6" gutterBottom>Client Information</Typography>
                 <Typography variant="body2" color="text.secondary">Client Name</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedInvoice.client_name || selectedInvoice.clientName || 'N/A'}
+                  {detailedInvoice.client_name || detailedInvoice.clientName || 'N/A'}
                 </Typography>
               </Box>
 
               <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
                 <Typography variant="h6" gutterBottom>Amount</Typography>
                 <Typography variant="h4" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                  {formatCurrency(selectedInvoice.amount || 0)}
+                  {formatCurrency(detailedInvoice.amount || 0)}
                 </Typography>
               </Box>
 
-              {(selectedInvoice.description || selectedInvoice.Description) && (
+              {(detailedInvoice.description || detailedInvoice.Description) && (
                 <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
                   <Typography variant="h6" gutterBottom>Description</Typography>
                   <Typography variant="body1">
-                    {selectedInvoice.description || selectedInvoice.Description}
+                    {detailedInvoice.description || detailedInvoice.Description}
                   </Typography>
                 </Box>
               )}
 
-              {/* Show all available fields for debugging */}
-              <Box sx={{ p: 2, border: 1, borderColor: 'warning.main', borderRadius: 2, bgcolor: 'warning.light' }}>
-                <Typography variant="h6" gutterBottom>All Available Data</Typography>
-                <Typography variant="body2" component="pre" sx={{ fontSize: '11px', overflow: 'auto' }}>
-                  {JSON.stringify(selectedInvoice, null, 2)}
-                </Typography>
-              </Box>
+              {/* Additional fields that might come from the API */}
+              {detailedInvoice.createdAt && (
+                <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
+                  <Typography variant="h6" gutterBottom>Additional Information</Typography>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <Typography variant="body2" color="text.secondary">Created At</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {formatDate(detailedInvoice.createdAt)}
+                      </Typography>
+                    </Grid>
+                    {detailedInvoice.updatedAt && (
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Typography variant="body2" color="text.secondary">Updated At</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {formatDate(detailedInvoice.updatedAt)}
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+              )}
             </Stack>
           ) : (
             <Box sx={{ p: 3, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
-                No invoice selected
+                No invoice data available
               </Typography>
             </Box>
           )}
@@ -777,9 +833,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
             variant="contained" 
             startIcon={<Print />}
             onClick={() => {
-              handlePrintInvoice(selectedInvoice);
+              handlePrintInvoice(detailedInvoice || selectedInvoice);
               setViewDetailsOpen(false);
             }}
+            disabled={!detailedInvoice && !selectedInvoice}
           >
             Print Invoice
           </Button>

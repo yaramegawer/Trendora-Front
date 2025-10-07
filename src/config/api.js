@@ -46,6 +46,7 @@ export const API_CONFIG = {
       ADD_INVOICE: '/accounting/add_invoice',
       UPDATE_INVOICE: '/accounting/update_invoice',
       GET_ALL_INVOICES: '/accounting/get_all',
+      GET_INVOICE: '/accounting/get_invoice',
       DELETE_INVOICE: '/accounting/delete_invoice',
     },
     DASHBOARD: {

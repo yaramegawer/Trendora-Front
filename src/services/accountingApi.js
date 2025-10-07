@@ -482,6 +482,34 @@ export const accountingApi = {
     }
   },
 
+  // Get single invoice by ID
+  getInvoice: async (invoiceId) => {
+    try {
+      console.log(`📄 Fetching invoice ${invoiceId}...`);
+      const response = await api.get(`/accounting/get_invoice/${invoiceId}`);
+      console.log('✅ Invoice fetched successfully:', response.data);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Invoice fetched successfully'
+      };
+    } catch (error) {
+      console.log('❌ Raw error from getInvoice:', error);
+      console.log('❌ Error response:', error.response);
+      console.log('❌ Error response data:', error.response?.data);
+      
+      const errorResult = handleApiError(error, 'Failed to fetch invoice');
+      console.log('❌ Processed error result:', errorResult);
+      
+      return {
+        success: false,
+        error: errorResult.message,
+        fieldErrors: errorResult.fieldErrors,
+        data: null
+      };
+    }
+  },
+
   // Get accurate total count of invoices
   getTotalCount: async () => {
     try {
