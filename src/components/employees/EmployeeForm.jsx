@@ -218,14 +218,21 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         hireDate: formData.hireDate,
         phone: formData.phone,
         status: formData.status,
-        role: formData.role,
+        role: formData.role
         // address field removed as it's not allowed by backend validation
-        submittedDocuments: formData.submittedDocuments.length > 0 ? formData.submittedDocuments : undefined,
-        pendingDocuments: formData.pendingDocuments.length > 0 ? formData.pendingDocuments : undefined
+        // submittedDocuments and pendingDocuments will be handled by the API service
       };
       
-('Debug - Form data being sent:', dataToSend);
-('Debug - Department name being sent:', formData.department);
+      // Only include documents if they exist and are not empty
+      if (formData.submittedDocuments && formData.submittedDocuments.length > 0) {
+        dataToSend.submittedDocuments = formData.submittedDocuments;
+      }
+      if (formData.pendingDocuments && formData.pendingDocuments.length > 0) {
+        dataToSend.pendingDocuments = formData.pendingDocuments;
+      }
+      
+      console.log('🔍 Debug - Form data being sent:', dataToSend);
+      console.log('🔍 Debug - Department name being sent:', formData.department);
       onSave(dataToSend);
     }
   };

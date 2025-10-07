@@ -85,23 +85,23 @@ export const itProjectApi = {
 
   // Create new project
   createProject: async (projectData) => {
-('🌐 itProjectApi.createProject called with:', projectData);
-('🌐 API endpoint:', API_CONFIG.ENDPOINTS.IT.PROJECTS);
-('🌐 Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IT.PROJECTS}`);
+console.log('🌐 itProjectApi.createProject called with:', projectData);
+console.log('🌐 API endpoint:', API_CONFIG.ENDPOINTS.IT.PROJECTS);
+console.log('🌐 Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IT.PROJECTS}`);
     
     try {
       const result = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
         method: 'POST',
         data: projectData
       });
-('🌐 itProjectApi.createProject result:', result);
+console.log('🌐 itProjectApi.createProject result:', result);
       return result;
     } catch (error) {
       // Silently handle 403 errors without throwing
       if (error.response?.status === 403) {
         return [];
       }
-('🌐 itProjectApi.createProject error:', error);
+console.log('🌐 itProjectApi.createProject error:', error);
       throw error;
     }
   },
@@ -162,10 +162,6 @@ export const itTicketApi = {
 
 // Leave API functions
 export const itLeaveApi = {
-  // Get employee leaves
-  getEmployeeLeaves: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.LEAVES);
-  },
 
   // Submit employee leave
   submitEmployeeLeave: async (leaveData) => {
@@ -175,20 +171,4 @@ export const itLeaveApi = {
     });
   },
 
-  // Update leave status
-  updateLeaveStatus: async (id, leaveData) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.LEAVES}/${id}`;
-    return await apiCall(endpoint, {
-      method: 'PUT',
-      data: leaveData
-    });
-  },
-
-  // Delete leave
-  deleteLeave: async (id) => {
-    const endpoint = `${API_CONFIG.ENDPOINTS.IT.LEAVES}/${id}`;
-    return await apiCall(endpoint, {
-      method: 'DELETE'
-    });
-  }
 };

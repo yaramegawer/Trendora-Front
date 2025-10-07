@@ -85,7 +85,7 @@ const EmployeeManagement = () => {
   const [userSuccess, setUserSuccess] = useState('');
 
   const handleAddEmployee = async (employeeData) => {
-('Debug - handleAddEmployee called with data:', employeeData);
+    console.log('🔍 Debug - handleAddEmployee called with data:', employeeData);
     
     // Check if user is authenticated first
     if (!user || !isAuthenticated) {
@@ -99,27 +99,27 @@ const EmployeeManagement = () => {
     try {
       setUserError('');
       setUserSuccess('');
-('Debug - Calling addEmployee API...');
+      console.log('🔍 Debug - Calling addEmployee API...');
       await addEmployee(employeeData);
-('Debug - Add successful, closing dialog...');
+      console.log('✅ Debug - Add successful, closing dialog...');
       setUserSuccess('Employee added successfully!');
       setShowAddDialog(false);
-('Debug - Dialog closed, refreshing data...');
+      console.log('✅ Debug - Dialog closed, refreshing data...');
     } catch (error) {
-('Error adding employee:', error);
-('Error message:', error.message);
-('Error response:', error.response);
+      console.error('❌ Error adding employee:', error);
+      console.log('❌ Error message:', error.message);
+      console.log('❌ Error response:', error.response);
       
       // Clear any existing error first
       setUserError('');
       
       // Check for authentication errors
       if (error.message && (error.message.includes('Authentication required') || error.message.includes('sign_in') || error.message.includes('token'))) {
-        setUserError('Authentication Error: Please log in first to add employees.');
+        alert('Authentication Error: Please log in first to add employees.');
         // Optionally redirect to login
         // window.location.href = '/login';
       } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
-        setUserError(`Permission Error: ${error.message}`);
+        alert(`Permission Error: ${error.message}`);
       } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t add this email because it already exists'))) {
         alert(error.message);
       } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
@@ -135,6 +135,14 @@ const EmployeeManagement = () => {
         const errorMsg = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
         alert(errorMsg);
         return; // Don't set userError, just show alert and return
+      } else if (error.message && error.message.includes('internal server error')) {
+        // Handle internal server errors with alert
+        alert('Server Error: Unable to add employee. Please try again later or contact support if the problem persists.');
+        return; // Don't set userError, just show alert and return
+      } else if (error.response && error.response.status === 500) {
+        // Handle 500 status errors with alert
+        alert('Server Error: Unable to add employee. Please try again later or contact support if the problem persists.');
+        return; // Don't set userError, just show alert and return
       } else {
         // Check if it's a department validation error in any other format
         const errorMessage = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
@@ -143,7 +151,8 @@ const EmployeeManagement = () => {
           alert(errorMessage);
           return; // Don't set userError, just show alert and return
         }
-        setUserError(`Error adding employee: ${error.message}`);
+        // For any other errors, show as alert instead of setting userError
+        alert(`Error adding employee: ${error.message}`);
       }
     }
   };
@@ -155,35 +164,50 @@ const EmployeeManagement = () => {
       setUserError('');
       setUserSuccess('');
       const employeeId = editingEmployee.id || editingEmployee._id;
-('Debug - editingEmployee:', editingEmployee);
-('Debug - employeeId extracted:', employeeId);
-('Debug - employeeData to update:', employeeData);
+      console.log('🔍 Debug - editingEmployee:', editingEmployee);
+      console.log('🔍 Debug - employeeId extracted:', employeeId);
+      console.log('🔍 Debug - employeeData to update:', employeeData);
       
       if (!employeeId) {
-('No employee ID found for update');
+        console.log('❌ No employee ID found for update');
         setUserError('Error: No employee ID found for update');
         return;
       }
       
+      // Validate employee data before sending
+      if (!employeeData || typeof employeeData !== 'object') {
+        console.log('❌ Invalid employee data provided');
+        setUserError('Error: Invalid employee data provided');
+        return;
+      }
+      
+      console.log('🔍 Calling updateEmployee API...');
       await updateEmployee(employeeId, employeeData);
+      console.log('✅ Employee updated successfully');
       setUserSuccess('Employee updated successfully!');
       setShowEditDialog(false);
       setEditingEmployee(null);
     } catch (error) {
-('Error updating employee:', error);
-('Error message:', error.message);
-('Error response:', error.response);
+      console.error('❌ Error updating employee:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        requestData: error.config?.data
+      });
       
       // Clear any existing error first
       setUserError('');
       
       // Check for specific error types
       if (error.message && error.message.includes('Invalid objectId')) {
-        setUserError('Error: Invalid employee ID. Please refresh the page and try again.');
+        alert('Error: Invalid employee ID. Please refresh the page and try again.');
       } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
-        setUserError(`Permission Error: ${error.message}`);
+        alert(`Permission Error: ${error.message}`);
       } else if (error.message && error.message.includes('Authentication required')) {
-        setUserError('Authentication Error: Please log in again.');
+        alert('Authentication Error: Please log in again.');
       } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t update this email because it already exists'))) {
         alert(error.message);
       } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
@@ -199,6 +223,14 @@ const EmployeeManagement = () => {
         const errorMsg = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
         alert(errorMsg);
         return; // Don't set userError, just show alert and return
+      } else if (error.message && error.message.includes('internal server error')) {
+        // Handle internal server errors with alert
+        alert('Server Error: Unable to update employee. Please try again later or contact support if the problem persists.');
+        return; // Don't set userError, just show alert and return
+      } else if (error.response && error.response.status === 500) {
+        // Handle 500 status errors with alert
+        alert('Server Error: Unable to update employee. Please try again later or contact support if the problem persists.');
+        return; // Don't set userError, just show alert and return
       } else {
         // Check if it's a department validation error in any other format
         const errorMessage = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
@@ -207,13 +239,17 @@ const EmployeeManagement = () => {
           alert(errorMessage);
           return; // Don't set userError, just show alert and return
         }
-        setUserError(`Error updating employee: ${error.message}`);
+        // For any other errors, show as alert instead of setting userError
+        alert(`Error updating employee: ${error.message}`);
       }
     }
   };
 
   const handleEdit = (employee) => {
     // Allow all authenticated users to edit employees
+    console.log('🔍 Debug - handleEdit called with employee:', employee);
+    console.log('🔍 Debug - Employee ID:', employee?.id || employee?._id);
+    console.log('🔍 Debug - Employee data structure:', JSON.stringify(employee, null, 2));
     setEditingEmployee(employee);
     setShowEditDialog(true);
   };
@@ -246,30 +282,40 @@ const EmployeeManagement = () => {
         setViewingEmployee(updatedEmployee);
       }
     } catch (error) {
-('Error submitting document:', error);
-      setUserError(`Error submitting document: ${error.message}`);
+      console.error('❌ Error submitting document:', error);
+      if (error.message && error.message.includes('internal server error')) {
+        alert('Server Error: Unable to submit document. Please try again later or contact support if the problem persists.');
+      } else if (error.response && error.response.status === 500) {
+        alert('Server Error: Unable to submit document. Please try again later or contact support if the problem persists.');
+      } else {
+        alert(`Error submitting document: ${error.message}`);
+      }
     }
   };
 
   const handleDelete = async (employeeId) => {
-('Debug - handleDelete called with ID:', employeeId);
+    console.log('🔍 Debug - handleDelete called with ID:', employeeId);
     
     // Allow all authenticated users to delete employees
 
     if (window.confirm('Are you sure you want to delete this employee?')) {
       try {
         if (!employeeId) {
-('No employee ID provided for deletion');
+          console.log('❌ No employee ID provided for deletion');
           return;
         }
-('Debug - Calling deleteEmployee with ID:', employeeId);
+        console.log('🔍 Debug - Calling deleteEmployee with ID:', employeeId);
         await deleteEmployee(employeeId);
-('Debug - Delete successful, refreshing data...');
+        console.log('✅ Debug - Delete successful, refreshing data...');
       } catch (error) {
-('Error deleting employee:', error);
+        console.error('❌ Error deleting employee:', error);
         // Check if error is permission-related
         if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
           alert(`Error: ${error.message}`);
+        } else if (error.message && error.message.includes('internal server error')) {
+          alert('Server Error: Unable to delete employee. Please try again later or contact support if the problem persists.');
+        } else if (error.response && error.response.status === 500) {
+          alert('Server Error: Unable to delete employee. Please try again later or contact support if the problem persists.');
         } else {
           alert(`Error deleting employee: ${error.message}`);
         }
@@ -278,7 +324,7 @@ const EmployeeManagement = () => {
   };
 
   const handleMenuClick = (event, employee) => {
-('Debug - handleMenuClick called with employee:', employee);
+    console.log('🔍 Debug - handleMenuClick called with employee:', employee);
     setAnchorEl(event.currentTarget);
     setSelectedEmployee(employee);
   };
@@ -293,18 +339,18 @@ const EmployeeManagement = () => {
   const currentDepartments = departments || [];
 
   // Debug: Log the actual employee data structure
-('Debug - Raw employees data:', employees);
-('Debug - Current employees:', currentEmployees);
-('Debug - Raw departments data:', departments);
-('Debug - Current departments:', currentDepartments);
-('Debug - Current user:', user);
-('Debug - User role:', user?.role);
-('Debug - User role type:', typeof user?.role);
+  console.log('🔍 Debug - Raw employees data:', employees);
+  console.log('🔍 Debug - Current employees:', currentEmployees);
+  console.log('🔍 Debug - Raw departments data:', departments);
+  console.log('🔍 Debug - Current departments:', currentDepartments);
+  console.log('🔍 Debug - Current user:', user);
+  console.log('🔍 Debug - User role:', user?.role);
+  console.log('🔍 Debug - User role type:', typeof user?.role);
   if (currentEmployees.length > 0) {
-('Debug - First employee structure:', currentEmployees[0]);
+    console.log('🔍 Debug - First employee structure:', currentEmployees[0]);
   }
   if (currentDepartments.length > 0) {
-('Debug - First department structure:', currentDepartments[0]);
+    console.log('🔍 Debug - First department structure:', currentDepartments[0]);
   }
 
   // Permission checking functions using utility

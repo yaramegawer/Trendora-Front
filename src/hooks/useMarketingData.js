@@ -250,7 +250,6 @@ export const useMarketingTickets = () => {
       
       setTickets(ticketsData);
     } catch (err) {
-('Marketing Tickets API Error:', err);
       setError(err.message);
       setTickets([]);
     } finally {
@@ -264,7 +263,6 @@ export const useMarketingTickets = () => {
       await fetchTickets(); // Refresh the list
       return newTicket;
     } catch (err) {
-('Error creating ticket:', err);
       throw err;
     }
   };
@@ -275,7 +273,6 @@ export const useMarketingTickets = () => {
       await fetchTickets(); // Refresh the list
       return updatedTicket;
     } catch (err) {
-('Error updating ticket:', err);
       throw err;
     }
   };
@@ -285,14 +282,14 @@ export const useMarketingTickets = () => {
       await marketingTicketApi.deleteTicket(id);
       await fetchTickets(); // Refresh the list
     } catch (err) {
-('Error deleting ticket:', err);
       throw err;
     }
   };
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  // Disabled automatic API call - only fetch when explicitly requested
+  // useEffect(() => {
+  //   fetchTickets();
+  // }, []);
 
   return {
     tickets,
@@ -370,9 +367,10 @@ export const useMarketingLeaves = () => {
     }
   };
 
-  useEffect(() => {
-    fetchLeaves();
-  }, []);
+  // Disabled automatic API call - only fetch when explicitly requested
+  // useEffect(() => {
+  //   fetchLeaves();
+  // }, []);
 
   return {
     leaves,

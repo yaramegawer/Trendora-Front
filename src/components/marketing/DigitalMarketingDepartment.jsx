@@ -26,7 +26,8 @@ import {
   Globe,
   Camera,
   PenTool,
-  Palette
+  Palette,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMarketingEmployees, useMarketingProjects, useMarketingTickets, useMarketingLeaves } from '../../hooks/useMarketingData';
@@ -60,8 +61,6 @@ const DigitalMarketingDepartment = () => {
   } = marketingEmployeesHook;
   const updateRating = marketingEmployeesHook.updateRating;
   
-('🔍 Full hook object:', marketingEmployeesHook);
-('🔍 updateRating function:', updateRating, typeof updateRating);
   
   // Pagination state for projects
   const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
@@ -1489,27 +1488,57 @@ const DigitalMarketingDepartment = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>Marketing Projects</h2>
-              <button style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '8px 12px',
-                backgroundColor: '#1c242e',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: '500',
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-              onClick={() => setShowCreateProject(true)}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#334155'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#1c242e'}
-              >
-                <Plus size={16} />
-                New Project
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 12px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => fetchProjects(projectsCurrentPage, pageSize)}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#e5e7eb';
+                  e.target.style.borderColor = '#9ca3af';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = '#f3f4f6';
+                  e.target.style.borderColor = '#d1d5db';
+                }}
+                disabled={projectsLoading}
+                >
+                  <RefreshCw size={16} className={projectsLoading ? 'animate-spin' : ''} />
+                  {projectsLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+                <button style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 12px',
+                  backgroundColor: '#1c242e',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onClick={() => setShowCreateProject(true)}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#334155'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#1c242e'}
+                >
+                  <Plus size={16} />
+                  New Project
+                </button>
+              </div>
             </div>
 
             {/* Search and Filter Section */}
@@ -1697,32 +1726,66 @@ const DigitalMarketingDepartment = () => {
             ) : showCustomerSections ? (
               // Show projects for selected customer
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button
+                      onClick={handleBackToAllProjects}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        backgroundColor: '#f3f4f6',
+                        color: '#374151',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s',
+                        marginRight: '16px'
+                      }}
+                      onMouseOver={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                      onMouseOut={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                    >
+                      ← Back to All Projects
+                    </button>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                      Projects for {selectedCustomer?.name || selectedCustomer}
+                    </h3>
+                  </div>
                   <button
-                    onClick={handleBackToAllProjects}
+                    onClick={() => {
+                      const customerName = selectedCustomer?.name || selectedCustomer;
+                      fetchCustomerProjects(customerName, customerProjectsCurrentPage, customerProjectsPageSize);
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 16px',
+                      gap: '4px',
+                      padding: '8px 12px',
                       backgroundColor: '#f3f4f6',
                       color: '#374151',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
                       fontWeight: '500',
+                      fontSize: '12px',
                       cursor: 'pointer',
-                      transition: 'background-color 0.2s',
-                      marginRight: '16px'
+                      transition: 'all 0.2s'
                     }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = '#e5e7eb'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = '#e5e7eb';
+                      e.target.style.borderColor = '#9ca3af';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = '#f3f4f6';
+                      e.target.style.borderColor = '#d1d5db';
+                    }}
+                    disabled={customerProjectsLoading}
                   >
-                    ← Back to All Projects
+                    <RefreshCw size={16} className={customerProjectsLoading ? 'animate-spin' : ''} />
+                    {customerProjectsLoading ? 'Refreshing...' : 'Refresh'}
                   </button>
-                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                    Projects for {selectedCustomer?.name || selectedCustomer}
-                  </h3>
                 </div>
                 
                 {customerProjectsLoading ? (

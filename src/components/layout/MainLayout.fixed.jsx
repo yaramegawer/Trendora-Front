@@ -1,8 +1,9 @@
 import React, { useState, Suspense, lazy, useCallback, useMemo } from 'react';
-import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton, CircularProgress, Skeleton } from '@mui/material';
+import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton, CircularProgress, Skeleton, Tooltip } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useAuth } from '../../contexts/AuthContext';
+import { checkDepartmentAccess, getUserDepartment } from '../../utils/departmentAuth';
 import theme from '../../theme';
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import ComputerOutlinedIcon from '@mui/icons-material/ComputerOutlined';
@@ -53,22 +54,37 @@ const DashboardSkeleton = () => (
   </Box>
 );
 
-const getMenuItems = (userRole) => {
+const getMenuItems = (user) => {
+  const userRole = user?.role || 'Employee';
+  
   if (userRole === 'Employee') {
     return [
-      { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon },
+      { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon, isAuthorized: true },
     ];
   }
   
-  return [
-    { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon },
-    { id: 'hr', label: 'HR Department', icon: PeopleAltOutlinedIcon },
-    { id: 'it', label: 'IT Department', icon: ComputerOutlinedIcon },
-    { id: 'marketing', label: 'Digital Marketing Department', icon: CampaignOutlinedIcon },
-    { id: 'operation', label: 'Operation Department', icon: BusinessCenterOutlinedIcon },
-    { id: 'accounting', label: 'Accounting Department', icon: AccountBalanceOutlinedIcon },
-    { id: 'sales', label: 'Sales Department', icon: TrendingUpOutlinedIcon },
+  const allMenuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon, isAuthorized: true }, // Dashboard is always accessible
+    { id: 'hr', label: 'HR Department', icon: PeopleAltOutlinedIcon, department: 'HR' },
+    { id: 'it', label: 'IT Department', icon: ComputerOutlinedIcon, department: 'IT' },
+    { id: 'marketing', label: 'Digital Marketing Department', icon: CampaignOutlinedIcon, department: 'Digital Marketing' },
+    { id: 'operation', label: 'Operation Department', icon: BusinessCenterOutlinedIcon, department: 'Operation' },
+    { id: 'accounting', label: 'Accounting Department', icon: AccountBalanceOutlinedIcon, department: 'Accounting' },
+    { id: 'sales', label: 'Sales Department', icon: TrendingUpOutlinedIcon, department: 'Sales' },
   ];
+  
+  // Check authorization for each department
+  return allMenuItems.map(item => {
+    if (item.department) {
+      const authResult = checkDepartmentAccess(user, item.department);
+      return {
+        ...item,
+        isAuthorized: authResult.isAuthorized,
+        errorMessage: authResult.errorMessage
+      };
+    }
+    return item;
+  });
 };
 
 const getSectionTitle = (sectionId, userRole) => {
@@ -156,7 +172,8 @@ const MainLayout = () => {
   const { logout, user } = useAuth();
   
   const userRole = user?.role || 'Employee';
-  const menuItems = useMemo(() => getMenuItems(userRole), [userRole]);
+  const menuItems = useMemo(() => getMenuItems(user), [user]);
+  
 
   const handleLogout = useCallback(() => {
     logout();
@@ -213,26 +230,61 @@ const MainLayout = () => {
           <List sx={{ flexGrow: 1, pt: 2 }}>
             {menuItems.map((item) => (
               <ListItem key={item.id} disablePadding>
-                <ListItemButton
-                  onClick={() => setActiveSection(item.id)}
-                  sx={{
-                    mx: 1,
-                    mb: 0.5,
-                    borderRadius: 1,
-                    backgroundColor: activeSection === item.id ? '#334155' : 'transparent',
-                    color: activeSection === item.id ? '#ffffff' : '#94a3b8',
-                    borderRight: activeSection === item.id ? '3px solid #1c242e' : 'none',
-                    '&:hover': {
-                      backgroundColor: activeSection === item.id ? '#334155' : '#334155',
-                      color: '#ffffff',
-                    },
-                  }}
+                <Tooltip 
+                  title={!item.isAuthorized ? item.errorMessage : ''} 
+                  placement="right"
+                  arrow
                 >
-                  <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
-                    <item.icon />
-                  </ListItemIcon>
-                  {sidebarOpen && <ListItemText primary={item.label} />}
-                </ListItemButton>
+                  <Box sx={{ width: '100%' }}>
+                    {item.isAuthorized ? (
+                      <ListItemButton
+                        onClick={() => setActiveSection(item.id)}
+                        sx={{
+                          mx: 1,
+                          mb: 0.5,
+                          borderRadius: 1,
+                          backgroundColor: activeSection === item.id ? '#334155' : 'transparent',
+                          color: activeSection === item.id ? '#ffffff' : '#94a3b8',
+                          borderRight: activeSection === item.id ? '3px solid #1c242e' : 'none',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: activeSection === item.id ? '#334155' : '#334155',
+                            color: '#ffffff',
+                          },
+                        }}
+                      >
+                        <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                          <item.icon />
+                        </ListItemIcon>
+                        {sidebarOpen && <ListItemText primary={item.label} />}
+                      </ListItemButton>
+                    ) : (
+                      <Box
+                        sx={{
+                          mx: 1,
+                          mb: 0.5,
+                          borderRadius: 1,
+                          backgroundColor: 'transparent',
+                          color: '#6b7280',
+                          opacity: 0.4,
+                          cursor: 'not-allowed',
+                          padding: '8px 16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          '&:hover': {
+                            backgroundColor: 'transparent',
+                            color: '#6b7280',
+                          },
+                        }}
+                      >
+                        <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                          <item.icon />
+                        </ListItemIcon>
+                        {sidebarOpen && <ListItemText primary={item.label} />}
+                      </Box>
+                    )}
+                  </Box>
+                </Tooltip>
               </ListItem>
             ))}
           </List>

@@ -53,7 +53,7 @@ import { usePayroll } from '../../hooks/usePayrollData';
 import SimplePagination from '../common/SimplePagination';
 import { useEmployees } from '../../hooks/useHRData';
 import { useAuth } from '../../contexts/AuthContext';
-import { canEdit, canDelete, showPermissionError } from '../../utils/permissions';
+// Authorization removed - all authenticated users can manage payroll
 
 const PayrollStatus = {
   PENDING: 'Pending',
@@ -241,21 +241,21 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
     e.stopPropagation();
     
     // Temporary debugging
-('PayrollForm: handleSubmit called');
-('PayrollForm: isEditing:', isEditing);
-('PayrollForm: formData:', formData);
-('PayrollForm: onSave exists:', !!onSave);
+      console.log('PayrollForm: handleSubmit called');
+      console.log('PayrollForm: isEditing:', isEditing);
+      console.log('PayrollForm: formData:', formData);
+      console.log('PayrollForm: onSave exists:', !!onSave);
     
     const isValid = validateForm();
-('PayrollForm: Form is valid:', isValid);
+    console.log('PayrollForm: Form is valid:', isValid);
     
     if (!isValid) {
-('PayrollForm: Form validation failed');
+      console.log('PayrollForm: Form validation failed');
       return;
     }
     
     if (!onSave) {
-('PayrollForm: onSave function not provided');
+      console.log('PayrollForm: onSave function not provided');
       setSubmitError('Save function not available');
       return;
     }
@@ -310,11 +310,11 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
         backendData.status = formData.status;
       }
       
-('PayrollForm: Calling onSave with data:', backendData);
+      console.log('PayrollForm: Calling onSave with data:', backendData);
       await onSave(backendData);
-('PayrollForm: onSave completed successfully');
+      console.log('PayrollForm: onSave completed successfully');
     } catch (error) {
-('PayrollForm: Error in handleSubmit:', error);
+      console.log('PayrollForm: Error in handleSubmit:', error);
       setSubmitError(error.message || 'Failed to save payroll');
     }
   };
@@ -719,14 +719,14 @@ const PayrollManagement = () => {
         setUserError('');
         setUserSuccess('');
         
-('PayrollManagement: Deleting payroll with ID:', payrollId);
+        console.log('PayrollManagement: Deleting payroll with ID:', payrollId);
         await deletePayroll(payrollId);
         
         setUserSuccess('Payroll deleted successfully!');
         // Auto-dismiss success message after 3 seconds
         setTimeout(() => setUserSuccess(''), 3000);
       } catch (error) {
-('PayrollManagement: Error deleting payroll:', error);
+        console.log('PayrollManagement: Error deleting payroll:', error);
         setUserError(`Failed to delete payroll: ${error.message}`);
       }
     }
@@ -904,8 +904,8 @@ const PayrollManagement = () => {
     }
     
     // Debug: Log employee lookup
-('Looking up employee with ID:', employeeId);
-('Available employees:', currentEmployees.map(emp => ({ id: emp.id || emp._id, name: `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() })));
+    console.log('Looking up employee with ID:', employeeId);
+    console.log('Available employees:', currentEmployees.map(emp => ({ id: emp.id || emp._id, name: `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() })));
     
     // Check manual mappings first
     const employeeIdStr = String(employeeId);
@@ -937,11 +937,11 @@ const PayrollManagement = () => {
     
     if (employee) {
       const name = `${employee.firstName || employee.first_name || ''} ${employee.lastName || employee.last_name || ''}`.trim();
-('Found employee:', { id: employee.id || employee._id, name });
+      console.log('Found employee:', { id: employee.id || employee._id, name });
       return name || 'Unknown Employee';
     }
     
-('No employee found for ID:', employeeIdStr);
+    console.log('No employee found for ID:', employeeIdStr);
     return `Unknown Employee (ID: ${employeeIdStr.substring(0, 8)}...)`;
   };
 
@@ -952,7 +952,7 @@ const PayrollManagement = () => {
     }
     
     // Debug: Log the payroll record structure
-('PayrollRecord structure:', {
+    console.log('PayrollRecord structure:', {
       id: payrollRecord.id || payrollRecord._id,
       employeeId: payrollRecord.employeeId,
       employee: payrollRecord.employee,
@@ -1015,7 +1015,7 @@ const PayrollManagement = () => {
         day: 'numeric'
       });
     } catch (error) {
-('Error formatting date:', error);
+      console.log('Error formatting date:', error);
       return 'Invalid Date';
     }
   };
@@ -1347,11 +1347,6 @@ const PayrollManagement = () => {
       >
         <MenuItem 
           onClick={() => {
-            if (!canEdit(user)) {
-              showPermissionError('edit payroll', user);
-              handleMenuClose();
-              return;
-            }
             handleEdit(selectedPayroll);
             handleMenuClose();
           }}
@@ -1373,11 +1368,6 @@ const PayrollManagement = () => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
-            if (!canDelete(user)) {
-              showPermissionError('delete payroll', user);
-              handleMenuClose();
-              return;
-            }
             handleDelete(selectedPayroll?.id || selectedPayroll?._id);
             handleMenuClose();
           }}

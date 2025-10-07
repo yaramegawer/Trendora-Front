@@ -158,23 +158,6 @@ export const operationTicketApi = {
     });
   },
 
-  // Get all tickets
-  getAllTickets: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.OPERATION.TICKETS);
-  },
 
-  // Update ticket status
-  updateTicket: async (id, ticketData) => {
-    return await apiCall(`${API_CONFIG.ENDPOINTS.OPERATION.TICKETS}/${id}`, {
-      method: 'PUT',
-      data: ticketData,
-    });
-  },
 
-  // Delete ticket
-  deleteTicket: async (id) => {
-    return await apiCall(`${API_CONFIG.ENDPOINTS.OPERATION.TICKETS}/${id}`, {
-      method: 'DELETE',
-    });
-  },
 };

@@ -47,6 +47,10 @@ export const API_CONFIG = {
       UPDATE_INVOICE: '/accounting/update_invoice',
       GET_ALL_INVOICES: '/accounting/get_all',
       DELETE_INVOICE: '/accounting/delete_invoice',
+    },
+    DASHBOARD: {
+      LEAVES: '/dashboard/leaves',
+      TICKETS: '/dashboard/tickets',
     }
   }
 };

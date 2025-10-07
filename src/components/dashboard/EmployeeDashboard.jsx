@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
+import { API_CONFIG } from '../../config/api';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -90,7 +91,7 @@ const EmployeeDashboard = () => {
     setError('');
     setSuccess('');
 
-    // Check if user is authenticated and loaded
+    // Basic authentication check only
     if (!user) {
       alert('You must be logged in to submit a leave request.');
       setError('You must be logged in to submit a leave request.');
@@ -163,7 +164,7 @@ const EmployeeDashboard = () => {
 
 ('Submitting leave request:', leaveData);
       
-      const response = await api.post('/operation/leaves', leaveData);
+      const response = await api.post(API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES, leaveData);
       
 ('Leave request response:', response.data);
       
@@ -194,7 +195,7 @@ const EmployeeDashboard = () => {
     setError('');
     setSuccess('');
 
-    // Check if user is authenticated and loaded
+    // Basic authentication check only
     if (!user) {
       alert('You must be logged in to submit a support ticket.');
       setError('You must be logged in to submit a support ticket.');
@@ -255,7 +256,7 @@ const EmployeeDashboard = () => {
 
 ('Submitting support ticket:', ticketData);
       
-      const response = await api.post('/operation/tickets', ticketData);
+      const response = await api.post(API_CONFIG.ENDPOINTS.DASHBOARD.TICKETS, ticketData);
       
 ('Ticket submission response:', response.data);
       
@@ -301,18 +302,23 @@ const EmployeeDashboard = () => {
     setLeavesError('');
     try {
 ('🔄 Fetching user leaves...');
-      // Try HR leaves endpoint first (it's wrapped in authorization middleware)
+      // Try dashboard leaves endpoint first
       let response;
       try {
-('🔄 Trying /hr/leaves endpoint (authorized)...');
-        response = await api.get('/hr/leaves');
-      } catch (hrError) {
-('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
+('🔄 Trying /dashboard/leaves endpoint...');
+        response = await api.get(API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES);
+      } catch (dashboardError) {
+('⚠️ Dashboard leaves endpoint failed, trying HR leaves endpoint...', dashboardError);
         try {
-          response = await api.get('/operation/leaves');
-        } catch (operationError) {
+          response = await api.get('/hr/leaves');
+        } catch (hrError) {
+('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
+          try {
+            response = await api.get('/operation/leaves');
+          } catch (operationError) {
 ('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
-          response = await api.get('/it/leaves');
+            response = await api.get('/it/leaves');
+          }
         }
       }
 ('📡 User Leaves API Response:', response);
@@ -413,122 +419,118 @@ const EmployeeDashboard = () => {
         {activeTab === 0 && (
           <Box>
             {/* Action Cards */}
-            <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
-        {/* Submit Leave Card */}
-        <Grid size={{ xs: 12, md: 9 }} sx={{ display: 'flex' }}>
-          <Card sx={{ 
-            height: 280, 
-            width: '800px',
-            display: 'flex',
-            flexDirection: 'column',
-            '&:hover': { boxShadow: 6 }, 
-            transition: 'box-shadow 0.3s' 
-          }}>
-            <CardContent sx={{ 
-              p: 3, 
-              height: '100%', 
-              display: 'flex', 
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}>
-              <Box>
-                <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
-                    <EventNoteOutlined sx={{ fontSize: 28 }} />
-                  </Avatar>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+              {/* Submit Leave Card */}
+              <Card sx={{ 
+                height: 280, 
+                width: '800px',
+                display: 'flex',
+                flexDirection: 'column',
+                '&:hover': { boxShadow: 6 }, 
+                transition: 'box-shadow 0.3s' 
+              }}>
+                <CardContent sx={{ 
+                  p: 3, 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
                   <Box>
-                    <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      Submit Leave Request
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Request time off for vacation, sick leave, or personal matters
+                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
+                        <EventNoteOutlined sx={{ fontSize: 28 }} />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          Submit Leave Request
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Request time off for vacation, sick leave, or personal matters
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Submit a leave request with your preferred dates and reason. Your manager will review and approve your request.
                     </Typography>
                   </Box>
-                </Stack>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Submit a leave request with your preferred dates and reason. Your manager will review and approve your request.
-                </Typography>
-              </Box>
-              
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                startIcon={<SendOutlined />}
-                onClick={() => setLeaveDialogOpen(true)}
-                sx={{
-                  py: 1.5,
-                  textTransform: 'none',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  borderRadius: 2
-                }}
-              >
-                Submit Leave Request
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
+                  
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    startIcon={<SendOutlined />}
+                    onClick={() => setLeaveDialogOpen(true)}
+                    sx={{
+                      py: 1.5,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      borderRadius: 2
+                    }}
+                  >
+                    Submit Leave Request
+                  </Button>
+                </CardContent>
+              </Card>
 
-        {/* Submit Ticket Card */}
-        <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex' }}>
-          <Card sx={{ 
-            height: 280, 
-            width: '800px',
-            display: 'flex',
-            flexDirection: 'column',
-            '&:hover': { boxShadow: 6 }, 
-            transition: 'box-shadow 0.3s' 
-          }}>
-            <CardContent sx={{ 
-              p: 3, 
-              height: '100%', 
-              display: 'flex', 
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}>
-              <Box>
-                <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-                  <Avatar sx={{ bgcolor: 'info.main', width: 56, height: 56 }}>
-                    <SupportAgentOutlined sx={{ fontSize: 28 }} />
-                  </Avatar>
+              {/* Submit Ticket Card */}
+              <Card sx={{ 
+                height: 280, 
+                width: '800px',
+                display: 'flex',
+                flexDirection: 'column',
+                '&:hover': { boxShadow: 6 }, 
+                transition: 'box-shadow 0.3s' 
+              }}>
+                <CardContent sx={{ 
+                  p: 3, 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
                   <Box>
-                    <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      Submit Support Ticket
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Get help with technical issues or general inquiries
+                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+                      <Avatar sx={{ bgcolor: 'info.main', width: 56, height: 56 }}>
+                        <SupportAgentOutlined sx={{ fontSize: 28 }} />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          Submit Support Ticket
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Get help with technical issues or general inquiries
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Submit a support ticket for any technical issues, questions, or assistance you need. Our support team will respond promptly.
                     </Typography>
                   </Box>
-                </Stack>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Submit a support ticket for any technical issues, questions, or assistance you need. Our support team will respond promptly.
-                </Typography>
-              </Box>
-              
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                startIcon={<SendOutlined />}
-                onClick={() => setTicketDialogOpen(true)}
-                color="info"
-                sx={{
-                  py: 1.5,
-                  textTransform: 'none',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  borderRadius: 2
-                }}
-              >
-                Submit Support Ticket
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-            </Grid>
+                  
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    startIcon={<SendOutlined />}
+                    onClick={() => setTicketDialogOpen(true)}
+                    color="info"
+                    sx={{
+                      py: 1.5,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      borderRadius: 2
+                    }}
+                  >
+                    Submit Support Ticket
+                  </Button>
+                </CardContent>
+              </Card>
+            </Box>
           </Box>
         )}
 

@@ -44,6 +44,7 @@ import {
   Info
 } from '@mui/icons-material';
 import { useAccountingData } from '../../hooks/useAccountingData';
+import SimplePagination from '../common/SimplePagination';
 
 const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
   const {
@@ -51,9 +52,15 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     loading,
     error,
     fieldErrors,
+    currentPage,
+    totalPages,
+    totalInvoices,
+    pageSize,
     addInvoice,
     updateInvoice,
     deleteInvoice,
+    goToPage,
+    changePageSize,
     clearError
   } = useAccountingData();
 
@@ -349,7 +356,26 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
       </Box>
 
       {/* Error Alert */}
-      
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={() => {
+                clearError();
+                fetchInvoices();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
 
       {/* Invoices Table */}
       <Card>
@@ -427,6 +453,47 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               </Table>
             </TableContainer>
           )}
+          
+          
+          {/* Pagination Controls */}
+          {totalInvoices > 0 && (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              p: 2,
+              borderTop: '1px solid #e2e8f0'
+            }}>
+              <Typography variant="body2" color="text.secondary">
+                Showing {invoices.length} of {totalInvoices} invoices
+              </Typography>
+              
+              <FormControl size="small" sx={{ minWidth: 80 }}>
+                <InputLabel>Per page</InputLabel>
+                <Select
+                  value={pageSize}
+                  onChange={(e) => changePageSize(e.target.value)}
+                  label="Per page"
+                >
+                  <MenuItem value={5}>5</MenuItem>
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={25}>25</MenuItem>
+                  <MenuItem value={50}>50</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+          
+          {/* SimplePagination Component */}
+          {totalPages > 1 && (
+            <SimplePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalInvoices}
+              pageSize={pageSize}
+              onPageChange={goToPage}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -451,19 +518,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               </Alert>
             )}
 
-            {/* Debug: Show field errors */}
-            {Object.keys(formFieldErrors).length > 0 && (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                  <strong>Field Errors Found:</strong>
-                </Typography>
-                {Object.entries(formFieldErrors).map(([field, error]) => (
-                  <Typography key={field} variant="caption" display="block">
-                    {field}: {error}
-                  </Typography>
-                ))}
-              </Alert>
-            )}
+            {/* Field errors are now displayed directly on the form fields */}
 
             <Typography variant="h6" gutterBottom>
               Invoice Details

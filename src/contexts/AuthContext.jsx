@@ -3,6 +3,16 @@ import { userApiService } from '../services/userApi';
 import api from '../api/axios';
 import { API_CONFIG } from '../config/api';
 
+// Department ID mapping (same as in departmentAuth.jsx)
+const DEPARTMENT_ID_MAP = {
+  '68da376594328b3a175633a7': 'IT',
+  '68da377194328b3a175633ad': 'HR',
+  '68da378594328b3a175633b3': 'Operation',
+  '68da378d94328b3a175633b9': 'Sales',
+  '68da379894328b3a175633bf': 'Accounting',
+  '68da6e0813fe176e91aefd59': 'Digital Marketing'
+};
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -150,12 +160,12 @@ export const AuthProvider = ({ children }) => {
       // Always try to extract from JWT token first (regardless of user data in response)
       let userIdFromToken = null;
       let roleFromToken = null;
+      let departmentFromToken = null;
       if (token) {
         try {
-          // Decode JWT token to extract user ID and role
+          // Decode JWT token to extract user ID, role, and department
           const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-('🔍 JWT Token payload:', tokenPayload);
-('🔍 All token payload fields:', Object.keys(tokenPayload));
+          
           
           // Extract user ID from various possible field names
           userIdFromToken = tokenPayload.user_id || tokenPayload.sub || tokenPayload.id || 
@@ -171,40 +181,90 @@ export const AuthProvider = ({ children }) => {
           for (const field of roleFields) {
             if (tokenPayload[field]) {
               roleFromToken = tokenPayload[field];
-(`🔍 Found role in field '${field}':`, roleFromToken);
               break;
             }
+          }
+          
+          // Extract department from various possible field names
+          const departmentFields = [
+            'department', 'department_id', 'departmentId', 'dept', 'dept_id',
+            'departmentId', 'departmentName', 'deptName', 'department_name',
+            'userDepartment', 'user_department', 'userDepartmentId', 'user_department_id'
+          ];
+          
+          for (const field of departmentFields) {
+            if (tokenPayload[field]) {
+              departmentFromToken = tokenPayload[field];
+              break;
+            }
+          }
+          
+          // If not found in direct fields, check if it's an object with name/id
+          if (!departmentFromToken) {
+            const departmentObjFields = ['department', 'dept', 'userDepartment'];
+            for (const field of departmentObjFields) {
+              if (tokenPayload[field] && typeof tokenPayload[field] === 'object') {
+                const deptObj = tokenPayload[field];
+                departmentFromToken = deptObj.id || deptObj._id || deptObj.name || deptObj.departmentName;
+                if (departmentFromToken) {
+                  break;
+                }
+              }
+            }
+          }
+          
+          // If still not found, check all fields for department-like values (IDs that match our department mapping)
+          if (!departmentFromToken) {
+            const departmentIds = Object.keys(DEPARTMENT_ID_MAP);
+            
+            for (const [key, value] of Object.entries(tokenPayload)) {
+              if (departmentIds.includes(value)) {
+                departmentFromToken = value;
+                break;
+              }
+            }
+            
           }
           
           // Also check nested objects
           if (!roleFromToken && tokenPayload.user && tokenPayload.user.role) {
             roleFromToken = tokenPayload.user.role;
-('🔍 Found role in nested user object:', roleFromToken);
+          }
+          
+          if (!departmentFromToken && tokenPayload.user && tokenPayload.user.department) {
+            departmentFromToken = tokenPayload.user.department;
+          }
+          
+          // Check if user.department is an object
+          if (!departmentFromToken && tokenPayload.user && tokenPayload.user.department && typeof tokenPayload.user.department === 'object') {
+            const userDept = tokenPayload.user.department;
+            departmentFromToken = userDept.id || userDept._id || userDept.name;
           }
           
           // Check profile object
           if (!roleFromToken && tokenPayload.profile && tokenPayload.profile.role) {
             roleFromToken = tokenPayload.profile.role;
-('🔍 Found role in profile object:', roleFromToken);
+          }
+          
+          if (!departmentFromToken && tokenPayload.profile && tokenPayload.profile.department) {
+            departmentFromToken = tokenPayload.profile.department;
           }
           
           // Check data object
           if (!roleFromToken && tokenPayload.data && tokenPayload.data.role) {
             roleFromToken = tokenPayload.data.role;
-('🔍 Found role in data object:', roleFromToken);
           }
           
-('🔍 Extracted user ID from token:', userIdFromToken);
-('🔍 Extracted role from token:', roleFromToken);
+          if (!departmentFromToken && tokenPayload.data && tokenPayload.data.department) {
+            departmentFromToken = tokenPayload.data.department;
+          }
+          
           
         } catch (error) {
-('❌ Could not decode JWT token:', error);
-('❌ Token format might be invalid or not a JWT');
         }
       }
       
       if (!hasUserData && !userIdFromToken) {
-('No user data found in response or token:', data);
         throw new Error('Invalid user data received from server');
       }
       
@@ -213,6 +273,11 @@ export const AuthProvider = ({ children }) => {
         email: email.trim(),
         id: data.user?._id || data.user?.id || data.id || data.userId || data._id || userIdFromToken,
         role: roleFromToken || data.user?.role || data.role || 'User', // Prioritize role from token
+        department: departmentFromToken || 
+                   data.user?.is_user_exists?.department || 
+                   data.user?.department || 
+                   data.department || 
+                   null, // Include department from nested structure
         name: data.user?.name || data.name || email.trim().split('@')[0], // Use email prefix as name if not provided
         subscription_status: data.user?.subscription_status || data.subscription_status,
         ...data.user, // Include any additional user data from API response
@@ -222,27 +287,17 @@ export const AuthProvider = ({ children }) => {
       // Override role with token role if found (highest priority)
       if (roleFromToken) {
         userData.role = roleFromToken;
-('🔍 Overriding role with token role:', roleFromToken);
       }
       
-('🔍 Role extraction debug:');
-('  - roleFromToken:', roleFromToken);
-('  - data.user?.role:', data.user?.role);
-('  - data.role:', data.role);
-('  - data.user:', data.user);
-('  - Final role:', userData.role);
-('🔍 Constructed user data:', userData);
-      
-      // Additional debugging - check if role is in the response but not being captured
-('🔍 Full response structure check:');
-('  - data keys:', Object.keys(data));
-      if (data.user) {
-('  - data.user keys:', Object.keys(data.user));
+      // Override department with token department if found (highest priority)
+      if (departmentFromToken) {
+        userData.department = departmentFromToken;
       }
+      
+      
       
       // If we still don't have a role, try fallback methods
       if (!userData.role || userData.role === 'User') {
-('No role found in token, trying fallback methods...');
         
         // Fallback: Check if this is a known admin user by email or ID
         const adminEmails = ['admin@trendora.com', 'admin@example.com'];
@@ -250,25 +305,33 @@ export const AuthProvider = ({ children }) => {
         
         if (adminEmails.includes(userData.email) || adminIds.includes(userData.id)) {
           userData.role = 'Admin';
-('Set role to Admin based on email/ID fallback');
         } else {
-          // TEMPORARY: Force Admin role for testing
-('🔧 TEMPORARY: Setting role to Admin for testing purposes');
-          userData.role = 'Admin';
-          
           // Try to fetch from database if endpoint exists
           try {
-('Attempting to fetch user role from database for ID:', userData.id);
             const userDetails = await userApiService.getUserDetails(userData.id);
             
             if (userDetails && userDetails.role) {
               userData.role = userDetails.role;
-('Updated user role from database:', userData.role);
+            }
+            if (userDetails && userDetails.department) {
+              userData.department = userDetails.department;
             }
           } catch (error) {
-('Could not fetch user role from database:', error.message);
-            // Keep default 'User' role if we can't determine it
+            // Keep default role if we can't determine it
+            userData.role = 'Employee';
           }
+        }
+      }
+      
+      // If we still don't have department, try to fetch it from API
+      if (!userData.department && userData.id) {
+        try {
+          const userDetails = await userApiService.getUserDetails(userData.id);
+          
+          if (userDetails && userDetails.department) {
+            userData.department = userDetails.department;
+          }
+        } catch (error) {
         }
       }
       

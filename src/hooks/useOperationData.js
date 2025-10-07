@@ -362,7 +362,6 @@ export const useOperationTickets = () => {
 ('Processed operation tickets data:', ticketsData);
       setTickets(ticketsData);
     } catch (err) {
-('Operation Tickets API Error, using empty array:', err.message);
       setError(err.message);
       setTickets([]);
     } finally {
@@ -380,7 +379,6 @@ export const useOperationTickets = () => {
       await fetchTickets();
       return { success: true, data: response.data || response };
     } catch (err) {
-('Error adding operation ticket:', err);
       throw err;
     }
   };
@@ -395,7 +393,6 @@ export const useOperationTickets = () => {
       await fetchTickets();
       return { success: true, data: response.data || response };
     } catch (err) {
-('Error updating operation ticket:', err);
       throw err;
     }
   };
@@ -410,14 +407,14 @@ export const useOperationTickets = () => {
       await fetchTickets();
       return { success: true, data: response.data || response };
     } catch (err) {
-('Error deleting operation ticket:', err);
       throw err;
     }
   };
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  // Disabled automatic API call - only fetch when explicitly requested
+  // useEffect(() => {
+  //   fetchTickets();
+  // }, []);
 
   return {
     tickets,

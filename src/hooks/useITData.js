@@ -26,7 +26,7 @@ export const useITEmployees = () => {
       
       setEmployees(employeesData);
     } catch (err) {
-('IT Employees API Error:', err);
+console.log('IT Employees API Error:', err);
       setError(err.message);
       setEmployees([]);
     } finally {
@@ -40,7 +40,7 @@ export const useITEmployees = () => {
       await fetchEmployees(); // Refresh the employees list
       return updatedEmployee;
     } catch (err) {
-('Error updating employee rating:', err);
+console.log('Error updating employee rating:', err);
       throw err;
     }
   };
@@ -71,12 +71,12 @@ export const useITProjects = (page = 1, limit = 10) => {
     setLoading(true);
     setError(null);
     try {
-(`useITProjects: Fetching projects with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+console.log(`useITProjects: Fetching projects with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
       // Fetch paginated data
       const paginatedResponse = await itProjectApi.getAllProjects(pageNum, pageLimit);
       
-('useITProjects: IT Projects API Response:', paginatedResponse);
+console.log('useITProjects: IT Projects API Response:', paginatedResponse);
       
       // Process paginated data for current page
       let projectsData = [];
@@ -99,7 +99,7 @@ export const useITProjects = (page = 1, limit = 10) => {
       
       // If we don't have a total count from the API, fetch all projects to get the count
       if (totalCount === 0 || totalCount === projectsData.length) {
-('useITProjects: No total count from API, fetching all projects for total count...');
+console.log('useITProjects: No total count from API, fetching all projects for total count...');
         const allProjectsResponse = await itProjectApi.getAllProjects(1, 1000);
         
         let allProjectsData = [];
@@ -112,18 +112,18 @@ export const useITProjects = (page = 1, limit = 10) => {
         }
         
         totalCount = allProjectsData.length;
-('useITProjects: Total projects count from all data:', totalCount);
+console.log('useITProjects: Total projects count from all data:', totalCount);
       }
       
-('useITProjects: IT projects total count:', totalCount);
-('useITProjects: Current page projects data:', projectsData);
+console.log('useITProjects: IT projects total count:', totalCount);
+console.log('useITProjects: Current page projects data:', projectsData);
       
       setProjects(projectsData);
       setTotalProjects(totalCount);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-('IT Projects API Error, using empty array:', err.message);
+console.log('IT Projects API Error, using empty array:', err.message);
       
       // Handle specific ObjectId casting errors silently
       if (err.message && err.message.includes('Cast to ObjectId failed')) {
@@ -141,15 +141,15 @@ export const useITProjects = (page = 1, limit = 10) => {
 
   const createProject = async (projectData) => {
     try {
-('🔧 useITProjects - createProject called with:', projectData);
+console.log('🔧 useITProjects - createProject called with:', projectData);
       const newProject = await itProjectApi.createProject(projectData);
-('🔧 useITProjects - API response:', newProject);
+console.log('🔧 useITProjects - API response:', newProject);
       await fetchProjects(currentPage, pageSize); // Refresh the current page
-('🔧 useITProjects - Projects refreshed after creation');
+console.log('🔧 useITProjects - Projects refreshed after creation');
       return newProject;
     } catch (err) {
-('❌ useITProjects - Error creating project:', err);
-('❌ useITProjects - Error details:', {
+console.log('❌ useITProjects - Error creating project:', err);
+console.log('❌ useITProjects - Error details:', {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data
@@ -164,7 +164,7 @@ export const useITProjects = (page = 1, limit = 10) => {
       await fetchProjects(currentPage, pageSize); // Refresh the current page
       return updatedProject;
     } catch (err) {
-('Error updating project:', err);
+console.log('Error updating project:', err);
       throw err;
     }
   };
@@ -174,7 +174,7 @@ export const useITProjects = (page = 1, limit = 10) => {
       await itProjectApi.deleteProject(id);
       await fetchProjects(currentPage, pageSize); // Refresh the current page
     } catch (err) {
-('Error deleting project:', err);
+console.log('Error deleting project:', err);
       throw err;
     }
   };
@@ -186,14 +186,14 @@ export const useITProjects = (page = 1, limit = 10) => {
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalProjects / pageSize);
-(`useITProjects goToPage: pageNum=${pageNum}, totalProjects=${totalProjects}, pageSize=${pageSize}, maxPages=${maxPages}`);
+console.log(`useITProjects goToPage: pageNum=${pageNum}, totalProjects=${totalProjects}, pageSize=${pageSize}, maxPages=${maxPages}`);
     
     // Always allow page changes if totalProjects is 0 (initial state) or if page is in valid range
     if (totalProjects === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-(`useITProjects goToPage: Fetching page ${pageNum}`);
+console.log(`useITProjects goToPage: Fetching page ${pageNum}`);
       fetchProjects(pageNum, pageSize);
     } else {
-(`useITProjects goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+console.log(`useITProjects goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 
@@ -246,17 +246,17 @@ export const useITTickets = (page = 1, limit = 10) => {
     setLoading(true);
     setError(null);
     try {
-(`useITTickets: Fetching tickets with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+console.log(`useITTickets: Fetching tickets with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
       // First, fetch all tickets to get total count
-('useITTickets: Fetching all tickets for total count...');
+console.log('useITTickets: Fetching all tickets for total count...');
       const allTicketsResponse = await itTicketApi.getAllTickets(1, 1000); // Get all tickets
       
       // Then fetch paginated data
       const paginatedResponse = await itTicketApi.getAllTickets(pageNum, pageLimit);
       
-('useITTickets: All Tickets API Response:', allTicketsResponse);
-('useITTickets: Paginated Tickets API Response:', paginatedResponse);
+console.log('useITTickets: All Tickets API Response:', allTicketsResponse);
+console.log('useITTickets: Paginated Tickets API Response:', paginatedResponse);
       
       // Process all tickets for total count
       let allTicketsData = [];
@@ -280,15 +280,14 @@ export const useITTickets = (page = 1, limit = 10) => {
       
       const totalTicketsCount = allTicketsData.length;
       
-('useITTickets: All tickets count:', totalTicketsCount);
-('useITTickets: Current page tickets data:', ticketsData);
+console.log('useITTickets: All tickets count:', totalTicketsCount);
+console.log('useITTickets: Current page tickets data:', ticketsData);
       
       setTickets(ticketsData);
       setTotalTickets(totalTicketsCount);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-('IT Tickets API Error:', err);
       setError(err.message);
       setTickets([]);
       setTotalTickets(0);
@@ -303,7 +302,6 @@ export const useITTickets = (page = 1, limit = 10) => {
       await fetchTickets(currentPage, pageSize); // Refresh the current page
       return newTicket;
     } catch (err) {
-('Error creating ticket:', err);
       throw err;
     }
   };
@@ -314,7 +312,6 @@ export const useITTickets = (page = 1, limit = 10) => {
       await fetchTickets(currentPage, pageSize); // Refresh the current page
       return updatedTicket;
     } catch (err) {
-('Error updating ticket:', err);
       throw err;
     }
   };
@@ -324,11 +321,11 @@ export const useITTickets = (page = 1, limit = 10) => {
       await itTicketApi.deleteTicket(id);
       await fetchTickets(currentPage, pageSize); // Refresh the current page
     } catch (err) {
-('Error deleting ticket:', err);
       throw err;
     }
   };
 
+  // Enable automatic API call to fetch tickets on component mount
   useEffect(() => {
     fetchTickets();
   }, []);
@@ -336,14 +333,14 @@ export const useITTickets = (page = 1, limit = 10) => {
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalTickets / pageSize);
-(`useITTickets goToPage: pageNum=${pageNum}, totalTickets=${totalTickets}, pageSize=${pageSize}, maxPages=${maxPages}`);
+console.log(`useITTickets goToPage: pageNum=${pageNum}, totalTickets=${totalTickets}, pageSize=${pageSize}, maxPages=${maxPages}`);
     
     // Always allow page changes if totalTickets is 0 (initial state) or if page is in valid range
     if (totalTickets === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-(`useITTickets goToPage: Fetching page ${pageNum}`);
+console.log(`useITTickets goToPage: Fetching page ${pageNum}`);
       fetchTickets(pageNum, pageSize);
     } else {
-(`useITTickets goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+console.log(`useITTickets goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 
@@ -408,7 +405,7 @@ export const useITLeaves = () => {
       
       setLeaves(leavesData);
     } catch (err) {
-('IT Leaves API Error:', err);
+console.log('IT Leaves API Error:', err);
       setError(err.message);
       setLeaves([]);
     } finally {
@@ -422,7 +419,7 @@ export const useITLeaves = () => {
       await fetchLeaves(); // Refresh the list
       return newLeave;
     } catch (err) {
-('Error submitting leave:', err);
+console.log('Error submitting leave:', err);
       throw err;
     }
   };
@@ -433,7 +430,7 @@ export const useITLeaves = () => {
       await fetchLeaves(); // Refresh the list
       return updatedLeave;
     } catch (err) {
-('Error updating leave status:', err);
+console.log('Error updating leave status:', err);
       throw err;
     }
   };
@@ -443,14 +440,15 @@ export const useITLeaves = () => {
       await itLeaveApi.deleteLeave(id);
       await fetchLeaves(); // Refresh the list
     } catch (err) {
-('Error deleting leave:', err);
+console.log('Error deleting leave:', err);
       throw err;
     }
   };
 
-  useEffect(() => {
-    fetchLeaves();
-  }, []);
+  // Disabled automatic API call - only fetch when explicitly requested
+  // useEffect(() => {
+  //   fetchLeaves();
+  // }, []);
 
   return {
     leaves,

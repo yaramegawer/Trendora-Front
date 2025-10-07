@@ -21,10 +21,10 @@ export const checkPermission = (user, requiredRoles = ['Admin', 'HR']) => {
   return requiredRoles.includes(userRole);
 };
 
-export const canAdd = (user) => checkPermission(user, ['Admin', 'HR']);
-export const canEdit = (user) => checkPermission(user, ['Admin', 'HR']);
-export const canDelete = (user) => checkPermission(user, ['Admin', 'HR']);
-export const canView = (user) => checkPermission(user, ['Admin', 'HR', 'Manager']);
+export const canAdd = (user) => checkPermission(user, ['Admin', 'HR', 'IT Staff']);
+export const canEdit = (user) => checkPermission(user, ['Admin', 'HR', 'IT Staff']);
+export const canDelete = (user) => checkPermission(user, ['Admin', 'HR', 'IT Staff']);
+export const canView = (user) => checkPermission(user, ['Admin', 'HR', 'Manager', 'IT Staff']);
 
 // Leave submission is available to all authenticated employees
 export const canSubmitLeave = (user) => {

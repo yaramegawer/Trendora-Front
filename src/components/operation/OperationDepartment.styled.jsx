@@ -1394,7 +1394,7 @@ const OperationDepartment = () => {
                 {/* Campaigns Table Header */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '2fr 2fr 2fr 1fr 1fr 1fr 1fr 1fr',
+                  gridTemplateColumns: '2fr 2fr 2fr 1fr 2fr 1fr 1fr 1fr',
                   gap: '16px',
                   padding: '16px',
                   backgroundColor: '#f8fafc',
@@ -1407,7 +1407,7 @@ const OperationDepartment = () => {
                   <div>Customer Name</div>
                   <div>Description</div>
                   <div>Status</div>
-                  <div>Budget</div>
+                  <div>Notes</div>
                   <div>Start Date</div>
                   <div>End Date</div>
                   <div>Actions</div>
@@ -1419,7 +1419,7 @@ const OperationDepartment = () => {
                   return (
                     <div key={campaign.id || campaign._id} style={{
                       display: 'grid',
-                      gridTemplateColumns: '2fr 2fr 2fr 1fr 1fr 1fr 1fr 1fr',
+                      gridTemplateColumns: '2fr 2fr 2fr 1fr 2fr 1fr 1fr 1fr',
                       gap: '16px',
                       padding: '16px',
                       backgroundColor: '#ffffff',
@@ -1487,13 +1487,16 @@ const OperationDepartment = () => {
                         </select>
                       </div>
 
-                      {/* Budget */}
+                      {/* Notes */}
                       <div style={{
                         fontSize: '13px',
-                        color: '#059669',
-                        fontWeight: '500'
+                        color: '#6b7280',
+                        wordBreak: 'break-word',
+                        maxHeight: '40px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
                       }}>
-                        {campaign.budget ? `$${campaign.budget}` : 'N/A'}
+                        {campaign.notes || 'No notes available'}
                       </div>
 
                       {/* Start Date */}
