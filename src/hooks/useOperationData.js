@@ -346,20 +346,8 @@ export const useOperationTickets = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await operationTicketApi.getAllTickets();
-('Operation Tickets API Response:', response);
-      
-      // Handle different response formats
-      let ticketsData = [];
-      if (Array.isArray(response)) {
-        ticketsData = response;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        ticketsData = response.data;
-      } else if (response && response.success && Array.isArray(response.data)) {
-        ticketsData = response.data;
-      }
-      
-('Processed operation tickets data:', ticketsData);
+      // Tickets fetching removed - return empty array
+      const ticketsData = [];
       setTickets(ticketsData);
     } catch (err) {
       setError(err.message);
@@ -383,33 +371,7 @@ export const useOperationTickets = () => {
     }
   };
 
-  const updateTicket = async (id, ticketData) => {
-    try {
-('Updating operation ticket:', id, ticketData);
-      const response = await operationTicketApi.updateTicket(id, ticketData);
-('Operation ticket update response:', response);
-      
-      // Refresh tickets data
-      await fetchTickets();
-      return { success: true, data: response.data || response };
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const deleteTicket = async (id) => {
-    try {
-('Deleting operation ticket:', id);
-      const response = await operationTicketApi.deleteTicket(id);
-('Operation ticket deletion response:', response);
-      
-      // Refresh tickets data
-      await fetchTickets();
-      return { success: true, data: response.data || response };
-    } catch (err) {
-      throw err;
-    }
-  };
+  // updateTicket and deleteTicket functions removed
 
   // Disabled automatic API call - only fetch when explicitly requested
   // useEffect(() => {
@@ -421,9 +383,7 @@ export const useOperationTickets = () => {
     loading,
     error,
     fetchTickets,
-    addTicket,
-    updateTicket,
-    deleteTicket
+    addTicket
   };
 };
 
@@ -576,12 +536,11 @@ export const useOperationRecentActivities = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch all operation data in parallel
-      const [employeesResponse, campaignsResponse, leavesResponse, ticketsResponse] = await Promise.all([
+      // Fetch all operation data in parallel (tickets removed)
+      const [employeesResponse, campaignsResponse, leavesResponse] = await Promise.all([
         operationEmployeeApi.getAllEmployees().catch(() => ({ data: [] })),
         operationCampaignApi.getAllCampaigns(1, 100).catch(() => ({ data: [] })),
-        operationLeaveApi.getEmployeeLeaves().catch(() => ({ data: [] })),
-        operationTicketApi.getAllTickets().catch(() => ({ data: [] }))
+        operationLeaveApi.getEmployeeLeaves().catch(() => ({ data: [] }))
       ]);
 
       // Extract data from responses
@@ -593,19 +552,9 @@ export const useOperationRecentActivities = () => {
       
       const leaves = Array.isArray(leavesResponse) ? leavesResponse : 
         (leavesResponse?.data || leavesResponse?.success ? leavesResponse.data : []);
-      
-      const tickets = Array.isArray(ticketsResponse) ? ticketsResponse : 
-        (ticketsResponse?.data || ticketsResponse?.success ? ticketsResponse.data : []);
 
-('Operation Recent Activities Data:', {
-        employees: employees.length,
-        campaigns: campaigns.length,
-        leaves: leaves.length,
-        tickets: tickets.length
-      });
-
-      // Generate recent activities from the data
-      const activities = generateRecentActivities(employees, campaigns, leaves, tickets);
+      // Generate recent activities from the data (tickets removed)
+      const activities = generateRecentActivities(employees, campaigns, leaves, []);
       setRecentActivities(activities);
       
 ('Generated recent activities:', activities);

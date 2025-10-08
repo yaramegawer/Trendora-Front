@@ -183,7 +183,7 @@ export const useAccountingData = () => {
       const errorMsg = 'Failed to submit leave request';
       setError(errorMsg);
       setFieldErrors({});
-      console.log('Error submitting leave request:', err);
+      // Error submitting leave request
       return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);
@@ -209,7 +209,7 @@ export const useAccountingData = () => {
       const errorMsg = 'Failed to submit ticket request';
       setError(errorMsg);
       setFieldErrors({});
-      console.log('Error submitting ticket request:', err);
+      // Error submitting ticket request
       return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);
@@ -235,7 +235,7 @@ export const useAccountingData = () => {
       const errorMsg = 'Failed to fetch invoice';
       setError(errorMsg);
       setFieldErrors({});
-      console.log('Error fetching invoice:', err);
+      // Error fetching invoice
       return { success: false, error: errorMsg, fieldErrors: {} };
     } finally {
       setLoading(false);

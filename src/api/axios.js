@@ -23,14 +23,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
       config.headers.token = `Trendora ${token}`;
       
-      // Log the request details for debugging
-      console.log(`🚀 Making API request:`, {
-        url: config.baseURL + config.url,
-        method: config.method,
-        headers: config.headers,
-        params: config.params,
-        data: config.data
-      });
+      // Debug logging removed for production
     }
     
     // Note: Removed custom headers to avoid CORS issues
@@ -39,7 +32,6 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.log('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );

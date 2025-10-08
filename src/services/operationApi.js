@@ -15,7 +15,7 @@ const apiCall = async (endpoint, options = {}) => {
     if (error.response?.status === 403) {
       return [];
     }
-    (`Operation API Error to ${endpoint}:`, error);
+    // Operation API Error handled
     throw error;
   }
 };
@@ -87,18 +87,18 @@ export const operationLeaveApi = {
   // Get leaves for specific employee (authenticated user)
   getEmployeeLeaves: async () => {
     try {
-('🌐 Operation Employee Leaves API Call: /dashboard/leaves');
+      // Operation Employee Leaves API Call
       const response = await apiCall('/dashboard/leaves', {
         method: 'GET',
       });
-('📡 Operation Employee Leaves API Response:', response);
+      // Operation Employee Leaves API Response processed
       return response;
     } catch (error) {
       // Silently handle 403 errors without throwing
       if (error.response?.status === 403) {
         return [];
       }
-('❌ Operation Employee Leaves API Error:', error);
+      // Operation Employee Leaves API Error handled
       throw error;
     }
   },
@@ -106,20 +106,20 @@ export const operationLeaveApi = {
   // Submit leave for specific employee (authenticated user)
   submitEmployeeLeave: async (leaveData) => {
     try {
-('🌐 Operation Employee Submit Leave API Call: /dashboard/leaves');
-('📤 Operation Employee Leave Data:', leaveData);
+      // Operation Employee Submit Leave API Call
+      // Operation Employee Leave Data processed
       const response = await apiCall('/dashboard/leaves', {
         method: 'POST',
         data: leaveData,
       });
-('📡 Operation Employee Submit Leave API Response:', response);
+      // Operation Employee Submit Leave API Response processed
       return response;
     } catch (error) {
       // Silently handle 403 errors without throwing
       if (error.response?.status === 403) {
         return [];
       }
-('❌ Operation Employee Submit Leave API Error:', error);
+      // Operation Employee Submit Leave API Error handled
       throw error;
     }
   },
@@ -150,14 +150,11 @@ export const operationLeaveApi = {
 
 // Ticket API functions
 export const operationTicketApi = {
-  // Add new ticket
+  // Add new ticket (submit ticket only)
   addTicket: async (ticketData) => {
     return await apiCall(API_CONFIG.ENDPOINTS.OPERATION.TICKETS, {
       method: 'POST',
       data: ticketData,
     });
   },
-
-
-
 };

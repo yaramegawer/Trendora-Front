@@ -241,21 +241,14 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
     e.stopPropagation();
     
     // Temporary debugging
-      console.log('PayrollForm: handleSubmit called');
-      console.log('PayrollForm: isEditing:', isEditing);
-      console.log('PayrollForm: formData:', formData);
-      console.log('PayrollForm: onSave exists:', !!onSave);
     
     const isValid = validateForm();
-    console.log('PayrollForm: Form is valid:', isValid);
     
     if (!isValid) {
-      console.log('PayrollForm: Form validation failed');
       return;
     }
     
     if (!onSave) {
-      console.log('PayrollForm: onSave function not provided');
       setSubmitError('Save function not available');
       return;
     }
@@ -310,11 +303,8 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
         backendData.status = formData.status;
       }
       
-      console.log('PayrollForm: Calling onSave with data:', backendData);
       await onSave(backendData);
-      console.log('PayrollForm: onSave completed successfully');
     } catch (error) {
-      console.log('PayrollForm: Error in handleSubmit:', error);
       setSubmitError(error.message || 'Failed to save payroll');
     }
   };
@@ -719,14 +709,12 @@ const PayrollManagement = () => {
         setUserError('');
         setUserSuccess('');
         
-        console.log('PayrollManagement: Deleting payroll with ID:', payrollId);
         await deletePayroll(payrollId);
         
         setUserSuccess('Payroll deleted successfully!');
         // Auto-dismiss success message after 3 seconds
         setTimeout(() => setUserSuccess(''), 3000);
       } catch (error) {
-        console.log('PayrollManagement: Error deleting payroll:', error);
         setUserError(`Failed to delete payroll: ${error.message}`);
       }
     }
@@ -904,8 +892,6 @@ const PayrollManagement = () => {
     }
     
     // Debug: Log employee lookup
-    console.log('Looking up employee with ID:', employeeId);
-    console.log('Available employees:', currentEmployees.map(emp => ({ id: emp.id || emp._id, name: `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() })));
     
     // Check manual mappings first
     const employeeIdStr = String(employeeId);
@@ -937,11 +923,9 @@ const PayrollManagement = () => {
     
     if (employee) {
       const name = `${employee.firstName || employee.first_name || ''} ${employee.lastName || employee.last_name || ''}`.trim();
-      console.log('Found employee:', { id: employee.id || employee._id, name });
       return name || 'Unknown Employee';
     }
     
-    console.log('No employee found for ID:', employeeIdStr);
     return `Unknown Employee (ID: ${employeeIdStr.substring(0, 8)}...)`;
   };
 
@@ -952,13 +936,7 @@ const PayrollManagement = () => {
     }
     
     // Debug: Log the payroll record structure
-    console.log('PayrollRecord structure:', {
-      id: payrollRecord.id || payrollRecord._id,
-      employeeId: payrollRecord.employeeId,
-      employee: payrollRecord.employee,
-      keys: Object.keys(payrollRecord)
-    });
-    
+ 
     // Check if employee data is nested in the payroll record
     if (payrollRecord.employee) {
       const employee = payrollRecord.employee;
@@ -1015,7 +993,6 @@ const PayrollManagement = () => {
         day: 'numeric'
       });
     } catch (error) {
-      console.log('Error formatting date:', error);
       return 'Invalid Date';
     }
   };

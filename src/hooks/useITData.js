@@ -26,7 +26,7 @@ export const useITEmployees = () => {
       
       setEmployees(employeesData);
     } catch (err) {
-console.log('IT Employees API Error:', err);
+// Error handled silently
       setError(err.message);
       setEmployees([]);
     } finally {
@@ -40,7 +40,7 @@ console.log('IT Employees API Error:', err);
       await fetchEmployees(); // Refresh the employees list
       return updatedEmployee;
     } catch (err) {
-console.log('Error updating employee rating:', err);
+// Error handled silently
       throw err;
     }
   };
@@ -71,12 +71,12 @@ export const useITProjects = (page = 1, limit = 10) => {
     setLoading(true);
     setError(null);
     try {
-console.log(`useITProjects: Fetching projects with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+// Fetching projects with pagination
       
       // Fetch paginated data
       const paginatedResponse = await itProjectApi.getAllProjects(pageNum, pageLimit);
       
-console.log('useITProjects: IT Projects API Response:', paginatedResponse);
+// IT Projects API Response processed
       
       // Process paginated data for current page
       let projectsData = [];
@@ -97,33 +97,19 @@ console.log('useITProjects: IT Projects API Response:', paginatedResponse);
         totalCount = paginatedResponse.total;
       }
       
-      // If we don't have a total count from the API, fetch all projects to get the count
-      if (totalCount === 0 || totalCount === projectsData.length) {
-console.log('useITProjects: No total count from API, fetching all projects for total count...');
-        const allProjectsResponse = await itProjectApi.getAllProjects(1, 1000);
-        
-        let allProjectsData = [];
-        if (Array.isArray(allProjectsResponse)) {
-          allProjectsData = allProjectsResponse;
-        } else if (allProjectsResponse && allProjectsResponse.data && Array.isArray(allProjectsResponse.data)) {
-          allProjectsData = allProjectsResponse.data;
-        } else if (allProjectsResponse && allProjectsResponse.success && Array.isArray(allProjectsResponse.data)) {
-          allProjectsData = allProjectsResponse.data;
-        }
-        
-        totalCount = allProjectsData.length;
-console.log('useITProjects: Total projects count from all data:', totalCount);
+      // Use the current page data length as total count if no total is provided
+      if (totalCount === 0) {
+        totalCount = projectsData.length;
       }
       
-console.log('useITProjects: IT projects total count:', totalCount);
-console.log('useITProjects: Current page projects data:', projectsData);
+// Projects data processed
       
       setProjects(projectsData);
       setTotalProjects(totalCount);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-console.log('IT Projects API Error, using empty array:', err.message);
+// IT Projects API Error handled
       
       // Handle specific ObjectId casting errors silently
       if (err.message && err.message.includes('Cast to ObjectId failed')) {
@@ -141,19 +127,14 @@ console.log('IT Projects API Error, using empty array:', err.message);
 
   const createProject = async (projectData) => {
     try {
-console.log('🔧 useITProjects - createProject called with:', projectData);
+// Creating project
       const newProject = await itProjectApi.createProject(projectData);
-console.log('🔧 useITProjects - API response:', newProject);
+// Project created successfully
       await fetchProjects(currentPage, pageSize); // Refresh the current page
-console.log('🔧 useITProjects - Projects refreshed after creation');
+// Projects refreshed after creation
       return newProject;
     } catch (err) {
-console.log('❌ useITProjects - Error creating project:', err);
-console.log('❌ useITProjects - Error details:', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data
-      });
+// Error creating project
       throw err;
     }
   };
@@ -164,7 +145,7 @@ console.log('❌ useITProjects - Error details:', {
       await fetchProjects(currentPage, pageSize); // Refresh the current page
       return updatedProject;
     } catch (err) {
-console.log('Error updating project:', err);
+// Error updating project
       throw err;
     }
   };
@@ -174,7 +155,7 @@ console.log('Error updating project:', err);
       await itProjectApi.deleteProject(id);
       await fetchProjects(currentPage, pageSize); // Refresh the current page
     } catch (err) {
-console.log('Error deleting project:', err);
+// Error deleting project
       throw err;
     }
   };
@@ -186,14 +167,14 @@ console.log('Error deleting project:', err);
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalProjects / pageSize);
-console.log(`useITProjects goToPage: pageNum=${pageNum}, totalProjects=${totalProjects}, pageSize=${pageSize}, maxPages=${maxPages}`);
+// Navigating to page
     
     // Always allow page changes if totalProjects is 0 (initial state) or if page is in valid range
     if (totalProjects === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-console.log(`useITProjects goToPage: Fetching page ${pageNum}`);
+// Fetching page
       fetchProjects(pageNum, pageSize);
     } else {
-console.log(`useITProjects goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+// Page out of range
     }
   };
 
@@ -246,42 +227,27 @@ export const useITTickets = (page = 1, limit = 10) => {
     setLoading(true);
     setError(null);
     try {
-console.log(`useITTickets: Fetching tickets with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+// Fetching tickets with pagination
       
-      // First, fetch all tickets to get total count
-console.log('useITTickets: Fetching all tickets for total count...');
-      const allTicketsResponse = await itTicketApi.getAllTickets(1, 1000); // Get all tickets
-      
-      // Then fetch paginated data
+      // Fetch paginated data only
       const paginatedResponse = await itTicketApi.getAllTickets(pageNum, pageLimit);
-      
-console.log('useITTickets: All Tickets API Response:', allTicketsResponse);
-console.log('useITTickets: Paginated Tickets API Response:', paginatedResponse);
-      
-      // Process all tickets for total count
-      let allTicketsData = [];
-      if (Array.isArray(allTicketsResponse)) {
-        allTicketsData = allTicketsResponse;
-      } else if (allTicketsResponse && allTicketsResponse.data && Array.isArray(allTicketsResponse.data)) {
-        allTicketsData = allTicketsResponse.data;
-      } else if (allTicketsResponse && allTicketsResponse.success && Array.isArray(allTicketsResponse.data)) {
-        allTicketsData = allTicketsResponse.data;
-      }
       
       // Process paginated data for current page
       let ticketsData = [];
+      let totalTicketsCount = 0;
+      
       if (Array.isArray(paginatedResponse)) {
         ticketsData = paginatedResponse;
+        totalTicketsCount = paginatedResponse.length;
       } else if (paginatedResponse && paginatedResponse.data && Array.isArray(paginatedResponse.data)) {
         ticketsData = paginatedResponse.data;
+        totalTicketsCount = paginatedResponse.total || paginatedResponse.data.length;
       } else if (paginatedResponse && paginatedResponse.success && Array.isArray(paginatedResponse.data)) {
         ticketsData = paginatedResponse.data;
+        totalTicketsCount = paginatedResponse.total || paginatedResponse.data.length;
       }
       
-      const totalTicketsCount = allTicketsData.length;
-      
-console.log('useITTickets: All tickets count:', totalTicketsCount);
-console.log('useITTickets: Current page tickets data:', ticketsData);
+// Tickets data processed
       
       setTickets(ticketsData);
       setTotalTickets(totalTicketsCount);
@@ -333,14 +299,14 @@ console.log('useITTickets: Current page tickets data:', ticketsData);
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalTickets / pageSize);
-console.log(`useITTickets goToPage: pageNum=${pageNum}, totalTickets=${totalTickets}, pageSize=${pageSize}, maxPages=${maxPages}`);
+// Navigating to tickets page
     
     // Always allow page changes if totalTickets is 0 (initial state) or if page is in valid range
     if (totalTickets === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-console.log(`useITTickets goToPage: Fetching page ${pageNum}`);
+// Fetching tickets page
       fetchTickets(pageNum, pageSize);
     } else {
-console.log(`useITTickets goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+// Tickets page out of range
     }
   };
 
@@ -405,7 +371,7 @@ export const useITLeaves = () => {
       
       setLeaves(leavesData);
     } catch (err) {
-console.log('IT Leaves API Error:', err);
+// IT Leaves API Error handled
       setError(err.message);
       setLeaves([]);
     } finally {
@@ -419,7 +385,7 @@ console.log('IT Leaves API Error:', err);
       await fetchLeaves(); // Refresh the list
       return newLeave;
     } catch (err) {
-console.log('Error submitting leave:', err);
+// Error submitting leave
       throw err;
     }
   };
@@ -430,7 +396,7 @@ console.log('Error submitting leave:', err);
       await fetchLeaves(); // Refresh the list
       return updatedLeave;
     } catch (err) {
-console.log('Error updating leave status:', err);
+// Error updating leave status
       throw err;
     }
   };
@@ -440,7 +406,7 @@ console.log('Error updating leave status:', err);
       await itLeaveApi.deleteLeave(id);
       await fetchLeaves(); // Refresh the list
     } catch (err) {
-console.log('Error deleting leave:', err);
+// Error deleting leave
       throw err;
     }
   };

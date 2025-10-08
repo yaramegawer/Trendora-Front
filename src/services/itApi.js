@@ -85,23 +85,21 @@ export const itProjectApi = {
 
   // Create new project
   createProject: async (projectData) => {
-console.log('🌐 itProjectApi.createProject called with:', projectData);
-console.log('🌐 API endpoint:', API_CONFIG.ENDPOINTS.IT.PROJECTS);
-console.log('🌐 Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IT.PROJECTS}`);
+      // Creating project via API
     
     try {
       const result = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
         method: 'POST',
         data: projectData
       });
-console.log('🌐 itProjectApi.createProject result:', result);
+      // Project created successfully
       return result;
     } catch (error) {
       // Silently handle 403 errors without throwing
       if (error.response?.status === 403) {
         return [];
       }
-console.log('🌐 itProjectApi.createProject error:', error);
+      // Project creation error handled
       throw error;
     }
   },

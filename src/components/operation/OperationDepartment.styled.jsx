@@ -526,7 +526,6 @@ const OperationDepartment = () => {
         priority: newTicket.priority
       };
 
-('Creating ticket:', ticketData);
       const result = await operationTicketApi.addTicket(ticketData);
       
       if (result.success) {
@@ -541,7 +540,6 @@ const OperationDepartment = () => {
         alert('Failed to create ticket: ' + result.message);
       }
     } catch (error) {
-('Error creating ticket:', error);
       alert('Failed to create ticket: ' + error.message);
     }
   };

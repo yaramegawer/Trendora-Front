@@ -85,7 +85,6 @@ const EmployeeManagement = () => {
   const [userSuccess, setUserSuccess] = useState('');
 
   const handleAddEmployee = async (employeeData) => {
-    console.log('🔍 Debug - handleAddEmployee called with data:', employeeData);
     
     // Check if user is authenticated first
     if (!user || !isAuthenticated) {
@@ -99,16 +98,11 @@ const EmployeeManagement = () => {
     try {
       setUserError('');
       setUserSuccess('');
-      console.log('🔍 Debug - Calling addEmployee API...');
       await addEmployee(employeeData);
-      console.log('✅ Debug - Add successful, closing dialog...');
       setUserSuccess('Employee added successfully!');
       setShowAddDialog(false);
-      console.log('✅ Debug - Dialog closed, refreshing data...');
     } catch (error) {
       console.error('❌ Error adding employee:', error);
-      console.log('❌ Error message:', error.message);
-      console.log('❌ Error response:', error.response);
       
       // Clear any existing error first
       setUserError('');
@@ -164,26 +158,19 @@ const EmployeeManagement = () => {
       setUserError('');
       setUserSuccess('');
       const employeeId = editingEmployee.id || editingEmployee._id;
-      console.log('🔍 Debug - editingEmployee:', editingEmployee);
-      console.log('🔍 Debug - employeeId extracted:', employeeId);
-      console.log('🔍 Debug - employeeData to update:', employeeData);
       
       if (!employeeId) {
-        console.log('❌ No employee ID found for update');
         setUserError('Error: No employee ID found for update');
         return;
       }
       
       // Validate employee data before sending
       if (!employeeData || typeof employeeData !== 'object') {
-        console.log('❌ Invalid employee data provided');
         setUserError('Error: Invalid employee data provided');
         return;
       }
       
-      console.log('🔍 Calling updateEmployee API...');
       await updateEmployee(employeeId, employeeData);
-      console.log('✅ Employee updated successfully');
       setUserSuccess('Employee updated successfully!');
       setShowEditDialog(false);
       setEditingEmployee(null);
@@ -247,9 +234,6 @@ const EmployeeManagement = () => {
 
   const handleEdit = (employee) => {
     // Allow all authenticated users to edit employees
-    console.log('🔍 Debug - handleEdit called with employee:', employee);
-    console.log('🔍 Debug - Employee ID:', employee?.id || employee?._id);
-    console.log('🔍 Debug - Employee data structure:', JSON.stringify(employee, null, 2));
     setEditingEmployee(employee);
     setShowEditDialog(true);
   };
@@ -294,19 +278,15 @@ const EmployeeManagement = () => {
   };
 
   const handleDelete = async (employeeId) => {
-    console.log('🔍 Debug - handleDelete called with ID:', employeeId);
     
     // Allow all authenticated users to delete employees
 
     if (window.confirm('Are you sure you want to delete this employee?')) {
       try {
         if (!employeeId) {
-          console.log('❌ No employee ID provided for deletion');
           return;
         }
-        console.log('🔍 Debug - Calling deleteEmployee with ID:', employeeId);
         await deleteEmployee(employeeId);
-        console.log('✅ Debug - Delete successful, refreshing data...');
       } catch (error) {
         console.error('❌ Error deleting employee:', error);
         // Check if error is permission-related
@@ -324,7 +304,6 @@ const EmployeeManagement = () => {
   };
 
   const handleMenuClick = (event, employee) => {
-    console.log('🔍 Debug - handleMenuClick called with employee:', employee);
     setAnchorEl(event.currentTarget);
     setSelectedEmployee(employee);
   };
@@ -338,20 +317,7 @@ const EmployeeManagement = () => {
   const currentEmployees = employees || [];
   const currentDepartments = departments || [];
 
-  // Debug: Log the actual employee data structure
-  console.log('🔍 Debug - Raw employees data:', employees);
-  console.log('🔍 Debug - Current employees:', currentEmployees);
-  console.log('🔍 Debug - Raw departments data:', departments);
-  console.log('🔍 Debug - Current departments:', currentDepartments);
-  console.log('🔍 Debug - Current user:', user);
-  console.log('🔍 Debug - User role:', user?.role);
-  console.log('🔍 Debug - User role type:', typeof user?.role);
-  if (currentEmployees.length > 0) {
-    console.log('🔍 Debug - First employee structure:', currentEmployees[0]);
-  }
-  if (currentDepartments.length > 0) {
-    console.log('🔍 Debug - First department structure:', currentDepartments[0]);
-  }
+
 
   // Permission checking functions using utility
   const canAddEmployees = () => true; // Allow all authenticated users
