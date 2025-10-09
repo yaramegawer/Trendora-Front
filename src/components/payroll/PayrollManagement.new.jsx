@@ -1012,19 +1012,22 @@ const PayrollManagement = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Server-side pagination - use data from API hooks
-  const totalPages = Math.ceil((totalPayroll || 0) / pageSize);
+  // Client-side pagination - slice the filtered data
+  const totalFilteredItems = filteredPayroll.length;
+  const totalPages = Math.ceil(totalFilteredItems / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedPayroll = filteredPayroll.slice(startIndex, endIndex);
   
   // Handle page change
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
-    goToPage(newPage);
+    // No need to call goToPage since pagination is client-side
   };
 
-  // Reset pagination when filters change
+  // Reset to page 1 when filters change (client-side only - no API calls)
   useEffect(() => {
     setCurrentPage(1);
-    goToPage(1);
   }, [searchTerm, statusFilter]);
 
   if (loading) {
@@ -1257,7 +1260,7 @@ const PayrollManagement = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredPayroll.map((pay, index) => (
+              {paginatedPayroll.map((pay, index) => (
                 <TableRow key={`${pay.id || pay._id}-${pay.netPay}-${index}`} hover>
                 <TableCell>
                   <Stack direction="row" alignItems="center" spacing={2}>
@@ -1298,7 +1301,7 @@ const PayrollManagement = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        {filteredPayroll.length === 0 && (
+        {paginatedPayroll.length === 0 && (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography color="textSecondary">
               No payroll records found.
@@ -1306,11 +1309,11 @@ const PayrollManagement = () => {
           </Box>
         )}
         
-        {/* Server-side Pagination - Always visible */}
+        {/* Client-side Pagination */}
         <SimplePagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={totalPayroll}
+          totalItems={totalFilteredItems}
           pageSize={pageSize}
           onPageChange={handlePageChange}
         />
