@@ -58,9 +58,10 @@ export const useITEmployees = () => {
   };
 };
 
-// Custom hook for IT project data management
+// Custom hook for IT project data management with frontend pagination
 export const useITProjects = (page = 1, limit = 10) => {
-  const [projects, setProjects] = useState([]);
+  const [allProjects, setAllProjects] = useState([]); // Store all projects
+  const [projects, setProjects] = useState([]); // Current page projects
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalProjects, setTotalProjects] = useState(0);
@@ -68,60 +69,63 @@ export const useITProjects = (page = 1, limit = 10) => {
   const [pageSize, setPageSize] = useState(limit);
 
   const fetchProjects = async (pageNum = currentPage, pageLimit = pageSize) => {
-    setLoading(true);
-    setError(null);
-    try {
-// Fetching projects with pagination
-      
-      // Fetch paginated data
-      const paginatedResponse = await itProjectApi.getAllProjects(pageNum, pageLimit);
-      
-// IT Projects API Response processed
-      
-      // Process paginated data for current page
-      let projectsData = [];
-      let totalCount = 0;
-      
-      if (Array.isArray(paginatedResponse)) {
-        projectsData = paginatedResponse;
-        totalCount = paginatedResponse.length; // Fallback to array length
-      } else if (paginatedResponse && paginatedResponse.data && Array.isArray(paginatedResponse.data)) {
-        projectsData = paginatedResponse.data;
-        totalCount = paginatedResponse.total || paginatedResponse.data.length;
-      } else if (paginatedResponse && paginatedResponse.success && Array.isArray(paginatedResponse.data)) {
-        projectsData = paginatedResponse.data;
-        totalCount = paginatedResponse.total || paginatedResponse.data.length;
-      } else if (paginatedResponse && paginatedResponse.total !== undefined) {
-        // Handle response with total count
-        projectsData = paginatedResponse.data || [];
-        totalCount = paginatedResponse.total;
+    // Only fetch from API if we don't have all data yet
+    if (allProjects.length === 0 || pageNum === 1) {
+      setLoading(true);
+      setError(null);
+      try {
+        
+        // Fetch ALL data from backend
+        const response = await itProjectApi.getAllProjects();
+        
+        
+        // Extract all projects data
+        let allProjectsData = [];
+        
+        if (Array.isArray(response)) {
+          allProjectsData = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          allProjectsData = response.data;
+        }
+        
+        
+        // Store all projects
+        setAllProjects(allProjectsData);
+        setTotalProjects(allProjectsData.length);
+        
+        // Calculate pagination on frontend
+        const startIndex = (pageNum - 1) * pageLimit;
+        const endIndex = startIndex + pageLimit;
+        const paginatedProjects = allProjectsData.slice(startIndex, endIndex);
+        
+        
+        setProjects(paginatedProjects);
+        setCurrentPage(pageNum);
+        setPageSize(pageLimit);
+      } catch (err) {
+        // Handle specific ObjectId casting errors silently
+        if (err.message && err.message.includes('Cast to ObjectId failed')) {
+          setError(null); // Don't set error for this specific case
+        } else {
+          setError(err.message);
+        }
+        
+        setProjects([]);
+        setTotalProjects(0);
+        setAllProjects([]);
+      } finally {
+        setLoading(false);
       }
+    } else {
+      // We already have all data, just paginate on frontend
+      const startIndex = (pageNum - 1) * pageLimit;
+      const endIndex = startIndex + pageLimit;
+      const paginatedProjects = allProjects.slice(startIndex, endIndex);
       
-      // Use the current page data length as total count if no total is provided
-      if (totalCount === 0) {
-        totalCount = projectsData.length;
-      }
       
-// Projects data processed
-      
-      setProjects(projectsData);
-      setTotalProjects(totalCount);
+      setProjects(paginatedProjects);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
-    } catch (err) {
-// IT Projects API Error handled
-      
-      // Handle specific ObjectId casting errors silently
-      if (err.message && err.message.includes('Cast to ObjectId failed')) {
-        setError(null); // Don't set error for this specific case
-      } else {
-        setError(err.message);
-      }
-      
-      setProjects([]);
-      setTotalProjects(0);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -214,9 +218,10 @@ export const useITProjects = (page = 1, limit = 10) => {
   };
 };
 
-// Custom hook for IT ticket data management
+// Custom hook for IT ticket data management with frontend pagination
 export const useITTickets = (page = 1, limit = 10) => {
-  const [tickets, setTickets] = useState([]);
+  const [allTickets, setAllTickets] = useState([]); // Store all tickets
+  const [tickets, setTickets] = useState([]); // Current page tickets
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalTickets, setTotalTickets] = useState(0);
@@ -224,41 +229,57 @@ export const useITTickets = (page = 1, limit = 10) => {
   const [pageSize, setPageSize] = useState(limit);
 
   const fetchTickets = async (pageNum = currentPage, pageLimit = pageSize) => {
-    setLoading(true);
-    setError(null);
-    try {
-// Fetching tickets with pagination
-      
-      // Fetch paginated data only
-      const paginatedResponse = await itTicketApi.getAllTickets(pageNum, pageLimit);
-      
-      // Process paginated data for current page
-      let ticketsData = [];
-      let totalTicketsCount = 0;
-      
-      if (Array.isArray(paginatedResponse)) {
-        ticketsData = paginatedResponse;
-        totalTicketsCount = paginatedResponse.length;
-      } else if (paginatedResponse && paginatedResponse.data && Array.isArray(paginatedResponse.data)) {
-        ticketsData = paginatedResponse.data;
-        totalTicketsCount = paginatedResponse.total || paginatedResponse.data.length;
-      } else if (paginatedResponse && paginatedResponse.success && Array.isArray(paginatedResponse.data)) {
-        ticketsData = paginatedResponse.data;
-        totalTicketsCount = paginatedResponse.total || paginatedResponse.data.length;
+    // Only fetch from API if we don't have all data yet
+    if (allTickets.length === 0 || pageNum === 1) {
+      setLoading(true);
+      setError(null);
+      try {
+        
+        // Fetch ALL data from backend
+        const response = await itTicketApi.getAllTickets();
+        
+        
+        // Extract all tickets data
+        let allTicketsData = [];
+        
+        if (Array.isArray(response)) {
+          allTicketsData = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          allTicketsData = response.data;
+        }
+        
+        
+        // Store all tickets
+        setAllTickets(allTicketsData);
+        setTotalTickets(allTicketsData.length);
+        
+        // Calculate pagination on frontend
+        const startIndex = (pageNum - 1) * pageLimit;
+        const endIndex = startIndex + pageLimit;
+        const paginatedTickets = allTicketsData.slice(startIndex, endIndex);
+        
+        
+        setTickets(paginatedTickets);
+        setCurrentPage(pageNum);
+        setPageSize(pageLimit);
+      } catch (err) {
+        setError(err.message);
+        setTickets([]);
+        setTotalTickets(0);
+        setAllTickets([]);
+      } finally {
+        setLoading(false);
       }
+    } else {
+      // We already have all data, just paginate on frontend
+      const startIndex = (pageNum - 1) * pageLimit;
+      const endIndex = startIndex + pageLimit;
+      const paginatedTickets = allTickets.slice(startIndex, endIndex);
       
-// Tickets data processed
       
-      setTickets(ticketsData);
-      setTotalTickets(totalTicketsCount);
+      setTickets(paginatedTickets);
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
-    } catch (err) {
-      setError(err.message);
-      setTickets([]);
-      setTotalTickets(0);
-    } finally {
-      setLoading(false);
     }
   };
 

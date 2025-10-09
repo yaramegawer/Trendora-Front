@@ -6,9 +6,10 @@ const apiCall = async (endpoint, options = {}) => {
   try {
     const response = await api({ url: endpoint, ...options });
     
-    // Handle backend response format: {success: true, data: [...]}
+    // Handle backend response format: {success: true, data: [...], total: X}
     if (response.data && response.data.success === true) {
-      return response.data.data || response.data;
+      // Return the full response data object to preserve pagination info (total, page, limit, etc.)
+      return response.data;
     } else if (response.data && response.data.success === false) {
       // Handle specific ObjectId casting errors gracefully
       if (response.data.message && response.data.message.includes('Cast to ObjectId failed')) {
@@ -40,36 +41,42 @@ const apiCall = async (endpoint, options = {}) => {
 export const itEmployeeApi = {
   // Get all IT employees
   getAllEmployees: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.EMPLOYEES);
+    const response = await apiCall(API_CONFIG.ENDPOINTS.IT.EMPLOYEES);
+    // For non-paginated endpoints, return just the data array
+    return response.data || response;
   },
 
   // Update employee rating
   updateRating: async (id, ratingData) => {
     const endpoint = API_CONFIG.ENDPOINTS.IT.EMPLOYEE_RATING.replace(':id', id);
-    return await apiCall(endpoint, {
+    const response = await apiCall(endpoint, {
       method: 'PUT',
       data: ratingData
     });
+    return response.data || response;
   },
 
   // Get employee rating
   getRating: async (id) => {
     const endpoint = API_CONFIG.ENDPOINTS.IT.EMPLOYEE_RATING.replace(':id', id);
-    return await apiCall(endpoint);
+    const response = await apiCall(endpoint);
+    return response.data || response;
   }
 };
 
 // Project API functions
 export const itProjectApi = {
-  // Get all IT projects
-  getAllProjects: async (page = 1, limit = 10) => {
+  // Get all IT projects - fetch all data without pagination
+  getAllProjects: async () => {
     try {
+      // Fetch with a very high limit to get all data
       const response = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
         method: 'GET',
-        params: { page, limit }
+        params: { page: 1, limit: 10000 } // High limit to get all data
       });
       return response;
     } catch (error) {
+      console.error('❌ Error getting projects:', error);
       // Silently handle 403 errors without throwing
       if (error.response?.status === 403) {
         return [];
@@ -93,7 +100,7 @@ export const itProjectApi = {
         data: projectData
       });
       // Project created successfully
-      return result;
+      return result.data || result;
     } catch (error) {
       // Silently handle 403 errors without throwing
       if (error.response?.status === 403) {
@@ -107,54 +114,61 @@ export const itProjectApi = {
   // Update project
   updateProject: async (id, projectData) => {
     const endpoint = `${API_CONFIG.ENDPOINTS.IT.PROJECTS}/${id}`;
-    return await apiCall(endpoint, {
+    const response = await apiCall(endpoint, {
       method: 'PUT',
       data: projectData
     });
+    return response.data || response;
   },
 
   // Delete project
   deleteProject: async (id) => {
     const endpoint = `${API_CONFIG.ENDPOINTS.IT.PROJECTS}/${id}`;
-    return await apiCall(endpoint, {
+    const response = await apiCall(endpoint, {
       method: 'DELETE'
     });
+    return response.data || response;
   }
 };
 
 // Ticket API functions
 export const itTicketApi = {
-  // Get all IT tickets
-  getAllTickets: async (page = 1, limit = 10) => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
+  // Get all IT tickets - fetch all data without pagination
+  getAllTickets: async () => {
+    // Fetch with a very high limit to get all data
+    const response = await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
       method: 'GET',
-      params: { page, limit }
+      params: { page: 1, limit: 10000 } // High limit to get all data
     });
+    return response;
   },
 
   // Create new ticket
   createTicket: async (ticketData) => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
+    const response = await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
       method: 'POST',
       data: ticketData
     });
+    return response.data || response;
   },
 
   // Update ticket
   updateTicket: async (id, ticketData) => {
     const endpoint = `${API_CONFIG.ENDPOINTS.IT.TICKETS}/${id}`;
-    return await apiCall(endpoint, {
+    const response = await apiCall(endpoint, {
       method: 'PUT',
       data: ticketData
     });
+    return response.data || response;
   },
 
   // Delete ticket
   deleteTicket: async (id) => {
     const endpoint = `${API_CONFIG.ENDPOINTS.IT.TICKETS}/${id}`;
-    return await apiCall(endpoint, {
+    const response = await apiCall(endpoint, {
       method: 'DELETE'
     });
+    return response.data || response;
   }
 };
 
@@ -163,10 +177,11 @@ export const itLeaveApi = {
 
   // Submit employee leave
   submitEmployeeLeave: async (leaveData) => {
-    return await apiCall(API_CONFIG.ENDPOINTS.IT.LEAVES, {
+    const response = await apiCall(API_CONFIG.ENDPOINTS.IT.LEAVES, {
       method: 'POST',
       data: leaveData
     });
+    return response.data || response;
   },
 
 };

@@ -22,14 +22,14 @@ const SimplePagination = ({
       pages.push(i);
     }
     
-    console.log('📄 Generated page numbers:', pages, 'for total pages:', calculatedTotalPages);
+      ('📄 Generated page numbers:', pages, 'for total pages:', calculatedTotalPages);
     return pages;
   };
 
   const pageNumbers = getPageNumbers();
 
   // Debug logging
-  console.log('🔍 SimplePagination Debug:', {
+    ('🔍 SimplePagination Debug:', {
     currentPage,
     totalPages,
     calculatedTotalPages,
@@ -38,9 +38,10 @@ const SimplePagination = ({
     pageNumbersLength: pageNumbers.length
   });
 
-  // Don't render pagination if there are no pages or only one page
-  if (calculatedTotalPages <= 1) {
-    console.log('🚫 Not rendering pagination - only one page', {
+  // Show pagination even with 1 page for debugging/testing
+  // In production, you might want to hide it with: if (calculatedTotalPages <= 1) return null;
+  if (calculatedTotalPages <= 0 || totalItems <= 0) {
+      ('🚫 Not rendering pagination - no items', {
       calculatedTotalPages,
       totalItems,
       pageSize
@@ -168,6 +169,16 @@ const SimplePagination = ({
       >
         <LastPage />
       </IconButton>
+
+      {/* Info Text */}
+      <Typography sx={{ 
+        ml: 2, 
+        fontSize: '14px', 
+        color: '#6b7280',
+        whiteSpace: 'nowrap'
+      }}>
+        {totalItems} {totalItems === 1 ? 'item' : 'items'} total
+      </Typography>
 
     </Box>
   );

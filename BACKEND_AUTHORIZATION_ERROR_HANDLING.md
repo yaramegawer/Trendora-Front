@@ -48,8 +48,8 @@ Enhanced both leave and ticket submission with comprehensive error checking:
 // Enhanced error checking for leave submission
 const response = await api.post(endpoint, leaveData);
 
-console.log('Leave request response:', response.data);
-console.log('Leave request response status:', response.status);
+ ('Leave request response:', response.data);
+ ('Leave request response status:', response.status);
 
 // Check if the response indicates an error even with 200 status
 if (response.data && response.data.success === false) {

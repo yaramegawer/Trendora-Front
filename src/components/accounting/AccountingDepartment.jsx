@@ -278,7 +278,7 @@ const AccountingDepartment = () => {
         alert('Failed to submit leave request: ' + (result.error || result.message || 'Unknown error'));
       }
     } catch (error) {
-      console.log('Error submitting leave request:', error);
+       ('Error submitting leave request:', error);
       alert('Failed to submit leave request: ' + error.message);
     }
   };
@@ -340,7 +340,7 @@ const AccountingDepartment = () => {
     };
 
     try {
-      console.log('Creating ticket:', ticketDataToSubmit);
+       ('Creating ticket:', ticketDataToSubmit);
       const result = await submitTicket(ticketDataToSubmit);
       
       if (result.success) {
@@ -362,7 +362,7 @@ const AccountingDepartment = () => {
         }
       }
     } catch (error) {
-      console.log('Error creating ticket:', error);
+       ('Error creating ticket:', error);
       alert('Failed to create ticket: ' + error.message);
     }
   };

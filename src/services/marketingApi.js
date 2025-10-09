@@ -201,22 +201,49 @@ export const marketingCustomerApi = {
     try {
       return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.CUSTOMERS);
     } catch (error) {
-('Error fetching customers:', error);
+      console.error('Error fetching customers:', error);
       return []; // Return empty array as fallback
     }
   },
 
-  // Get projects for a specific customer
+  // Get projects for a specific customer (with pagination)
   getCustomerProjects: async (customerName, page = 1, limit = 10) => {
     try {
-      const endpoint = API_CONFIG.ENDPOINTS.MARKETING.CUSTOMER_PROJECTS.replace(':customerName', customerName);
-      return await apiCall(endpoint, {
+      const endpoint = API_CONFIG.ENDPOINTS.MARKETING.CUSTOMER_PROJECTS.replace(':customerName', encodeURIComponent(customerName));
+        ('🔗 Calling API endpoint:', endpoint, 'with params:', { page, limit });
+      
+      const response = await api({ 
+        url: endpoint, 
         method: 'GET',
         params: { page, limit }
       });
+      
+        ('📡 Raw API response:', response.data);
+      
+      // Return the full response object to preserve pagination data
+      // Backend format: { success: true, data: [...], pagination: { total, page, pages } }
+      if (response.data && response.data.success === true) {
+          ('✅ Success response detected, returning:', {
+          dataLength: response.data.data?.length || 0,
+          pagination: response.data.pagination
+        });
+        return {
+          data: response.data.data || [],
+          pagination: response.data.pagination || { total: 0, page: 1, pages: 0 }
+        };
+      } else if (response.data && Array.isArray(response.data)) {
+          ('⚠️ Array response detected, returning:', response.data.length, 'items');
+        return {
+          data: response.data,
+          pagination: { total: response.data.length, page: 1, pages: 1 }
+        };
+      }
+      
+      console.warn('⚠️ Unexpected response format, returning empty');
+      return { data: [], pagination: { total: 0, page: 1, pages: 0 } };
     } catch (error) {
-('Error fetching customer projects:', error);
-      return []; // Return empty array as fallback
+      console.error('❌ Error fetching customer projects:', error);
+      return { data: [], pagination: { total: 0, page: 1, pages: 0 } }; // Return empty array as fallback
     }
   }
 };

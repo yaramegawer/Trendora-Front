@@ -180,13 +180,13 @@ const EmployeeDashboard = () => {
     }
 
     try {
-      console.log('User object:', user);
-      console.log('User ID:', user?.id);
+       ('User object:', user);
+       ('User ID:', user?.id);
       
       // Check if token exists
       const token = localStorage.getItem('token');
-      console.log('Token exists:', !!token);
-      console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
+       ('Token exists:', !!token);
+       ('Token preview:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
       
       // Try to decode the token to see its structure
       if (token) {
@@ -195,15 +195,15 @@ const EmployeeDashboard = () => {
           if (tokenParts.length === 3) {
             const header = JSON.parse(atob(tokenParts[0]));
             const payload = JSON.parse(atob(tokenParts[1]));
-            console.log('🔍 Token header:', header);
-            console.log('🔍 Token payload:', payload);
-            console.log('🔍 Token payload keys:', Object.keys(payload));
-            console.log('🔍 Looking for user ID in token:', payload.user_id || payload.sub || payload.id || payload._id);
+             ('🔍 Token header:', header);
+             ('🔍 Token payload:', payload);
+             ('🔍 Token payload keys:', Object.keys(payload));
+             ('🔍 Looking for user ID in token:', payload.user_id || payload.sub || payload.id || payload._id);
           } else {
-            console.log('❌ Token is not a valid JWT format');
+             ('❌ Token is not a valid JWT format');
           }
         } catch (e) {
-          console.log('❌ Could not decode token:', e);
+           ('❌ Could not decode token:', e);
         }
       }
       
@@ -214,11 +214,11 @@ const EmployeeDashboard = () => {
         status: 'pending'
       };
 
-      console.log('Submitting leave request:', leaveData);
+       ('Submitting leave request:', leaveData);
       
       const response = await api.post(API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES, leaveData);
       
-      console.log('Leave request response:', response.data);
+       ('Leave request response:', response.data);
       
       if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Failed to submit leave request');
@@ -238,7 +238,7 @@ const EmployeeDashboard = () => {
         fetchLeaves(leavesPage);
       }
     } catch (err) {
-      console.log('Leave submission error:', err);
+       ('Leave submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit leave request. Please try again.';
       alert(errorMessage);
       setError(errorMessage);
@@ -297,13 +297,13 @@ const EmployeeDashboard = () => {
     }
 
     try {
-      console.log('User object for ticket:', user);
-      console.log('User ID for ticket:', user?.id);
+       ('User object for ticket:', user);
+       ('User ID for ticket:', user?.id);
       
       // Check if token exists
       const token = localStorage.getItem('token');
-      console.log('Token exists for ticket:', !!token);
-      console.log('Token preview for ticket:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
+       ('Token exists for ticket:', !!token);
+       ('Token preview for ticket:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
       
       const ticketData = {
         title: ticketForm.title,
@@ -311,11 +311,11 @@ const EmployeeDashboard = () => {
         priority: ticketForm.priority
       };
 
-      console.log('Submitting support ticket:', ticketData);
+       ('Submitting support ticket:', ticketData);
       
       const response = await api.post(API_CONFIG.ENDPOINTS.DASHBOARD.TICKETS, ticketData);
       
-      console.log('Ticket submission response:', response.data);
+       ('Ticket submission response:', response.data);
       
       if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Failed to submit support ticket');
@@ -335,7 +335,7 @@ const EmployeeDashboard = () => {
         fetchTickets(ticketsPage);
       }
     } catch (err) {
-      console.log('Ticket submission error:', err);
+       ('Ticket submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit support ticket. Please try again.';
       alert(errorMessage);
       setError(errorMessage);
@@ -363,27 +363,27 @@ const EmployeeDashboard = () => {
     setLeavesLoading(true);
     setLeavesError('');
     try {
-      console.log('🔄 Fetching user leaves...', { page });
+       ('🔄 Fetching user leaves...', { page });
       // Try dashboard leaves endpoint first
       let response;
       try {
-        console.log('🔄 Trying /dashboard/leaves endpoint...');
+         ('🔄 Trying /dashboard/leaves endpoint...');
         response = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES}?page=${page}&limit=10`);
       } catch (dashboardError) {
-        console.log('⚠️ Dashboard leaves endpoint failed, trying HR leaves endpoint...', dashboardError);
+         ('⚠️ Dashboard leaves endpoint failed, trying HR leaves endpoint...', dashboardError);
         try {
           response = await api.get(`/hr/leaves?page=${page}&limit=10`);
         } catch (hrError) {
-          console.log('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
+           ('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
           try {
             response = await api.get(`/operation/leaves?page=${page}&limit=10`);
           } catch (operationError) {
-            console.log('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
+             ('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
             response = await api.get(`/it/leaves?page=${page}&limit=10`);
           }
         }
       }
-      console.log('📡 User Leaves API Response:', response);
+       ('📡 User Leaves API Response:', response);
       
       let leavesData = [];
       let totalCount = 0;
@@ -401,23 +401,23 @@ const EmployeeDashboard = () => {
       
       // If totalCount is still just the current page length, we need to determine the actual total
       if (totalCount === leavesData.length) {
-        console.log('⚠️ Total count appears to be limited to current page. Determining actual total...');
+         ('⚠️ Total count appears to be limited to current page. Determining actual total...');
         
         // If we have less than 10 items and we're on page 1, this is the only page
         if (leavesData.length < 10 && page === 1) {
           totalCount = leavesData.length;
-          console.log('📊 Less than 10 items on page 1, this is the only page. Total count:', totalCount);
+           ('📊 Less than 10 items on page 1, this is the only page. Total count:', totalCount);
         }
         // If we have less than 10 items and we're on a page > 1, calculate total from current page
         else if (leavesData.length < 10 && page > 1) {
           totalCount = ((page - 1) * 10) + leavesData.length;
-          console.log('📊 Less than 10 items on page', page, ', calculating total from previous pages. Total count:', totalCount);
+           ('📊 Less than 10 items on page', page, ', calculating total from previous pages. Total count:', totalCount);
         }
         // If we have exactly 10 items, there might be more pages
         else if (leavesData.length === 10) {
           // Try to get all leaves to count them accurately (only do this once)
           if (page === 1) {
-            console.log('📊 Exactly 10 items on page 1, fetching all leaves to get accurate total...');
+             ('📊 Exactly 10 items on page 1, fetching all leaves to get accurate total...');
             try {
               const allLeavesResponse = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES}?page=1&limit=1000`);
               let allLeavesData = [];
@@ -432,34 +432,34 @@ const EmployeeDashboard = () => {
               
               if (allLeavesData.length > 0) {
                 totalCount = allLeavesData.length;
-                console.log('📊 Got accurate total count from all leaves:', totalCount);
+                 ('📊 Got accurate total count from all leaves:', totalCount);
               } else {
                 totalCount = (page * 10) + 1; // Fallback
-                console.log('📊 Using fallback estimation:', totalCount);
+                 ('📊 Using fallback estimation:', totalCount);
               }
             } catch (allLeavesError) {
-              console.log('⚠️ Could not fetch all leaves, using estimation:', allLeavesError);
+               ('⚠️ Could not fetch all leaves, using estimation:', allLeavesError);
               totalCount = (page * 10) + 1; // Fallback
-              console.log('📊 Using fallback estimation:', totalCount);
+               ('📊 Using fallback estimation:', totalCount);
             }
           } else {
             // For pages > 1, use the estimation logic
             totalCount = (page * 10) + 1;
-            console.log('📊 Using estimation for page', page, '. Total count:', totalCount);
+             ('📊 Using estimation for page', page, '. Total count:', totalCount);
           }
         }
       }
       
-      console.log('📊 Processed user leaves data:', leavesData);
-      console.log('📊 Total count from API:', totalCount);
-      console.log('📊 Current page:', page);
-      console.log('📊 Calculated total pages:', Math.ceil(totalCount / 10));
+       ('📊 Processed user leaves data:', leavesData);
+       ('📊 Total count from API:', totalCount);
+       ('📊 Current page:', page);
+       ('📊 Calculated total pages:', Math.ceil(totalCount / 10));
       
       setLeaves(leavesData);
       setLeavesPage(page);
       setLeavesTotal(totalCount);
     } catch (err) {
-      console.log('❌ User Leaves API Error:', err);
+       ('❌ User Leaves API Error:', err);
       setLeavesError(err.message || 'Failed to fetch leaves');
       setLeaves([]);
     } finally {
@@ -472,11 +472,11 @@ const EmployeeDashboard = () => {
     setTicketsLoading(true);
     setTicketsError('');
     try {
-      console.log('🔄 Fetching user tickets...', { page });
+       ('🔄 Fetching user tickets...', { page });
       
       const response = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.TICKETS}?page=${page}&limit=10`);
       
-      console.log('📡 User Tickets API Response:', response);
+       ('📡 User Tickets API Response:', response);
       
       let ticketsData = [];
       let totalCount = 0;
@@ -494,23 +494,23 @@ const EmployeeDashboard = () => {
       
       // If totalCount is still just the current page length, we need to determine the actual total
       if (totalCount === ticketsData.length) {
-        console.log('⚠️ Total count appears to be limited to current page. Determining actual total...');
+         ('⚠️ Total count appears to be limited to current page. Determining actual total...');
         
         // If we have less than 10 items and we're on page 1, this is the only page
         if (ticketsData.length < 10 && page === 1) {
           totalCount = ticketsData.length;
-          console.log('📊 Less than 10 items on page 1, this is the only page. Total count:', totalCount);
+           ('📊 Less than 10 items on page 1, this is the only page. Total count:', totalCount);
         }
         // If we have less than 10 items and we're on a page > 1, calculate total from current page
         else if (ticketsData.length < 10 && page > 1) {
           totalCount = ((page - 1) * 10) + ticketsData.length;
-          console.log('📊 Less than 10 items on page', page, ', calculating total from previous pages. Total count:', totalCount);
+           ('📊 Less than 10 items on page', page, ', calculating total from previous pages. Total count:', totalCount);
         }
         // If we have exactly 10 items, there might be more pages
         else if (ticketsData.length === 10) {
           // Try to get all tickets to count them accurately (only do this once)
           if (page === 1) {
-            console.log('📊 Exactly 10 items on page 1, fetching all tickets to get accurate total...');
+             ('📊 Exactly 10 items on page 1, fetching all tickets to get accurate total...');
             try {
               const allTicketsResponse = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.TICKETS}?page=1&limit=1000`);
               let allTicketsData = [];
@@ -525,34 +525,34 @@ const EmployeeDashboard = () => {
               
               if (allTicketsData.length > 0) {
                 totalCount = allTicketsData.length;
-                console.log('📊 Got accurate total count from all tickets:', totalCount);
+                 ('📊 Got accurate total count from all tickets:', totalCount);
               } else {
                 totalCount = (page * 10) + 1; // Fallback
-                console.log('📊 Using fallback estimation:', totalCount);
+                 ('📊 Using fallback estimation:', totalCount);
               }
             } catch (allTicketsError) {
-              console.log('⚠️ Could not fetch all tickets, using estimation:', allTicketsError);
+               ('⚠️ Could not fetch all tickets, using estimation:', allTicketsError);
               totalCount = (page * 10) + 1; // Fallback
-              console.log('📊 Using fallback estimation:', totalCount);
+               ('📊 Using fallback estimation:', totalCount);
             }
           } else {
             // For pages > 1, use the estimation logic
             totalCount = (page * 10) + 1;
-            console.log('📊 Using estimation for page', page, '. Total count:', totalCount);
+             ('📊 Using estimation for page', page, '. Total count:', totalCount);
           }
         }
       }
       
-      console.log('📊 Processed user tickets data:', ticketsData);
-      console.log('📊 Total count from API:', totalCount);
-      console.log('📊 Current page:', page);
-      console.log('📊 Calculated total pages:', Math.ceil(totalCount / 10));
+       ('📊 Processed user tickets data:', ticketsData);
+       ('📊 Total count from API:', totalCount);
+       ('📊 Current page:', page);
+       ('📊 Calculated total pages:', Math.ceil(totalCount / 10));
       
       setTickets(ticketsData);
       setTicketsPage(page);
       setTicketsTotal(totalCount);
     } catch (err) {
-      console.log('❌ User Tickets API Error:', err);
+       ('❌ User Tickets API Error:', err);
       setTicketsError(err.message || 'Failed to fetch tickets');
       setTickets([]);
     } finally {

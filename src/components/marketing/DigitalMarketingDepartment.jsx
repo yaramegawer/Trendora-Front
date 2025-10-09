@@ -38,21 +38,7 @@ const DigitalMarketingDepartment = () => {
   // Get user from auth context
   const { user } = useAuth();
   
-  // Check if user has access to Digital Marketing department
-  // Since department info is not available in the user object, allow access
-  // The backend will handle the actual authorization
-  if (!user) {
-    return (
-      <div style={{ padding: '24px', textAlign: 'center' }}>
-        <h2 style={{ color: '#dc2626' }}>Access Denied</h2>
-        <p style={{ color: '#6b7280' }}>
-          You must be logged in to access the Digital Marketing department.
-        </p>
-      </div>
-    );
-  }
-  
-  // Use real API data hooks
+  // Use real API data hooks - MUST be called before any conditional returns
   const marketingEmployeesHook = useMarketingEmployees();
   const { 
     employees, 
@@ -61,12 +47,7 @@ const DigitalMarketingDepartment = () => {
   } = marketingEmployeesHook;
   const updateRating = marketingEmployeesHook.updateRating;
   
-  
-  // Pagination state for projects
-  const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
-
-  // Filter state for projects
+  // Filter state for projects (used for filtering customer list)
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [projectStatusFilter, setProjectStatusFilter] = useState('all');
   const [showProjectStatusDropdown, setShowProjectStatusDropdown] = useState(false);
@@ -84,17 +65,13 @@ const DigitalMarketingDepartment = () => {
 
   const { 
     projects, 
-    loading: projectsLoading, 
-    error: projectsError, 
     totalProjects,
-    currentPage: projectsPage,
-    totalPages: projectsTotalPages,
-    goToPage: projectsGoToPage,
+    loading: projectsLoading,
     createProject, 
     updateProject, 
     deleteProject,
     fetchProjects
-  } = useMarketingProjects(projectsCurrentPage, pageSize);
+  } = useMarketingProjects(1, 1000); // Load all projects for counting and customer extraction
   
   const { 
     tickets, 
@@ -111,114 +88,8 @@ const DigitalMarketingDepartment = () => {
     error: leavesError, 
     submitLeave 
   } = useMarketingLeaves();
-  
-  // Filter projects by search term and status (only when not using server-side pagination)
-  const hasActiveFilters = projectSearchTerm !== '' || projectStatusFilter !== 'all';
-  
-  const filteredProjects = hasActiveFilters && Array.isArray(projects) ? projects.filter(project => {
-    // Search filter
-    const matchesSearch = projectSearchTerm === '' || 
-      (project.name && project.name.toLowerCase().includes(projectSearchTerm.toLowerCase())) ||
-      (project.description && project.description.toLowerCase().includes(projectSearchTerm.toLowerCase()));
-    
-    // Status filter
-    const matchesStatus = projectStatusFilter === 'all' || 
-      (project.status && project.status.toLowerCase() === projectStatusFilter.toLowerCase());
-    
-    return matchesSearch && matchesStatus;
-  }) : projects || [];
 
-  // Use server-side pagination when no filters are active, client-side when filters are active
-  const projectsToDisplay = hasActiveFilters ? filteredProjects : projects;
-  
-  // Client-side pagination only for filtered results
-  const projectsStartIndex = hasActiveFilters ? (projectsCurrentPage - 1) * pageSize : 0;
-  const projectsEndIndex = hasActiveFilters ? projectsStartIndex + pageSize : projects.length;
-  const paginatedProjects = hasActiveFilters ? filteredProjects.slice(projectsStartIndex, projectsEndIndex) : projects;
-
-  // Filter customer projects by status and search term when in customer view
-  const filteredCustomerProjects = (() => {
-    if (showCustomerSections && selectedCustomer) {
-      let filtered = customerProjects;
-      
-      // Filter by status first
-      if (projectStatusFilter !== 'all') {
-        filtered = filtered.filter(project => project.status === projectStatusFilter);
-      }
-      
-      // Then filter by search term if provided
-      if (projectSearchTerm.trim()) {
-        filtered = filtered.filter(project => {
-          const projectName = project.name || '';
-          const projectDescription = project.description || '';
-          return projectName.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
-                 projectDescription.toLowerCase().includes(projectSearchTerm.toLowerCase());
-        });
-      }
-      
-      return filtered;
-    }
-    return customerProjects;
-  })();
-
-  // Filter customers based on search term (only when not in customer view)
-  const filteredCustomers = (() => {
-    if (!showCustomerSections && projectSearchTerm.trim() && customers.length > 0) {
-      return customers.filter(customer => {
-        const customerName = typeof customer === 'string' ? customer : (customer.name || customer.customerName || customer.title || '');
-        return customerName.toLowerCase().includes(projectSearchTerm.toLowerCase());
-      });
-    }
-    return customers;
-  })();
-
-  // Pagination handlers
-  const handleProjectsPageChange = (newPage) => {
-('Digital Marketing Department: Projects page change to:', newPage);
-    setProjectsCurrentPage(newPage);
-    
-    // Use server-side pagination when no filters are active
-    if (!hasActiveFilters) {
-      projectsGoToPage(newPage);
-    }
-  };
-
-  const handleProjectSearchChange = (searchTerm) => {
-    setProjectSearchTerm(searchTerm);
-    setProjectsCurrentPage(1); // Reset to first page when search changes
-    
-('🔍 Search term:', searchTerm);
-('🔍 Show customer sections:', showCustomerSections);
-('🔍 Customers:', customers);
-    
-    // No longer automatically going back to customer list
-    // This allows searching for projects within the customer view
-  };
-
-  const handleProjectStatusFilterChange = (status) => {
-    setProjectStatusFilter(status);
-    setProjectsCurrentPage(1); // Reset to first page when filter changes
-  };
-
-  // Fetch customers on component mount
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showProjectStatusDropdown && !event.target.closest('.project-status-dropdown-container')) {
-        setShowProjectStatusDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showProjectStatusDropdown]);
-
+  // All state hooks must be declared before any conditional returns
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [newProject, setNewProject] = useState({
@@ -254,14 +125,106 @@ const DigitalMarketingDepartment = () => {
     startDate: '',
     endDate: ''
   });
+
+  // State for ticket submission
+  const [showSubmitTicket, setShowSubmitTicket] = useState(false);
+  const [newTicket, setNewTicket] = useState({
+    title: '',
+    description: '',
+    priority: 'medium'
+  });
+
+  // Check if user has access to Digital Marketing department
+  // Since department info is not available in the user object, allow access
+  // The backend will handle the actual authorization
+  if (!user) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <h2 style={{ color: '#dc2626' }}>Access Denied</h2>
+        <p style={{ color: '#6b7280' }}>
+          You must be logged in to access the Digital Marketing department.
+        </p>
+      </div>
+    );
+  }
   
+  // No longer need to filter all projects - we show customers instead
+
+  // Filter customer projects by status and search term when in customer view
+  const filteredCustomerProjects = (() => {
+    if (showCustomerSections && selectedCustomer) {
+      let filtered = customerProjects;
+      
+      // Filter by status first
+      if (projectStatusFilter !== 'all') {
+        filtered = filtered.filter(project => project.status === projectStatusFilter);
+      }
+      
+      // Then filter by search term if provided
+      if (projectSearchTerm.trim()) {
+        filtered = filtered.filter(project => {
+          const projectName = project.name || '';
+          const projectDescription = project.description || '';
+          return projectName.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
+                 projectDescription.toLowerCase().includes(projectSearchTerm.toLowerCase());
+        });
+      }
+      
+      return filtered;
+    }
+    return customerProjects;
+  })();
+
+  // Filter customers based on search term
+  const filteredCustomers = (() => {
+    if (projectSearchTerm.trim() && customers.length > 0) {
+      return customers.filter(customer => {
+        const customerName = typeof customer === 'string' ? customer : (customer.name || customer.customerName || customer.title || '');
+        return customerName.toLowerCase().includes(projectSearchTerm.toLowerCase());
+      });
+    }
+    return customers;
+  })();
+
+  // Search handler
+  const handleProjectSearchChange = (searchTerm) => {
+    setProjectSearchTerm(searchTerm);
+     ('🔍 Search term:', searchTerm);
+     ('🔍 Show customer sections:', showCustomerSections);
+     ('🔍 Customers:', customers);
+  };
+
+  // Status filter handler
+  const handleProjectStatusFilterChange = (status) => {
+    setProjectStatusFilter(status);
+  };
+
+  // Fetch customers on component mount
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProjectStatusDropdown && !event.target.closest('.project-status-dropdown-container')) {
+        setShowProjectStatusDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProjectStatusDropdown]);
+
   // Fetch all customers from API
   const fetchCustomers = async () => {
     try {
       setCustomersLoading(true);
-('🔄 Fetching customers from API...');
+       ('🔄 Fetching customers from API...');
       const customersData = await marketingCustomerApi.getAllCustomers();
-('📡 Customers API Response:', customersData);
+       ('📡 Customers API Response:', customersData);
       
       // Handle different response structures
       let customersList = [];
@@ -273,11 +236,11 @@ const DigitalMarketingDepartment = () => {
         customersList = customersData.data;
       }
       
-('📊 Customers loaded:', customersList.length);
-('📊 Customers data:', customersList);
+       ('📊 Customers loaded:', customersList.length);
+       ('📊 Customers data:', customersList);
       setCustomers(customersList);
     } catch (error) {
-('Error fetching customers:', error);
+      console.error('Error fetching customers:', error);
       setCustomers([]);
     } finally {
       setCustomersLoading(false);
@@ -288,13 +251,13 @@ const DigitalMarketingDepartment = () => {
   const fetchCustomerProjects = async (customerName, page = 1, pageSize = 10) => {
     try {
       setCustomerProjectsLoading(true);
-('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize);
-('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
+       ('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize);
+       ('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
       const projectsData = await marketingCustomerApi.getCustomerProjects(customerName, page, pageSize);
-('📡 Customer Projects API Response:', projectsData);
-('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
+       ('📡 Customer Projects API Response:', projectsData);
+       ('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
       
-      // Handle different response structures
+      // Handle different response structures from backend
       let projectsList = [];
       let totalProjects = 0;
       
@@ -303,18 +266,36 @@ const DigitalMarketingDepartment = () => {
         totalProjects = projectsData.length;
       } else if (projectsData && projectsData.data && Array.isArray(projectsData.data)) {
         projectsList = projectsData.data;
-        totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
+          ('📊 projectsData structure:', { hasData: !!projectsData.data, hasPagination: !!projectsData.pagination });
+        // Check for pagination object (backend format: { data: [...], pagination: { total, page, pages } })
+        if (projectsData.pagination) {
+          totalProjects = projectsData.pagination.total || projectsData.data.length;
+            ('📊 Using pagination.total:', totalProjects, 'from:', projectsData.pagination);
+        } else {
+          totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
+            ('📊 Using total/count:', totalProjects);
+        }
       } else if (projectsData && projectsData.success && Array.isArray(projectsData.data)) {
         projectsList = projectsData.data;
-        totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
+        if (projectsData.pagination) {
+          totalProjects = projectsData.pagination.total || projectsData.data.length;
+        } else {
+          totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
+        }
       }
       
-('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
+        ('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
+        ('📊 Setting customerProjectsTotal to:', totalProjects);
+        ('📊 customerProjects array will have length:', projectsList.length);
+        ('📊 Pagination should show:', !customerProjectsLoading, '&&', projectsList.length > 0);
       setCustomerProjects(projectsList);
       setCustomerProjectsTotal(totalProjects);
+      
+      // Log after state is set to verify
+        ('✅ State updated - customerProjects:', projectsList.length, 'customerProjectsTotal:', totalProjects);
       return { projects: projectsList, total: totalProjects };
     } catch (error) {
-('Error fetching customer projects:', error);
+      console.error('Error fetching customer projects:', error);
       setCustomerProjects([]);
       setCustomerProjectsTotal(0);
       return { projects: [], total: 0 };
@@ -348,8 +329,8 @@ const DigitalMarketingDepartment = () => {
     setCustomerProjectsCurrentPage(1); // Reset to first page
     // Fetch projects for this specific customer using customer name
     const customerName = customer.name || customer.customerName || customer.title;
-('🔍 Customer object:', customer);
-('🔍 Extracted customer name:', customerName);
+     ('🔍 Customer object:', customer);
+     ('🔍 Extracted customer name:', customerName);
     await fetchCustomerProjects(customerName, 1, customerProjectsPageSize);
   };
   
@@ -370,14 +351,6 @@ const DigitalMarketingDepartment = () => {
       await fetchCustomerProjects(customerName, newPage, customerProjectsPageSize);
     }
   };
-
-  // State for ticket submission (create new ticket)
-  const [showSubmitTicket, setShowSubmitTicket] = useState(false);
-  const [newTicket, setNewTicket] = useState({
-    title: '',
-    description: '',
-    priority: 'medium'
-  });
 
   // Function to get rating for a specific employee and category
   const getRating = (employeeId, category) => {
@@ -416,11 +389,11 @@ const DigitalMarketingDepartment = () => {
 
   // Function to submit rating with note to backend
   const submitRatingWithNote = async (employeeId, note = '') => {
-('🔍 submitRatingWithNote called with:', { employeeId, note });
-('🔍 updateRating available:', updateRating, typeof updateRating);
+     ('🔍 submitRatingWithNote called with:', { employeeId, note });
+     ('🔍 updateRating available:', updateRating, typeof updateRating);
     
     if (typeof updateRating !== 'function') {
-('❌ updateRating is not a function!', updateRating);
+      console.error('❌ updateRating is not a function!', updateRating);
       alert('Error: Rating function not available. Please refresh the page.');
       return;
     }
@@ -439,17 +412,17 @@ const DigitalMarketingDepartment = () => {
         note: note || `Rating updated - Performance: ${performance}, Efficiency: ${efficiency}, Teamwork: ${teamwork}`
       };
       
-('📤 Sending rating data with note:', ratingData);
-('📤 Employee ID:', employeeId);
+       ('📤 Sending rating data with note:', ratingData);
+       ('📤 Employee ID:', employeeId);
       
       const result = await updateRating(employeeId, ratingData);
-('✅ Rating update result:', result);
-(`Rating saved with note for employee ${employeeId}`);
+       ('✅ Rating update result:', result);
+       (`Rating saved with note for employee ${employeeId}`);
       return { success: true, data: result };
     } catch (error) {
-('❌ Failed to save rating:', error);
-('❌ Error details:', error.message);
-('❌ Error response:', error.response);
+      console.error('❌ Failed to save rating:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error response:', error.response);
       
       // Re-throw the error with original message
       throw error;
@@ -567,9 +540,9 @@ const DigitalMarketingDepartment = () => {
         projectData.customerName = newProject.customerName;
       }
       
-('📤 Sending project data:', projectData);
-('📤 Members array:', newProject.members);
-('📤 Members length:', newProject.members.length);
+       ('📤 Sending project data:', projectData);
+       ('📤 Members array:', newProject.members);
+       ('📤 Members length:', newProject.members.length);
       
       try {
         await createProject(projectData);
@@ -593,7 +566,7 @@ const DigitalMarketingDepartment = () => {
       } catch (customerNameError) {
         // If customerName field is not allowed, retry without it
         if (customerNameError.message && customerNameError.message.includes('customerName') && customerNameError.message.includes('not allowed')) {
-('🔄 Backend doesn\'t support customerName field yet, retrying without it...');
+         ('🔄 Backend doesn\'t support customerName field yet, retrying without it...');
           const fallbackProjectData = {
             name: newProject.name,
             description: newProject.description,
@@ -627,7 +600,7 @@ const DigitalMarketingDepartment = () => {
         }
       }
     } catch (error) {
-('Error creating project:', error);
+        console.error('Error creating project:', error);
       alert('Failed to create project: ' + error.message);
     }
   };
@@ -657,7 +630,7 @@ const DigitalMarketingDepartment = () => {
         priority: newTicket.priority
       };
       
-('📤 Creating ticket:', ticketData);
+       ('📤 Creating ticket:', ticketData);
       await createTicket(ticketData);
       alert('Ticket submitted successfully!');
       setNewTicket({
@@ -667,7 +640,7 @@ const DigitalMarketingDepartment = () => {
       });
       setShowSubmitTicket(false);
     } catch (error) {
-('Error creating ticket:', error);
+      console.error('Error creating ticket:', error);
       alert('Failed to submit ticket: ' + error.message);
     }
   };
@@ -705,7 +678,7 @@ const DigitalMarketingDepartment = () => {
         status: 'pending'
       };
       
-('📤 Submitting leave data:', leaveData);
+       ('📤 Submitting leave data:', leaveData);
       await submitLeave(leaveData);
       alert('Leave request submitted successfully!');
       setNewLeave({
@@ -715,7 +688,7 @@ const DigitalMarketingDepartment = () => {
       });
       setShowLeaveForm(false);
     } catch (error) {
-('Error submitting leave:', error);
+      console.error('Error submitting leave:', error);
       alert('Failed to submit leave: ' + error.message);
     }
   };
@@ -727,7 +700,7 @@ const DigitalMarketingDepartment = () => {
         ticket.id === ticketId ? { ...ticket, ...updates } : ticket
       ));
     } catch (error) {
-('Error updating ticket:', error);
+      console.error('Error updating ticket:', error);
     }
   };
 
@@ -846,11 +819,11 @@ const DigitalMarketingDepartment = () => {
       setEditingProject(null);
       
     } catch (error) {
-('Error updating project:', error);
+        console.error('Error updating project:', error);
       
       // If customerName field is not allowed, retry without it
       if (error.message && error.message.includes('customerName') && error.message.includes('not allowed')) {
-('🔄 Backend doesn\'t support customerName field in updates, retrying without it...');
+         ('🔄 Backend doesn\'t support customerName field in updates, retrying without it...');
         
         try {
           // Remove customerName from updateData and ensure it's in notes
@@ -873,7 +846,7 @@ const DigitalMarketingDepartment = () => {
           setEditingProject(null);
           return;
         } catch (fallbackError) {
-('Error updating project (fallback):', fallbackError);
+          console.error('Error updating project (fallback):', fallbackError);
           alert('Failed to update project: ' + fallbackError.message);
         }
       } else {
@@ -897,7 +870,7 @@ const DigitalMarketingDepartment = () => {
       await deleteProject(projectId);
       alert('Project deleted successfully!');
     } catch (error) {
-('Error deleting project:', error);
+      console.error('Error deleting project:', error);
       alert('Failed to delete project: ' + error.message);
     }
   };
@@ -908,7 +881,7 @@ const DigitalMarketingDepartment = () => {
         // Mock ticket deletion - replace with actual API
         setTickets(prev => prev.filter(ticket => ticket.id !== ticketId));
       } catch (error) {
-('Error deleting ticket:', error);
+      console.error('Error deleting ticket:', error);
       }
     }
   };
@@ -1017,11 +990,11 @@ const DigitalMarketingDepartment = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div>
-                <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>Active Projects</p>
+                <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>Total Projects</p>
                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {projects.length}
+                  {totalProjects || projects?.length || 0}
                 </p>
-                <p style={{ fontSize: '8px', color: '#1c242e', marginTop: '4px', margin: 0 }}>1 due this week</p>
+                <p style={{ fontSize: '8px', color: '#1c242e', marginTop: '4px', margin: 0 }}>{customers.length} customers</p>
               </div>
               <div style={{
                 padding: '10px',
@@ -1462,7 +1435,7 @@ const DigitalMarketingDepartment = () => {
                           
                           alert('Rating submitted successfully!');
                         } catch (error) {
-('Failed to submit rating:', error);
+          console.error('Failed to submit rating:', error);
                           alert('Failed to submit rating: ' + error.message);
                         }
                       }}
@@ -1503,7 +1476,10 @@ const DigitalMarketingDepartment = () => {
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
-                onClick={() => fetchProjects(projectsCurrentPage, pageSize)}
+                onClick={() => {
+                  fetchProjects(1, 1000); // Refresh all projects
+                  fetchCustomers(); // Also refresh customers list
+                }}
                 onMouseOver={(e) => {
                   e.target.style.backgroundColor = '#e5e7eb';
                   e.target.style.borderColor = '#9ca3af';
@@ -1900,12 +1876,22 @@ const DigitalMarketingDepartment = () => {
                   </div>
                 )}
                 
-                {/* Customer Projects Pagination */}
-                {customerProjectsTotal > customerProjectsPageSize && (
+                {/* Customer Projects Pagination - Always show when viewing a customer */}
+                {(() => {
+                  const shouldShow = !customerProjectsLoading && customerProjects.length > 0;
+                    ('🔍 Pagination render check:', {
+                    customerProjectsLoading,
+                    customerProjectsLength: customerProjects.length,
+                    customerProjectsTotal,
+                    shouldShow,
+                    totalPages: Math.ceil(customerProjectsTotal / customerProjectsPageSize)
+                  });
+                  return shouldShow;
+                })() && (
                   <div style={{ marginTop: '20px' }}>
                     <SimplePagination
                       currentPage={customerProjectsCurrentPage}
-                      totalPages={Math.ceil(customerProjectsTotal / customerProjectsPageSize)}
+                      totalPages={Math.max(1, Math.ceil(customerProjectsTotal / customerProjectsPageSize))}
                       onPageChange={handleCustomerProjectsPageChange}
                       totalItems={customerProjectsTotal}
                       pageSize={customerProjectsPageSize}
@@ -1927,7 +1913,7 @@ const DigitalMarketingDepartment = () => {
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
                       {filteredCustomers.map((customer, index) => {
-(`🔍 Customer ${index + 1}:`, customer, 'Type:', typeof customer);
+                         ('🔍 Customer', index + 1, ':', customer, 'Type:', typeof customer);
                         
                         // Handle both string and object formats
                         let displayName;
@@ -1939,20 +1925,11 @@ const DigitalMarketingDepartment = () => {
                           displayName = 'Unknown Customer';
                         }
                         
-(`🔍 Customer ${index + 1} displayName:`, displayName);
-                        
-                        // Count projects for this customer from the projects data
-                        const customerProjects = projects.filter(project => {
-                          const projectCustomer = extractCustomerFromProject(project);
-(`🔍 Project "${project.name}" customer: "${projectCustomer}", looking for: "${displayName}"`);
-                          return projectCustomer === displayName;
-                        });
-                        
-(`🔍 Customer "${displayName}" has ${customerProjects.length} projects:`, customerProjects.map(p => p.name));
+                         ('🔍 Customer', index + 1, 'displayName:', displayName);
                         
                         return (
                           <div
-                            key={typeof customer === 'string' ? customer : (customer.id || customer._id)}
+                            key={typeof customer === 'string' ? customer : (customer.id || customer._id || index)}
                             onClick={() => handleCustomerClick({ name: displayName })}
                             style={{
                               backgroundColor: '#f8fafc',
@@ -1966,12 +1943,12 @@ const DigitalMarketingDepartment = () => {
                               justifyContent: 'space-between'
                             }}
                             onMouseOver={(e) => {
-                              e.target.style.backgroundColor = '#f1f5f9';
-                              e.target.style.borderColor = '#cbd5e1';
+                              e.currentTarget.style.backgroundColor = '#f1f5f9';
+                              e.currentTarget.style.borderColor = '#cbd5e1';
                             }}
                             onMouseOut={(e) => {
-                              e.target.style.backgroundColor = '#f8fafc';
-                              e.target.style.borderColor = '#e2e8f0';
+                              e.currentTarget.style.backgroundColor = '#f8fafc';
+                              e.currentTarget.style.borderColor = '#e2e8f0';
                             }}
                           >
                             <div>
@@ -1979,7 +1956,7 @@ const DigitalMarketingDepartment = () => {
                                 {displayName}
                               </h4>
                               <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-                                {customerProjects.length} project{customerProjects.length !== 1 ? 's' : ''}
+                                Click to view projects
                               </p>
                             </div>
                             <div style={{ color: '#6b7280' }}>
@@ -1992,36 +1969,10 @@ const DigitalMarketingDepartment = () => {
                   )}
                 </div>
               </div>
-            ) : Array.isArray(filteredProjects) && filteredProjects.length > 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div style={{ fontSize: '16px', color: '#6b7280' }}>No projects found</div>
-              </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>
-                  {projectSearchTerm.trim() ? `No customers found matching "${projectSearchTerm}".` : 'No projects or customers found'}
-                </div>
-              </div>
-            )}
-            
-            {/* Pagination for Projects - Only show when not in customer sections and not showing customer list */}
-            {!showCustomerSections && !(Array.isArray(filteredProjects) && filteredProjects.length > 0 && customers.length > 0) && totalProjects > 0 && (
-              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
-                <SimplePagination
-                  currentPage={projectsCurrentPage}
-                  totalPages={hasActiveFilters ? Math.ceil(filteredProjects.length / pageSize) : projectsTotalPages}
-                  totalItems={hasActiveFilters ? filteredProjects.length : totalProjects}
-                  pageSize={pageSize}
-                  onPageChange={handleProjectsPageChange}
-                />
-              </div>
-            )}
-            
-            {/* Show message when no projects match filter */}
-            {Array.isArray(projects) && projects.length > 0 && filteredProjects.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div style={{ fontSize: '16px', color: '#6b7280' }}>
-                  No projects found matching your search or filter criteria
+                  {projectSearchTerm.trim() ? `No customers found matching "${projectSearchTerm}".` : 'No customers found. Click "Create Project" to add your first project.'}
                 </div>
               </div>
             )}
