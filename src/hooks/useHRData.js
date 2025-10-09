@@ -260,27 +260,27 @@ export const useLeaves = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError(null);
-(`Fetching leaves - Page: ${pageNum}, Limit: ${pageLimit}, Current totalLeaves: ${totalLeaves}`);
-      const data = await leaveApi.getAllLeaves(pageNum, pageLimit);
-('Leaves data received:', data);
+('🔍 useLeaves: Fetching all leaves for client-side pagination');
       
-      // Handle paginated response structure
+      // Get all leaves at once for client-side pagination and filtering
+      const data = await leaveApi.getAllLeaves(1, 1000); // Get all leaves
+('🔍 useLeaves: API response:', data);
+      
+      // Handle response structure
+      let allLeaves = [];
       if (data && typeof data === 'object' && data.data) {
-        setLeaves(Array.isArray(data.data) ? data.data : []);
-        // Try multiple possible field names for total count
-        const totalCount = data.totalLeaves || data.total || data.count || data.totalCount || data.totalItems || 0;
-        
-        // If no total count provided, estimate based on current page data
-        const estimatedTotal = totalCount > 0 ? totalCount : (data.data?.length >= pageLimit ? (pageNum * pageLimit) + 1 : (pageNum - 1) * pageLimit + (data.data?.length || 0));
-        setTotalLeaves(estimatedTotal);
+        allLeaves = Array.isArray(data.data) ? data.data : [];
       } else {
-        // Fallback for non-paginated response
-        setLeaves(Array.isArray(data) ? data : []);
-        setTotalLeaves(Array.isArray(data) ? data.length : 0);
+        allLeaves = Array.isArray(data) ? data : [];
       }
+      
+('🔍 useLeaves: Total leaves fetched:', allLeaves.length);
+      setTotalLeaves(allLeaves.length);
+      setLeaves(allLeaves); // Store all leaves for client-side pagination
       
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
+('🔍 useLeaves: Final state - totalLeaves:', allLeaves.length);
     } catch (err) {
 ('Error fetching leaves:', err);
       setError(err.message || 'Failed to fetch leaves');
@@ -345,33 +345,32 @@ export const useLeaves = (page = 1, limit = 10) => {
     fetchLeaves();
   }, []);
 
-  // Pagination functions
+  // Pagination functions (client-side only, no server calls)
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalLeaves / pageSize);
-(`goToPage: pageNum=${pageNum}, totalLeaves=${totalLeaves}, pageSize=${pageSize}, maxPages=${maxPages}`);
-    
-    // Always allow page changes if totalLeaves is 0 (initial state) or if page is in valid range
-    // This prevents the issue where totalLeaves might be stale
-    if (totalLeaves === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-(`goToPage: Fetching page ${pageNum}`);
-      fetchLeaves(pageNum, pageSize);
-    } else {
-(`goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+('🔍 goToPage called with:', pageNum);
+('🔍 Max pages:', maxPages, 'Total leaves:', totalLeaves, 'Page size:', pageSize);
+    if (pageNum >= 1 && pageNum <= maxPages) {
+      setCurrentPage(pageNum); // Just update the page number, data is already loaded
     }
   };
 
   const changePageSize = (newPageSize) => {
+('🔍 changePageSize called with:', newPageSize);
     setPageSize(newPageSize);
-    fetchLeaves(1, newPageSize); // Reset to first page when changing page size
+    setCurrentPage(1); // Reset to first page when changing page size
   };
 
   const nextPage = () => {
-    if (currentPage < Math.ceil(totalLeaves / pageSize)) {
+('🔍 nextPage called, current page:', currentPage);
+    const maxPages = Math.ceil(totalLeaves / pageSize);
+    if (currentPage < maxPages) {
       goToPage(currentPage + 1);
     }
   };
 
   const prevPage = () => {
+('🔍 prevPage called, current page:', currentPage);
     if (currentPage > 1) {
       goToPage(currentPage - 1);
     }

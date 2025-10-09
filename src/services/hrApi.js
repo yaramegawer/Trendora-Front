@@ -34,10 +34,9 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
         errorMessage = data.message || 'Validation error. Please check your input.';
         break;
       case 500:
-        errorMessage = data.message || 'Internal server error. Please try again later.';
-        // Internal Server Error Details logged
-        // Return a more user-friendly message for internal server errors
-        return 'internal server error';
+        // Don't convert to generic message - preserve the actual error message
+        // so duplicate email errors can be properly detected
+        errorMessage = data.message || data.error || 'Internal server error. Please try again later.';
         break;
       default:
         errorMessage = data.message || `Error ${status}: ${defaultMessage}`;
@@ -112,7 +111,28 @@ export const employeeApi = {
       
       return response.data;
     } catch (error) {
+      console.error('❌ API: Add employee RAW error:', error);
+      console.error('❌ API: Full error response:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        headers: error.response?.headers
+      });
       
+      // Log the response data in detail
+      if (error.response?.data) {
+          ('🔍 Response data type:', typeof error.response.data);
+          ('🔍 Response data keys:', Object.keys(error.response.data));
+          ('🔍 Response data JSON:', JSON.stringify(error.response.data, null, 2));
+        
+        // Check all possible error fields
+          ('🔍 data.message:', error.response.data.message);
+          ('🔍 data.error:', error.response.data.error);
+          ('🔍 data.msg:', error.response.data.msg);
+          ('🔍 data.details:', error.response.data.details);
+          ('🔍 data.errorMessage:', error.response.data.errorMessage);
+      }
       
       // Handle authentication errors specifically
       if (error.response?.status === 401) {
@@ -120,18 +140,72 @@ export const employeeApi = {
         throw new Error(errorMessage);
       }
       
-      // Handle duplicate email error specifically
-      const errorMessage = error.response?.data?.message || error.message || '';
-      if (errorMessage.includes('E11000') && errorMessage.includes('duplicate key')) {
+      // IMPORTANT: Check the 'error' field FIRST for duplicate key errors
+      // because the backend puts the actual E11000 error in the 'error' field
+      // and a generic "internal server error" in the 'message' field
+      const backendError = error.response?.data?.error || '';
+      const backendMessage = error.response?.data?.message || '';
+      const backendMsg = error.response?.data?.msg || '';
+      const fallbackMessage = error.message || '';
+      
+        ('🔍 Backend error field:', backendError);
+        ('🔍 Backend message field:', backendMessage);
+      
+      // First, check if the 'error' field contains duplicate key error
+      const lowerBackendError = backendError.toLowerCase();
+      const isDuplicateInError = 
+        lowerBackendError.includes('e11000') ||
+        lowerBackendError.includes('duplicate key') ||
+        (lowerBackendError.includes('duplicate') && lowerBackendError.includes('email'));
+      
+        ('🔍 Is duplicate in error field?', isDuplicateInError);
+      
+      if (isDuplicateInError) {
+          ('✅ Duplicate email detected in error field, throwing specific error');
         throw new Error('Can\'t add this email because it already exists');
       }
       
-      // Handle other specific error messages from backend
-      if (errorMessage) {
+      // Then check message field for duplicate
+      const lowerBackendMessage = backendMessage.toLowerCase();
+      const isDuplicateInMessage = 
+        lowerBackendMessage.includes('e11000') ||
+        lowerBackendMessage.includes('duplicate key') ||
+        lowerBackendMessage.includes('already exists') ||
+        lowerBackendMessage.includes('already taken') ||
+        (lowerBackendMessage.includes('email') && lowerBackendMessage.includes('exists')) ||
+        (lowerBackendMessage.includes('email') && lowerBackendMessage.includes('already')) ||
+        (lowerBackendMessage.includes('email') && lowerBackendMessage.includes('taken'));
+      
+        ('🔍 Is duplicate in message field?', isDuplicateInMessage);
+      
+      if (isDuplicateInMessage) {
+          ('✅ Duplicate email detected in message field, throwing specific error');
+        throw new Error('Can\'t add this email because it already exists');
+      }
+      
+      // For any other error, prefer a meaningful message over "internal server error"
+      let errorMessage = '';
+      if (backendError && backendError.trim() && !backendError.toLowerCase().includes('internal server error')) {
+        errorMessage = backendError;
+      } else if (backendMessage && backendMessage.trim() && !backendMessage.toLowerCase().includes('internal server error')) {
+        errorMessage = backendMessage;
+      } else if (backendMsg && backendMsg.trim()) {
+        errorMessage = backendMsg;
+      } else if (fallbackMessage && fallbackMessage.trim()) {
+        errorMessage = fallbackMessage;
+      }
+      
+        ('🔍 Final error message to throw:', errorMessage);
+      
+      // For any other error, throw it as-is if we have a message
+      if (errorMessage && errorMessage.trim()) {
+          ('⚠️ Throwing backend error message:', errorMessage);
         throw new Error(errorMessage);
       }
       
+      // Last resort - use handleApiError
       const fallbackErrorMessage = handleApiError(error, 'Failed to add employee');
+        ('⚠️ Using fallback error message:', fallbackErrorMessage);
       throw new Error(fallbackErrorMessage);
     }
   },
@@ -197,6 +271,7 @@ export const employeeApi = {
      
       return response.data;
     } catch (error) {
+      console.error('❌ API: Update employee RAW error:', error);
       console.error('❌ API: Update error details:', {
         message: error.message,
         status: error.response?.status,
@@ -213,18 +288,70 @@ export const employeeApi = {
         throw new Error('Invalid employee ID. The employee may have been deleted or the ID is corrupted.');
       }
       
-      // Handle duplicate email error specifically
-      const errorMessage = error.response?.data?.message || error.message || '';
-      if (errorMessage.includes('E11000') && errorMessage.includes('duplicate key')) {
+      // IMPORTANT: Check the 'error' field FIRST for duplicate key errors
+      const backendError = error.response?.data?.error || '';
+      const backendMessage = error.response?.data?.message || '';
+      const backendMsg = error.response?.data?.msg || '';
+      const fallbackMessage = error.message || '';
+      
+        ('🔍 Update - Backend error field:', backendError);
+        ('🔍 Update - Backend message field:', backendMessage);
+      
+      // First, check if the 'error' field contains duplicate key error
+      const lowerBackendError = backendError.toLowerCase();
+      const isDuplicateInError = 
+        lowerBackendError.includes('e11000') ||
+        lowerBackendError.includes('duplicate key') ||
+        (lowerBackendError.includes('duplicate') && lowerBackendError.includes('email'));
+      
+        ('🔍 Update - Is duplicate in error field?', isDuplicateInError);
+      
+      if (isDuplicateInError) {
+          ('✅ Update - Duplicate email detected in error field, throwing specific error');
         throw new Error('Can\'t update this email because it already exists');
       }
       
-      // Handle other specific error messages from backend
-      if (errorMessage) {
+      // Then check message field for duplicate
+      const lowerBackendMessage = backendMessage.toLowerCase();
+      const isDuplicateInMessage = 
+        lowerBackendMessage.includes('e11000') ||
+        lowerBackendMessage.includes('duplicate key') ||
+        lowerBackendMessage.includes('already exists') ||
+        lowerBackendMessage.includes('already taken') ||
+        (lowerBackendMessage.includes('email') && lowerBackendMessage.includes('exists')) ||
+        (lowerBackendMessage.includes('email') && lowerBackendMessage.includes('already')) ||
+        (lowerBackendMessage.includes('email') && lowerBackendMessage.includes('taken'));
+      
+        ('🔍 Update - Is duplicate in message field?', isDuplicateInMessage);
+      
+      if (isDuplicateInMessage) {
+          ('✅ Update - Duplicate email detected in message field, throwing specific error');
+        throw new Error('Can\'t update this email because it already exists');
+      }
+      
+      // For any other error, prefer a meaningful message over "internal server error"
+      let errorMessage = '';
+      if (backendError && backendError.trim() && !backendError.toLowerCase().includes('internal server error')) {
+        errorMessage = backendError;
+      } else if (backendMessage && backendMessage.trim() && !backendMessage.toLowerCase().includes('internal server error')) {
+        errorMessage = backendMessage;
+      } else if (backendMsg && backendMsg.trim()) {
+        errorMessage = backendMsg;
+      } else if (fallbackMessage && fallbackMessage.trim()) {
+        errorMessage = fallbackMessage;
+      }
+      
+        ('🔍 Update - Final error message to throw:', errorMessage);
+      
+      // For any other error, throw it as-is if we have a message
+      if (errorMessage && errorMessage.trim()) {
+          ('⚠️ Update - Throwing backend error message:', errorMessage);
         throw new Error(errorMessage);
       }
       
+      // Last resort - use handleApiError
       const fallbackErrorMessage = handleApiError(error, 'Failed to update employee');
+        ('⚠️ Update - Using fallback error message:', fallbackErrorMessage);
       throw new Error(fallbackErrorMessage);
     }
   },

@@ -82,10 +82,12 @@ const ITDepartment = () => {
     currentPage: projectsPage,
     totalPages: projectsTotalPages,
     goToPage: projectsGoToPage,
+    changeSearchTerm: projectChangeSearchTerm,
+    changeStatusFilter: projectChangeStatusFilter,
     createProject, 
     updateProject, 
     deleteProject
-  } = useITProjects(projectsCurrentPage, pageSize);
+  } = useITProjects(projectsCurrentPage, pageSize, projectSearchTerm, projectStatusFilter);
   const { 
     tickets, 
     loading: ticketsLoading, 
@@ -94,73 +96,48 @@ const ITDepartment = () => {
     currentPage: ticketsPage,
     totalPages: ticketsTotalPages,
     goToPage: ticketsGoToPage,
+    changeStatusFilter,
     updateTicket, 
     deleteTicket
-  } = useITTickets(ticketsCurrentPage, pageSize);
+  } = useITTickets(ticketsCurrentPage, pageSize, ticketStatusFilter);
   const { submitLeave } = useITLeaves();
 
-  // Filter tickets by status
-  const filteredTickets = Array.isArray(tickets) ? tickets.filter(ticket => {
-    if (ticketStatusFilter === 'all') return true;
-    return ticket.status === ticketStatusFilter;
-  }) : [];
+  // Tickets are already filtered by the hook, no need for additional filtering
+  const filteredTickets = Array.isArray(tickets) ? tickets : [];
 
-  // Filter projects by search term and status (only when not using server-side pagination)
+  // Projects are already filtered and paginated by the hook, no need for additional filtering
+  const filteredProjects = Array.isArray(projects) ? projects : [];
+  
+  // Check if filters are active
   const hasActiveProjectFilters = projectSearchTerm !== '' || projectStatusFilter !== 'all';
-  
-  const filteredProjects = hasActiveProjectFilters && Array.isArray(projects) ? projects.filter(project => {
-    // Search filter
-    const matchesSearch = projectSearchTerm === '' || 
-      (project.name && project.name.toLowerCase().includes(projectSearchTerm.toLowerCase())) ||
-      (project.description && project.description.toLowerCase().includes(projectSearchTerm.toLowerCase()));
-    
-    // Status filter
-    const matchesStatus = projectStatusFilter === 'all' || 
-      (project.status && project.status.toLowerCase() === projectStatusFilter.toLowerCase());
-    
-    return matchesSearch && matchesStatus;
-  }) : projects || [];
 
-  // Client-side pagination for filtered tickets
-  const ticketsStartIndex = (ticketsCurrentPage - 1) * pageSize;
-  const ticketsEndIndex = ticketsStartIndex + pageSize;
-  const paginatedTickets = filteredTickets.slice(ticketsStartIndex, ticketsEndIndex);
+  // Tickets are already filtered and paginated by the hook
+  const ticketsToDisplay = filteredTickets;
 
-  // Use server-side pagination when no filters are active, client-side when filters are active
-  const projectsToDisplay = hasActiveProjectFilters ? filteredProjects : projects;
-  const ticketsToDisplay = hasActiveTicketFilters ? paginatedTickets : tickets;
-  
-  // Client-side pagination only for filtered results
-  const projectsStartIndex = hasActiveProjectFilters ? (projectsCurrentPage - 1) * pageSize : 0;
-  const projectsEndIndex = hasActiveProjectFilters ? projectsStartIndex + pageSize : projects.length;
-  const paginatedProjects = hasActiveProjectFilters ? filteredProjects.slice(projectsStartIndex, projectsEndIndex) : projects;
+  // Projects are already filtered and paginated by the hook
+  const projectsToDisplay = filteredProjects;
 
   // Pagination handlers
   const handleProjectsPageChange = (newPage) => {
 ('IT Department Styled: Projects page change to:', newPage);
     setProjectsCurrentPage(newPage);
     
-    // Use server-side pagination when no filters are active
-    if (!hasActiveProjectFilters) {
-      projectsGoToPage(newPage);
-    }
+    // Hook handles both filtering and pagination
+    projectsGoToPage(newPage);
   };
 
   const handleTicketsPageChange = (newPage) => {
 ('IT Department Styled: Tickets page change to:', newPage);
     setTicketsCurrentPage(newPage);
     
-    // Use server-side pagination when no filters are active
-    if (!hasActiveTicketFilters) {
-      ticketsGoToPage(newPage);
-    }
+    // Hook handles both filtering and pagination
+    ticketsGoToPage(newPage);
   };
 
   const handleStatusFilterChange = (status) => {
     setTicketStatusFilter(status);
     setTicketsCurrentPage(1); // Reset to first page when filter changes
-    // Note: Server-side filtering would be implemented here if needed
-    // For now, we're using client-side filtering with paginated server data
+    changeStatusFilter(status); // Use the hook's filter method to filter across all pages
   };
 
   // Attendance Sheet Upload Functions
@@ -324,11 +301,13 @@ const ITDepartment = () => {
   const handleProjectSearchChange = (searchTerm) => {
     setProjectSearchTerm(searchTerm);
     setProjectsCurrentPage(1); // Reset to first page when search changes
+    projectChangeSearchTerm(searchTerm); // Use the hook's filter method to filter across all pages
   };
 
   const handleProjectStatusFilterChange = (status) => {
     setProjectStatusFilter(status);
     setProjectsCurrentPage(1); // Reset to first page when filter changes
+    projectChangeStatusFilter(status); // Use the hook's filter method to filter across all pages
   };
 
   // Close dropdown when clicking outside
@@ -1617,7 +1596,7 @@ const ITDepartment = () => {
                         >
                           {ticketStatusFilter === 'all' ? 'All Tickets' : 
                            ticketStatusFilter === 'open' ? 'Open' :
-                           ticketStatusFilter === 'in-progress' ? 'In Progress' :
+                           ticketStatusFilter === 'in_progress' ? 'In Progress' :
                            ticketStatusFilter === 'resolved' ? 'Resolved' :
                            ticketStatusFilter === 'closed' ? 'Closed' : 'All Tickets'}
                         </div>
@@ -1684,9 +1663,9 @@ const ITDepartment = () => {
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading tickets...</div>
               </div>
-            ) : Array.isArray(tickets) && tickets.length > 0 ? (
+            ) : ticketsToDisplay.length > 0 ? (
               <div style={{ display: 'grid', gap: '16px' }}>
-                {(hasActiveTicketFilters ? paginatedTickets : tickets).map((ticket) => (
+                {ticketsToDisplay.map((ticket) => (
                   <div key={ticket.id || ticket._id} style={{
                     backgroundColor: '#f8fafc',
                     borderRadius: '12px',
@@ -1775,7 +1754,7 @@ const ITDepartment = () => {
                   </div>
                 ))}
               </div>
-            ) : filteredTickets.length === 0 && Array.isArray(tickets) && tickets.length > 0 ? (
+            ) : hasActiveTicketFilters ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>No tickets found for the selected status filter</div>
                 <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '8px' }}>
@@ -1789,24 +1768,15 @@ const ITDepartment = () => {
             )}
             
             {/* Pagination for Tickets */}
-            {Array.isArray(tickets) && tickets.length > 0 && (
+            {ticketsToDisplay.length > 0 && ticketsTotalPages > 1 && (
               <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
                 <SimplePagination
                   currentPage={ticketsCurrentPage}
-                  totalPages={hasActiveTicketFilters ? Math.ceil(filteredTickets.length / pageSize) : ticketsTotalPages}
-                  totalItems={hasActiveTicketFilters ? filteredTickets.length : totalTickets}
+                  totalPages={ticketsTotalPages}
+                  totalItems={totalTickets}
                   pageSize={pageSize}
                   onPageChange={handleTicketsPageChange}
                 />
-              </div>
-            )}
-            
-            {/* Show message when no tickets match filter */}
-            {Array.isArray(tickets) && tickets.length > 0 && filteredTickets.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div style={{ fontSize: '16px', color: '#6b7280' }}>
-                  No tickets found for the selected status filter
-                </div>
               </div>
             )}
           </div>
@@ -1965,10 +1935,10 @@ const ITDepartment = () => {
                           }}
                         >
                           {projectStatusFilter === 'all' ? 'All Projects' : 
-                           projectStatusFilter === 'planning' ? 'planned' :
-                           projectStatusFilter === 'in-progress' ? 'In Progress' :
+                           projectStatusFilter === 'planned' ? 'Planned' :
+                           projectStatusFilter === 'in_progress' ? 'In Progress' :
                            projectStatusFilter === 'completed' ? 'Completed' :
-                           projectStatusFilter === 'on-hold' ? 'On Hold' : 'All Projects'}
+                           projectStatusFilter === 'on_hold' ? 'On Hold' : 'All Projects'}
                         </div>
                         
                         {showProjectStatusDropdown && (
@@ -1988,9 +1958,9 @@ const ITDepartment = () => {
                             {[
                               { value: 'all', label: 'All Projects' },
                               { value: 'planned', label: 'Planned' },
-                              { value: 'in-progress', label: 'In Progress' },
+                              { value: 'in_progress', label: 'In Progress' },
                               { value: 'completed', label: 'Completed' },
-                              { value: 'on-hold', label: 'On Hold' }
+                              { value: 'on_hold', label: 'On Hold' }
                             ].map((option) => (
                               <div
                                 key={option.value}
@@ -2026,7 +1996,7 @@ const ITDepartment = () => {
 
                   {/* Results Count */}
                   <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
-                    Showing {filteredProjects.length} of {projects.length} projects
+                    Showing {projects.length} of {totalProjects} projects
                   </div>
                 </div>
               </div>
@@ -2036,9 +2006,9 @@ const ITDepartment = () => {
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading projects...</div>
               </div>
-            ) : Array.isArray(filteredProjects) && filteredProjects.length > 0 ? (
+            ) : projectsToDisplay.length > 0 ? (
               <div style={{ display: 'grid', gap: '16px' }}>
-                {paginatedProjects.map((project) => (
+                {projectsToDisplay.map((project) => (
                   <div key={project.id || project._id} style={{
                     backgroundColor: '#f8fafc',
                     borderRadius: '12px',
@@ -2128,6 +2098,13 @@ const ITDepartment = () => {
                   </div>
                 ))}
               </div>
+            ) : hasActiveProjectFilters ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '16px', color: '#6b7280' }}>No projects found matching your search or filter criteria</div>
+                <div style={{ fontSize: '14px', color: '#9ca3af', marginTop: '8px' }}>
+                  Try changing your search term or filter to see more projects
+                </div>
+              </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>No projects found</div>
@@ -2135,24 +2112,15 @@ const ITDepartment = () => {
             )}
             
             {/* Pagination for Projects */}
-            {totalProjects > 0 && (
+            {projectsToDisplay.length > 0 && projectsTotalPages > 1 && (
               <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
                 <SimplePagination
                   currentPage={projectsCurrentPage}
-                  totalPages={hasActiveProjectFilters ? Math.ceil(filteredProjects.length / pageSize) : projectsTotalPages}
-                  totalItems={hasActiveProjectFilters ? filteredProjects.length : totalProjects}
+                  totalPages={projectsTotalPages}
+                  totalItems={totalProjects}
                   pageSize={pageSize}
                   onPageChange={handleProjectsPageChange}
                 />
-              </div>
-            )}
-            
-            {/* Show message when no projects match filter */}
-            {Array.isArray(projects) && projects.length > 0 && filteredProjects.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div style={{ fontSize: '16px', color: '#6b7280' }}>
-                  No projects found matching your search or filter criteria
-                </div>
               </div>
             )}
           </div>

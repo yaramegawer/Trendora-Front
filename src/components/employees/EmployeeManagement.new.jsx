@@ -83,6 +83,7 @@ const EmployeeManagement = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [userError, setUserError] = useState('');
   const [userSuccess, setUserSuccess] = useState('');
+  const [formErrors, setFormErrors] = useState({});
 
   const handleAddEmployee = async (employeeData) => {
     
@@ -98,56 +99,83 @@ const EmployeeManagement = () => {
     try {
       setUserError('');
       setUserSuccess('');
+      setFormErrors({}); // Clear form errors
       await addEmployee(employeeData);
       setUserSuccess('Employee added successfully!');
       setShowAddDialog(false);
+      setFormErrors({}); // Clear form errors on success
     } catch (error) {
       console.error('❌ Error adding employee:', error);
+        ('🔍 Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        responseData: error.response?.data
+      });
       
       // Clear any existing error first
       setUserError('');
       
-      // Check for authentication errors
-      if (error.message && (error.message.includes('Authentication required') || error.message.includes('sign_in') || error.message.includes('token'))) {
-        alert('Authentication Error: Please log in first to add employees.');
-        // Optionally redirect to login
-        // window.location.href = '/login';
-      } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
-        alert(`Permission Error: ${error.message}`);
-      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t add this email because it already exists'))) {
-        alert(error.message);
-      } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
-        alert('Can\'t add this email because it already exists');
-      } else if (error.message && error.message.includes('email')) {
-        // Catch any other email-related errors and show as alert only
-        alert(error.message);
-      } else if ((error.message && error.message.includes('department') && error.message.includes('must be one of')) || 
-                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('department') && error.response.data.message.includes('must be one of')) ||
-                 (error.message && error.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales')) ||
-                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales'))) {
-        // Catch department validation errors and show as alert only
-        const errorMsg = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
-        alert(errorMsg);
-        return; // Don't set userError, just show alert and return
-      } else if (error.message && error.message.includes('internal server error')) {
-        // Handle internal server errors with alert
-        alert('Server Error: Unable to add employee. Please try again later or contact support if the problem persists.');
-        return; // Don't set userError, just show alert and return
-      } else if (error.response && error.response.status === 500) {
-        // Handle 500 status errors with alert
-        alert('Server Error: Unable to add employee. Please try again later or contact support if the problem persists.');
-        return; // Don't set userError, just show alert and return
-      } else {
-        // Check if it's a department validation error in any other format
-        const errorMessage = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
-        if (errorMessage && (errorMessage.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales') || 
-                            (errorMessage.includes('department') && errorMessage.includes('must be one of')))) {
-          alert(errorMessage);
-          return; // Don't set userError, just show alert and return
-        }
-        // For any other errors, show as alert instead of setting userError
-        alert(`Error adding employee: ${error.message}`);
+      // Get both error message and raw backend response for checking
+      const errorMsg = error.message || '';
+      const backendMsg = error.response?.data?.message || error.response?.data?.error || '';
+      const combinedMsg = (errorMsg + ' ' + backendMsg).toLowerCase();
+      
+        ('🔍 Combined error message:', combinedMsg);
+      
+      // Check for duplicate email errors FIRST (before any other checks)
+      // Check both the processed error message AND the raw backend response
+      if (
+        combinedMsg.includes('duplicate') ||
+        combinedMsg.includes('already exists') ||
+        combinedMsg.includes('e11000') ||
+        (combinedMsg.includes('email') && (combinedMsg.includes('taken') || combinedMsg.includes('exists') || combinedMsg.includes('already'))) ||
+        errorMsg.includes('Can\'t add this email because it already exists')
+      ) {
+          ('✅ Duplicate email detected - showing on form field');
+        const displayMessage = errorMsg.includes('Can\'t add this email') ? errorMsg : 'This email is already taken';
+        setFormErrors({ email: displayMessage });
+        return; // Don't close dialog, let user fix the error
       }
+      
+      // Check for authentication errors
+      if (errorMsg.includes('Authentication required') || errorMsg.includes('sign_in') || errorMsg.includes('token')) {
+        alert('Authentication Error: Please log in first to add employees.');
+        setShowAddDialog(false);
+        return;
+      }
+      
+      // Check for permission errors
+      if (errorMsg.includes('permission') || errorMsg.includes('access') || errorMsg.includes('admin')) {
+        alert(`Permission Error: ${errorMsg}`);
+        setShowAddDialog(false);
+        return;
+      }
+      
+      // Check for other email-related errors
+      if (errorMsg.includes('email')) {
+        setFormErrors({ email: errorMsg });
+        return;
+      }
+      
+      // Check for department validation errors
+      if (
+        (errorMsg.includes('department') && errorMsg.includes('must be one of')) ||
+        (backendMsg && backendMsg.includes('department') && backendMsg.includes('must be one of')) ||
+        errorMsg.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales') ||
+        (backendMsg && backendMsg.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales'))
+      ) {
+        setFormErrors({ department: backendMsg || errorMsg });
+        return;
+      }
+      
+      // Handle 500 status errors (but only as last resort)
+      if (error.response?.status === 500 || errorMsg.includes('internal server error')) {
+        alert('Server Error: Unable to add employee. Please try again later or contact support if the problem persists.');
+        return;
+      }
+      
+      // For any other errors, show the error message
+      alert(`Error adding employee: ${errorMsg}`);
     }
   };
 
@@ -157,6 +185,7 @@ const EmployeeManagement = () => {
     try {
       setUserError('');
       setUserSuccess('');
+      setFormErrors({}); // Clear form errors
       const employeeId = editingEmployee.id || editingEmployee._id;
       
       if (!employeeId) {
@@ -174,6 +203,7 @@ const EmployeeManagement = () => {
       setUserSuccess('Employee updated successfully!');
       setShowEditDialog(false);
       setEditingEmployee(null);
+      setFormErrors({}); // Clear form errors on success
     } catch (error) {
       console.error('❌ Error updating employee:', {
         message: error.message,
@@ -188,47 +218,73 @@ const EmployeeManagement = () => {
       // Clear any existing error first
       setUserError('');
       
-      // Check for specific error types
-      if (error.message && error.message.includes('Invalid objectId')) {
-        alert('Error: Invalid employee ID. Please refresh the page and try again.');
-      } else if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
-        alert(`Permission Error: ${error.message}`);
-      } else if (error.message && error.message.includes('Authentication required')) {
-        alert('Authentication Error: Please log in again.');
-      } else if (error.message && (error.message.includes('duplicate') || error.message.includes('already exists') || error.message.includes('email') && error.message.includes('taken') || error.message.includes('E11000') || error.message.includes('Can\'t update this email because it already exists'))) {
-        alert(error.message);
-      } else if (error.response && (error.response.status === 409 || error.response.status === 422) && error.response.data && error.response.data.message && (error.response.data.message.includes('email') || error.response.data.message.includes('E11000'))) {
-        alert('Can\'t update this email because it already exists');
-      } else if (error.message && error.message.includes('email')) {
-        // Catch any other email-related errors and show as alert only
-        alert(error.message);
-      } else if ((error.message && error.message.includes('department') && error.message.includes('must be one of')) || 
-                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('department') && error.response.data.message.includes('must be one of')) ||
-                 (error.message && error.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales')) ||
-                 (error.response && error.response.data && error.response.data.message && error.response.data.message.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales'))) {
-        // Catch department validation errors and show as alert only
-        const errorMsg = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
-        alert(errorMsg);
-        return; // Don't set userError, just show alert and return
-      } else if (error.message && error.message.includes('internal server error')) {
-        // Handle internal server errors with alert
-        alert('Server Error: Unable to update employee. Please try again later or contact support if the problem persists.');
-        return; // Don't set userError, just show alert and return
-      } else if (error.response && error.response.status === 500) {
-        // Handle 500 status errors with alert
-        alert('Server Error: Unable to update employee. Please try again later or contact support if the problem persists.');
-        return; // Don't set userError, just show alert and return
-      } else {
-        // Check if it's a department validation error in any other format
-        const errorMessage = error.response && error.response.data && error.response.data.message ? error.response.data.message : error.message;
-        if (errorMessage && (errorMessage.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales') || 
-                            (errorMessage.includes('department') && errorMessage.includes('must be one of')))) {
-          alert(errorMessage);
-          return; // Don't set userError, just show alert and return
-        }
-        // For any other errors, show as alert instead of setting userError
-        alert(`Error updating employee: ${error.message}`);
+      // Get both error message and raw backend response for checking
+      const errorMsg = error.message || '';
+      const backendMsg = error.response?.data?.message || error.response?.data?.error || '';
+      const combinedMsg = (errorMsg + ' ' + backendMsg).toLowerCase();
+      
+        ('🔍 Update error - Combined message:', combinedMsg);
+      
+      // Check for duplicate email errors FIRST (before any other checks)
+      if (
+        combinedMsg.includes('duplicate') ||
+        combinedMsg.includes('already exists') ||
+        combinedMsg.includes('e11000') ||
+        (combinedMsg.includes('email') && (combinedMsg.includes('taken') || combinedMsg.includes('exists') || combinedMsg.includes('already'))) ||
+        errorMsg.includes('Can\'t update this email because it already exists')
+      ) {
+          ('✅ Duplicate email detected - showing on form field');
+        const displayMessage = errorMsg.includes('Can\'t update this email') ? errorMsg : 'This email is already taken';
+        setFormErrors({ email: displayMessage });
+        return; // Don't close dialog, let user fix the error
       }
+      
+      // Check for Invalid ObjectId errors
+      if (errorMsg.includes('Invalid objectId')) {
+        alert('Error: Invalid employee ID. Please refresh the page and try again.');
+        setShowEditDialog(false);
+        return;
+      }
+      
+      // Check for authentication errors
+      if (errorMsg.includes('Authentication required')) {
+        alert('Authentication Error: Please log in again.');
+        setShowEditDialog(false);
+        return;
+      }
+      
+      // Check for permission errors
+      if (errorMsg.includes('permission') || errorMsg.includes('access') || errorMsg.includes('admin')) {
+        alert(`Permission Error: ${errorMsg}`);
+        setShowEditDialog(false);
+        return;
+      }
+      
+      // Check for email-related errors
+      if (errorMsg.includes('email')) {
+        setFormErrors({ email: errorMsg });
+        return;
+      }
+      
+      // Check for department validation errors
+      if (
+        (errorMsg.includes('department') && errorMsg.includes('must be one of')) ||
+        (backendMsg && backendMsg.includes('department') && backendMsg.includes('must be one of')) ||
+        errorMsg.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales') ||
+        (backendMsg && backendMsg.includes('HR, Accounting, IT, Administration, Operation, Digital Marketing, Sales'))
+      ) {
+        setFormErrors({ department: backendMsg || errorMsg });
+        return;
+      }
+      
+      // Handle 500 status errors (but only as last resort)
+      if (error.response?.status === 500 || errorMsg.includes('internal server error')) {
+        alert('Server Error: Unable to update employee. Please try again later or contact support if the problem persists.');
+        return;
+      }
+      
+      // For any other errors, show the error message
+      alert(`Error updating employee: ${errorMsg}`);
     }
   };
 
@@ -722,16 +778,23 @@ const EmployeeManagement = () => {
       </Menu>
 
           {/* Add Employee Dialog */}
-          <Dialog open={showAddDialog} onClose={() => setShowAddDialog(false)} maxWidth="md" fullWidth>
+          <Dialog open={showAddDialog} onClose={() => {
+            setShowAddDialog(false);
+            setFormErrors({}); // Clear form errors when dialog closes
+          }} maxWidth="md" fullWidth>
             <DialogTitle>Add Employee</DialogTitle>
             <DialogContent>
               <Box sx={{ pt: 2 }}>
                 <EmployeeForm
                   departments={departments}
                   onSave={handleAddEmployee}
-                  onCancel={() => setShowAddDialog(false)}
+                  onCancel={() => {
+                    setShowAddDialog(false);
+                    setFormErrors({}); // Clear form errors when canceled
+                  }}
                   loading={loading}
                   error={error}
+                  serverErrors={formErrors}
                 />
               </Box>
             </DialogContent>
@@ -741,6 +804,7 @@ const EmployeeManagement = () => {
           <Dialog open={showEditDialog} onClose={() => {
             setShowEditDialog(false);
             setEditingEmployee(null);
+            setFormErrors({}); // Clear form errors when dialog closes
           }} maxWidth="md" fullWidth>
             <DialogTitle>Edit Employee</DialogTitle>
             <DialogContent>
@@ -752,9 +816,11 @@ const EmployeeManagement = () => {
                   onCancel={() => {
                     setShowEditDialog(false);
                     setEditingEmployee(null);
+                    setFormErrors({}); // Clear form errors when canceled
                   }}
                   loading={loading}
                   error={error}
+                  serverErrors={formErrors}
                 />
               </Box>
             </DialogContent>

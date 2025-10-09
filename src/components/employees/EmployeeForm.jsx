@@ -35,7 +35,7 @@ const DocumentTypes = [
   'NDA Agreement'
 ];
 
-const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments = [] }) => {
+const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments = [], serverErrors = {} }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -100,6 +100,16 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
       });
     }
   }, [employee, departments]);
+
+  // Merge server errors with form validation errors
+  useEffect(() => {
+    if (serverErrors && Object.keys(serverErrors).length > 0) {
+      setErrors(prev => ({
+        ...prev,
+        ...serverErrors
+      }));
+    }
+  }, [serverErrors]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -231,8 +241,6 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         dataToSend.pendingDocuments = formData.pendingDocuments;
       }
       
-      console.log('🔍 Debug - Form data being sent:', dataToSend);
-      console.log('🔍 Debug - Department name being sent:', formData.department);
       onSave(dataToSend);
     }
   };

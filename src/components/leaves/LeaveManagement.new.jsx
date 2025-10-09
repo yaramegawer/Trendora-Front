@@ -57,9 +57,6 @@ const LeaveType = {
 };
 
 const LeaveManagement = () => {
-  // Local state for client-side pagination when filters are active
-  const [clientCurrentPage, setClientCurrentPage] = useState(1);
-  
   const { 
     leaves, 
     loading, 
@@ -80,7 +77,7 @@ const LeaveManagement = () => {
   const { employees: itEmployees } = useITEmployees();
   const { user } = useAuth();
 
-  // Use real data from backend
+  // Use all leaves data from backend (all leaves are loaded at once)
   const currentLeaves = leaves || [];
   // Combine HR and IT employees for display
   const currentEmployees = [...(hrEmployees || []), ...(itEmployees || [])];
@@ -272,91 +269,45 @@ const LeaveManagement = () => {
     return `Unknown Employee (ID: ${leave.employeeId || 'N/A'})`;
   };
 
+  // Filter leaves based on search and status
   const filteredLeaves = sortedLeaves.filter(leave => {
     const matchesSearch = getEmployeeName(leave).toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (leave.leaveType || leave.type || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Handle different status formats and cases
-    let matchesStatus = false;
-    if (statusFilter === 'all') {
-      matchesStatus = true;
-    } else {
-      // Check for exact match first
-      if (leave.status === statusFilter) {
-        matchesStatus = true;
-      } else {
-        // Check for case-insensitive match
-        const leaveStatusLower = (leave.status || '').toLowerCase();
-        const filterStatusLower = statusFilter.toLowerCase();
-        matchesStatus = leaveStatusLower === filterStatusLower;
-      }
-    }
+    // Handle status filter with case-insensitive comparison
+    const matchesStatus = statusFilter === 'all' || 
+                         (leave.status || '').toLowerCase() === statusFilter.toLowerCase();
     
     return matchesSearch && matchesStatus;
   });
 
-  // Check if there are active filters
-  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all';
-
-  // Use client-side pagination when filters are active, server-side when no filters
-  let paginatedLeaves;
-  let displayCurrentPage;
-  let displayTotalPages;
-  
-  if (hasActiveFilters) {
-    // Client-side pagination for filtered results
-    displayCurrentPage = clientCurrentPage;
-    displayTotalPages = Math.ceil(filteredLeaves.length / pageSize);
-    const startIndex = (clientCurrentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    paginatedLeaves = filteredLeaves.slice(startIndex, endIndex);
-  } else {
-    // Server-side pagination - use data as received from backend (already paginated)
-    displayCurrentPage = currentPage;
-    displayTotalPages = hookTotalPages;
-    paginatedLeaves = sortedLeaves;
-  }
+  // Always use client-side pagination (all data is loaded)
+  const displayCurrentPage = currentPage;
+  const displayTotalPages = Math.ceil(filteredLeaves.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedLeaves = filteredLeaves.slice(startIndex, endIndex);
 
   // Debug logging after all variables are declared
 ('🔍 Pagination Debug:', {
     displayCurrentPage,
     displayTotalPages,
-    hasActiveFilters,
     filteredLeavesLength: filteredLeaves.length,
     paginatedLeavesLength: paginatedLeaves.length,
     totalLeaves,
     pageSize,
-    clientCurrentPage,
-    serverCurrentPage: currentPage,
     leavesLength: leaves.length,
     sortedLeavesLength: sortedLeaves.length
   });
   
-  // Handle page change
+  // Handle page change (always client-side)
   const handlePageChange = (newPage) => {
-(`🔍 LeaveManagement: handlePageChange called`);
-(`🔍 - newPage: ${newPage}`);
-(`🔍 - displayCurrentPage: ${displayCurrentPage}`);
-(`🔍 - displayTotalPages: ${displayTotalPages}`);
-(`🔍 - hasActiveFilters: ${hasActiveFilters}`);
-(`🔍 - filteredLeaves.length: ${filteredLeaves.length}`);
-(`🔍 - totalLeaves: ${totalLeaves}`);
-(`🔍 - paginatedLeaves.length: ${paginatedLeaves.length}`);
-    
-    if (!hasActiveFilters) {
-      // Server-side pagination
-(`🔍 - Calling goToPage(${newPage}) for server-side pagination`);
-      goToPage(newPage);
-    } else {
-      // Client-side pagination
-(`🔍 - Setting clientCurrentPage to ${newPage} for client-side pagination`);
-      setClientCurrentPage(newPage);
-    }
+(`🔍 LeaveManagement: handlePageChange called with page ${newPage}`);
+    goToPage(newPage);
   };
 
-  // Reset pagination when filters change
+  // Reset to page 1 when filters change
   React.useEffect(() => {
-    setClientCurrentPage(1);
     goToPage(1);
   }, [searchTerm, statusFilter]);
 
@@ -499,7 +450,7 @@ const LeaveManagement = () => {
         <SimplePagination
           currentPage={displayCurrentPage}
           totalPages={displayTotalPages}
-          totalItems={hasActiveFilters ? filteredLeaves.length : totalLeaves}
+          totalItems={filteredLeaves.length}
           pageSize={pageSize}
           onPageChange={handlePageChange}
         />
