@@ -10,22 +10,41 @@ const SimplePagination = ({
   onPageChange 
 }) => {
 
+  // Calculate total pages from totalItems if totalPages is not provided or is 1
+  const calculatedTotalPages = totalPages > 1 ? totalPages : Math.max(1, Math.ceil(totalItems / pageSize));
+  
   // Generate all page numbers to display
   const getPageNumbers = () => {
     const pages = [];
     
-    // Show all pages
-    for (let i = 1; i <= totalPages; i++) {
+    // Always show all pages
+    for (let i = 1; i <= calculatedTotalPages; i++) {
       pages.push(i);
     }
     
+    console.log('📄 Generated page numbers:', pages, 'for total pages:', calculatedTotalPages);
     return pages;
   };
 
   const pageNumbers = getPageNumbers();
 
-  // Don't render pagination if there are no pages
-  if (totalPages <= 0) {
+  // Debug logging
+  console.log('🔍 SimplePagination Debug:', {
+    currentPage,
+    totalPages,
+    calculatedTotalPages,
+    totalItems,
+    pageSize,
+    pageNumbersLength: pageNumbers.length
+  });
+
+  // Don't render pagination if there are no pages or only one page
+  if (calculatedTotalPages <= 1) {
+    console.log('🚫 Not rendering pagination - only one page', {
+      calculatedTotalPages,
+      totalItems,
+      pageSize
+    });
     return null;
   }
 
@@ -114,7 +133,7 @@ const SimplePagination = ({
         variant="outlined"
         endIcon={<ChevronRight />}
         onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
+        disabled={currentPage >= calculatedTotalPages}
         sx={{
           minWidth: '80px',
           textTransform: 'none',
@@ -135,10 +154,10 @@ const SimplePagination = ({
 
       {/* Last Page Button */}
       <IconButton
-        onClick={() => onPageChange(totalPages)}
-        disabled={currentPage >= totalPages}
+        onClick={() => onPageChange(calculatedTotalPages)}
+        disabled={currentPage >= calculatedTotalPages}
         sx={{
-          color: currentPage === totalPages ? '#1c242e' : '#6b7280',
+          color: currentPage === calculatedTotalPages ? '#1c242e' : '#6b7280',
           '&:hover': {
             backgroundColor: '#f3f4f6'
           },

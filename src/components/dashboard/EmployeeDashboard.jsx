@@ -37,6 +37,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
 import { API_CONFIG } from '../../config/api';
+import SimplePagination from '../common/SimplePagination';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -49,6 +50,13 @@ const EmployeeDashboard = () => {
   const [leaves, setLeaves] = useState([]);
   const [leavesLoading, setLeavesLoading] = useState(false);
   const [leavesError, setLeavesError] = useState('');
+  const [tickets, setTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketsError, setTicketsError] = useState('');
+  const [ticketsPage, setTicketsPage] = useState(1);
+  const [ticketsTotal, setTicketsTotal] = useState(0);
+  const [leavesPage, setLeavesPage] = useState(1);
+  const [leavesTotal, setLeavesTotal] = useState(0);
 
 
   // Leave form state
@@ -74,16 +82,60 @@ const EmployeeDashboard = () => {
   ];
 
   const ticketTitleOptions = [
-    { value: 'technical', label: 'Technical Issue' },
-    { value: 'hardware', label: 'Hardware Problem' },
-    { value: 'software', label: 'Software Issue' },
-    { value: 'network', label: 'Network Problem' },
-    { value: 'account', label: 'Account Access' },
-    { value: 'general', label: 'General Support' },
-    { value: 'login', label: 'Login Problems' },
-    { value: 'permissions', label: 'Permission Issues' },
-    { value: 'data', label: 'Data Access' },
-    { value: 'system', label: 'System Error' }
+    { value: 'Login Issues', label: 'Login Issues' },
+    { value: 'Password Reset', label: 'Password Reset' },
+    { value: 'Account Access', label: 'Account Access' },
+    { value: 'Email Not Working', label: 'Email Not Working' },
+    { value: 'Internet Connection', label: 'Internet Connection' },
+    { value: 'WiFi Problems', label: 'WiFi Problems' },
+    { value: 'Computer Slow', label: 'Computer Slow' },
+    { value: 'Computer Won\'t Start', label: 'Computer Won\'t Start' },
+    { value: 'Blue Screen Error', label: 'Blue Screen Error' },
+    { value: 'Software Installation', label: 'Software Installation' },
+    { value: 'Software Not Working', label: 'Software Not Working' },
+    { value: 'Printer Issues', label: 'Printer Issues' },
+    { value: 'Scanner Problems', label: 'Scanner Problems' },
+    { value: 'Database Access', label: 'Database Access' },
+    { value: 'File Access Issues', label: 'File Access Issues' },
+    { value: 'Network Drive Problems', label: 'Network Drive Problems' },
+    { value: 'VPN Connection', label: 'VPN Connection' },
+    { value: 'Remote Access Issues', label: 'Remote Access Issues' },
+    { value: 'System Updates', label: 'System Updates' },
+    { value: 'Antivirus Issues', label: 'Antivirus Issues' },
+    { value: 'Browser Problems', label: 'Browser Problems' },
+    { value: 'Website Not Loading', label: 'Website Not Loading' },
+    { value: 'Performance Issues', label: 'Performance Issues' },
+    { value: 'Memory Problems', label: 'Memory Problems' },
+    { value: 'Storage Issues', label: 'Storage Issues' },
+    { value: 'Backup Problems', label: 'Backup Problems' },
+    { value: 'Data Recovery', label: 'Data Recovery' },
+    { value: 'Hardware Failure', label: 'Hardware Failure' },
+    { value: 'Keyboard Issues', label: 'Keyboard Issues' },
+    { value: 'Mouse Problems', label: 'Mouse Problems' },
+    { value: 'Monitor Issues', label: 'Monitor Issues' },
+    { value: 'Audio Problems', label: 'Audio Problems' },
+    { value: 'Camera Not Working', label: 'Camera Not Working' },
+    { value: 'Microphone Issues', label: 'Microphone Issues' },
+    { value: 'USB Port Problems', label: 'USB Port Problems' },
+    { value: 'Bluetooth Issues', label: 'Bluetooth Issues' },
+    { value: 'Mobile Device Sync', label: 'Mobile Device Sync' },
+    { value: 'Application Crashes', label: 'Application Crashes' },
+    { value: 'Data Loss', label: 'Data Loss' },
+    { value: 'Permission Issues', label: 'Permission Issues' },
+    { value: 'Security Concerns', label: 'Security Concerns' },
+    { value: 'Phishing Attempts', label: 'Phishing Attempts' },
+    { value: 'Suspicious Activity', label: 'Suspicious Activity' },
+    { value: 'License Issues', label: 'License Issues' },
+    { value: 'Configuration Problems', label: 'Configuration Problems' },
+    { value: 'Integration Issues', label: 'Integration Issues' },
+    { value: 'API Problems', label: 'API Problems' },
+    { value: 'Server Issues', label: 'Server Issues' },
+    { value: 'Database Errors', label: 'Database Errors' },
+    { value: 'Cloud Service Problems', label: 'Cloud Service Problems' },
+    { value: 'Third-party Software', label: 'Third-party Software' },
+    { value: 'Mobile App Issues', label: 'Mobile App Issues' },
+    { value: 'Web Application Problems', label: 'Web Application Problems' },
+    { value: 'Other Technical Issue', label: 'Other Technical Issue' }
   ];
 
   const handleLeaveSubmit = async () => {
@@ -128,13 +180,13 @@ const EmployeeDashboard = () => {
     }
 
     try {
-('User object:', user);
-('User ID:', user?.id);
+      console.log('User object:', user);
+      console.log('User ID:', user?.id);
       
       // Check if token exists
       const token = localStorage.getItem('token');
-('Token exists:', !!token);
-('Token preview:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
+      console.log('Token exists:', !!token);
+      console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
       
       // Try to decode the token to see its structure
       if (token) {
@@ -143,15 +195,15 @@ const EmployeeDashboard = () => {
           if (tokenParts.length === 3) {
             const header = JSON.parse(atob(tokenParts[0]));
             const payload = JSON.parse(atob(tokenParts[1]));
-('🔍 Token header:', header);
-('🔍 Token payload:', payload);
-('🔍 Token payload keys:', Object.keys(payload));
-('🔍 Looking for user ID in token:', payload.user_id || payload.sub || payload.id || payload._id);
+            console.log('🔍 Token header:', header);
+            console.log('🔍 Token payload:', payload);
+            console.log('🔍 Token payload keys:', Object.keys(payload));
+            console.log('🔍 Looking for user ID in token:', payload.user_id || payload.sub || payload.id || payload._id);
           } else {
-('❌ Token is not a valid JWT format');
+            console.log('❌ Token is not a valid JWT format');
           }
         } catch (e) {
-('❌ Could not decode token:', e);
+          console.log('❌ Could not decode token:', e);
         }
       }
       
@@ -162,11 +214,11 @@ const EmployeeDashboard = () => {
         status: 'pending'
       };
 
-('Submitting leave request:', leaveData);
+      console.log('Submitting leave request:', leaveData);
       
       const response = await api.post(API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES, leaveData);
       
-('Leave request response:', response.data);
+      console.log('Leave request response:', response.data);
       
       if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Failed to submit leave request');
@@ -180,8 +232,13 @@ const EmployeeDashboard = () => {
         endDate: '',
         leaveType: 'annual'
       });
+      
+      // Refresh leaves list if leaves tab is active
+      if (activeTab === 1) {
+        fetchLeaves(leavesPage);
+      }
     } catch (err) {
-('Leave submission error:', err);
+      console.log('Leave submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit leave request. Please try again.';
       alert(errorMessage);
       setError(errorMessage);
@@ -240,13 +297,13 @@ const EmployeeDashboard = () => {
     }
 
     try {
-('User object for ticket:', user);
-('User ID for ticket:', user?.id);
+      console.log('User object for ticket:', user);
+      console.log('User ID for ticket:', user?.id);
       
       // Check if token exists
       const token = localStorage.getItem('token');
-('Token exists for ticket:', !!token);
-('Token preview for ticket:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
+      console.log('Token exists for ticket:', !!token);
+      console.log('Token preview for ticket:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
       
       const ticketData = {
         title: ticketForm.title,
@@ -254,11 +311,11 @@ const EmployeeDashboard = () => {
         priority: ticketForm.priority
       };
 
-('Submitting support ticket:', ticketData);
+      console.log('Submitting support ticket:', ticketData);
       
       const response = await api.post(API_CONFIG.ENDPOINTS.DASHBOARD.TICKETS, ticketData);
       
-('Ticket submission response:', response.data);
+      console.log('Ticket submission response:', response.data);
       
       if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Failed to submit support ticket');
@@ -272,8 +329,13 @@ const EmployeeDashboard = () => {
         description: '',
         priority: 'medium'
       });
+      
+      // Refresh tickets list if tickets tab is active
+      if (activeTab === 2) {
+        fetchTickets(ticketsPage);
+      }
     } catch (err) {
-('Ticket submission error:', err);
+      console.log('Ticket submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit support ticket. Please try again.';
       alert(errorMessage);
       setError(errorMessage);
@@ -297,45 +359,107 @@ const EmployeeDashboard = () => {
   };
 
   // Fetch leaves for the logged-in user
-  const fetchLeaves = async () => {
+  const fetchLeaves = async (page = 1) => {
     setLeavesLoading(true);
     setLeavesError('');
     try {
-('🔄 Fetching user leaves...');
+      console.log('🔄 Fetching user leaves...', { page });
       // Try dashboard leaves endpoint first
       let response;
       try {
-('🔄 Trying /dashboard/leaves endpoint...');
-        response = await api.get(API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES);
+        console.log('🔄 Trying /dashboard/leaves endpoint...');
+        response = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES}?page=${page}&limit=10`);
       } catch (dashboardError) {
-('⚠️ Dashboard leaves endpoint failed, trying HR leaves endpoint...', dashboardError);
+        console.log('⚠️ Dashboard leaves endpoint failed, trying HR leaves endpoint...', dashboardError);
         try {
-          response = await api.get('/hr/leaves');
+          response = await api.get(`/hr/leaves?page=${page}&limit=10`);
         } catch (hrError) {
-('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
+          console.log('⚠️ HR leaves endpoint failed, trying operation leaves endpoint...', hrError);
           try {
-            response = await api.get('/operation/leaves');
+            response = await api.get(`/operation/leaves?page=${page}&limit=10`);
           } catch (operationError) {
-('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
-            response = await api.get('/it/leaves');
+            console.log('⚠️ Operation leaves endpoint failed, trying IT leaves endpoint...', operationError);
+            response = await api.get(`/it/leaves?page=${page}&limit=10`);
           }
         }
       }
-('📡 User Leaves API Response:', response);
+      console.log('📡 User Leaves API Response:', response);
       
       let leavesData = [];
-      if (Array.isArray(response.data)) {
+      let totalCount = 0;
+      
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        leavesData = response.data.data;
+        totalCount = response.data.total || response.data.count || leavesData.length;
+      } else if (Array.isArray(response.data)) {
         leavesData = response.data;
+        totalCount = leavesData.length;
       } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
         leavesData = response.data.data;
-      } else if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        leavesData = response.data.data;
+        totalCount = response.data.total || response.data.count || leavesData.length;
       }
       
-('📊 Processed user leaves data:', leavesData);
+      // If totalCount is still just the current page length, we need to determine the actual total
+      if (totalCount === leavesData.length) {
+        console.log('⚠️ Total count appears to be limited to current page. Determining actual total...');
+        
+        // If we have less than 10 items and we're on page 1, this is the only page
+        if (leavesData.length < 10 && page === 1) {
+          totalCount = leavesData.length;
+          console.log('📊 Less than 10 items on page 1, this is the only page. Total count:', totalCount);
+        }
+        // If we have less than 10 items and we're on a page > 1, calculate total from current page
+        else if (leavesData.length < 10 && page > 1) {
+          totalCount = ((page - 1) * 10) + leavesData.length;
+          console.log('📊 Less than 10 items on page', page, ', calculating total from previous pages. Total count:', totalCount);
+        }
+        // If we have exactly 10 items, there might be more pages
+        else if (leavesData.length === 10) {
+          // Try to get all leaves to count them accurately (only do this once)
+          if (page === 1) {
+            console.log('📊 Exactly 10 items on page 1, fetching all leaves to get accurate total...');
+            try {
+              const allLeavesResponse = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.LEAVES}?page=1&limit=1000`);
+              let allLeavesData = [];
+              
+              if (allLeavesResponse.data && allLeavesResponse.data.success && Array.isArray(allLeavesResponse.data.data)) {
+                allLeavesData = allLeavesResponse.data.data;
+              } else if (Array.isArray(allLeavesResponse.data)) {
+                allLeavesData = allLeavesResponse.data;
+              } else if (allLeavesResponse.data && allLeavesResponse.data.data && Array.isArray(allLeavesResponse.data.data)) {
+                allLeavesData = allLeavesResponse.data.data;
+              }
+              
+              if (allLeavesData.length > 0) {
+                totalCount = allLeavesData.length;
+                console.log('📊 Got accurate total count from all leaves:', totalCount);
+              } else {
+                totalCount = (page * 10) + 1; // Fallback
+                console.log('📊 Using fallback estimation:', totalCount);
+              }
+            } catch (allLeavesError) {
+              console.log('⚠️ Could not fetch all leaves, using estimation:', allLeavesError);
+              totalCount = (page * 10) + 1; // Fallback
+              console.log('📊 Using fallback estimation:', totalCount);
+            }
+          } else {
+            // For pages > 1, use the estimation logic
+            totalCount = (page * 10) + 1;
+            console.log('📊 Using estimation for page', page, '. Total count:', totalCount);
+          }
+        }
+      }
+      
+      console.log('📊 Processed user leaves data:', leavesData);
+      console.log('📊 Total count from API:', totalCount);
+      console.log('📊 Current page:', page);
+      console.log('📊 Calculated total pages:', Math.ceil(totalCount / 10));
+      
       setLeaves(leavesData);
+      setLeavesPage(page);
+      setLeavesTotal(totalCount);
     } catch (err) {
-('❌ User Leaves API Error:', err);
+      console.log('❌ User Leaves API Error:', err);
       setLeavesError(err.message || 'Failed to fetch leaves');
       setLeaves([]);
     } finally {
@@ -343,10 +467,115 @@ const EmployeeDashboard = () => {
     }
   };
 
+  // Fetch tickets for the logged-in user
+  const fetchTickets = async (page = 1) => {
+    setTicketsLoading(true);
+    setTicketsError('');
+    try {
+      console.log('🔄 Fetching user tickets...', { page });
+      
+      const response = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.TICKETS}?page=${page}&limit=10`);
+      
+      console.log('📡 User Tickets API Response:', response);
+      
+      let ticketsData = [];
+      let totalCount = 0;
+      
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        ticketsData = response.data.data;
+        totalCount = response.data.total || response.data.count || response.data.totalCount || ticketsData.length;
+      } else if (Array.isArray(response.data)) {
+        ticketsData = response.data;
+        totalCount = ticketsData.length;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        ticketsData = response.data.data;
+        totalCount = response.data.total || response.data.count || response.data.totalCount || ticketsData.length;
+      }
+      
+      // If totalCount is still just the current page length, we need to determine the actual total
+      if (totalCount === ticketsData.length) {
+        console.log('⚠️ Total count appears to be limited to current page. Determining actual total...');
+        
+        // If we have less than 10 items and we're on page 1, this is the only page
+        if (ticketsData.length < 10 && page === 1) {
+          totalCount = ticketsData.length;
+          console.log('📊 Less than 10 items on page 1, this is the only page. Total count:', totalCount);
+        }
+        // If we have less than 10 items and we're on a page > 1, calculate total from current page
+        else if (ticketsData.length < 10 && page > 1) {
+          totalCount = ((page - 1) * 10) + ticketsData.length;
+          console.log('📊 Less than 10 items on page', page, ', calculating total from previous pages. Total count:', totalCount);
+        }
+        // If we have exactly 10 items, there might be more pages
+        else if (ticketsData.length === 10) {
+          // Try to get all tickets to count them accurately (only do this once)
+          if (page === 1) {
+            console.log('📊 Exactly 10 items on page 1, fetching all tickets to get accurate total...');
+            try {
+              const allTicketsResponse = await api.get(`${API_CONFIG.ENDPOINTS.DASHBOARD.TICKETS}?page=1&limit=1000`);
+              let allTicketsData = [];
+              
+              if (allTicketsResponse.data && allTicketsResponse.data.success && Array.isArray(allTicketsResponse.data.data)) {
+                allTicketsData = allTicketsResponse.data.data;
+              } else if (Array.isArray(allTicketsResponse.data)) {
+                allTicketsData = allTicketsResponse.data;
+              } else if (allTicketsResponse.data && allTicketsResponse.data.data && Array.isArray(allTicketsResponse.data.data)) {
+                allTicketsData = allTicketsResponse.data.data;
+              }
+              
+              if (allTicketsData.length > 0) {
+                totalCount = allTicketsData.length;
+                console.log('📊 Got accurate total count from all tickets:', totalCount);
+              } else {
+                totalCount = (page * 10) + 1; // Fallback
+                console.log('📊 Using fallback estimation:', totalCount);
+              }
+            } catch (allTicketsError) {
+              console.log('⚠️ Could not fetch all tickets, using estimation:', allTicketsError);
+              totalCount = (page * 10) + 1; // Fallback
+              console.log('📊 Using fallback estimation:', totalCount);
+            }
+          } else {
+            // For pages > 1, use the estimation logic
+            totalCount = (page * 10) + 1;
+            console.log('📊 Using estimation for page', page, '. Total count:', totalCount);
+          }
+        }
+      }
+      
+      console.log('📊 Processed user tickets data:', ticketsData);
+      console.log('📊 Total count from API:', totalCount);
+      console.log('📊 Current page:', page);
+      console.log('📊 Calculated total pages:', Math.ceil(totalCount / 10));
+      
+      setTickets(ticketsData);
+      setTicketsPage(page);
+      setTicketsTotal(totalCount);
+    } catch (err) {
+      console.log('❌ User Tickets API Error:', err);
+      setTicketsError(err.message || 'Failed to fetch tickets');
+      setTickets([]);
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
+  // Handle ticket pagination
+  const handleTicketPageChange = (newPage) => {
+    fetchTickets(newPage);
+  };
+
+  // Handle leaves pagination
+  const handleLeavesPageChange = (newPage) => {
+    fetchLeaves(newPage);
+  };
+
   // Fetch leaves when component mounts or when leaves tab is selected
   React.useEffect(() => {
     if (activeTab === 1) { // Leaves tab
       fetchLeaves();
+    } else if (activeTab === 2) { // Tickets tab
+      fetchTickets();
     }
   }, [activeTab]);
 
@@ -356,6 +585,28 @@ const EmployeeDashboard = () => {
       case 'approved': return 'success';
       case 'pending': return 'warning';
       case 'rejected': return 'error';
+      default: return 'default';
+    }
+  };
+
+  // Get status color for ticket status
+  const getTicketStatusColor = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'open': return 'warning';
+      case 'in_progress': return 'info';
+      case 'resolved': return 'success';
+      case 'closed': return 'default';
+      default: return 'default';
+    }
+  };
+
+  // Get priority color for tickets
+  const getPriorityColor = (priority) => {
+    switch ((priority || '').toLowerCase()) {
+      case 'low': return 'success';
+      case 'medium': return 'warning';
+      case 'high': return 'error';
+      case 'urgent': return 'error';
       default: return 'default';
     }
   };
@@ -387,7 +638,7 @@ const EmployeeDashboard = () => {
           Welcome back, {user?.name ? user.name.split('.')[0].split(' ')[0] : 'Employee'}!
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Submit your leave requests and support tickets here.
+          Submit your leave requests and support tickets, and view your submitted requests here.
         </Typography>
       </Box>
 
@@ -413,6 +664,7 @@ const EmployeeDashboard = () => {
         >
           <Tab label="Submit Requests" />
           <Tab label="My Leaves" />
+          <Tab label="My Tickets" />
         </Tabs>
 
         {/* Tab Content */}
@@ -596,6 +848,108 @@ const EmployeeDashboard = () => {
                     </Table>
                   </TableContainer>
                 )}
+                
+                {/* Pagination for leaves */}
+                {leaves.length > 0 && (
+                  <SimplePagination
+                    currentPage={leavesPage}
+                    totalPages={Math.max(1, Math.ceil(leavesTotal / 10))}
+                    totalItems={leavesTotal}
+                    pageSize={10}
+                    onPageChange={handleLeavesPageChange}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </Box>
+        )}
+
+        {activeTab === 2 && (
+          <Box>
+            {/* My Tickets Tab */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  My Support Tickets
+                </Typography>
+                
+                {ticketsLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : ticketsError ? (
+                  <Alert severity="error">
+                    {ticketsError}
+                  </Alert>
+                ) : tickets.length === 0 ? (
+                  <Typography color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
+                    No support tickets found.
+                  </Typography>
+                ) : (
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Title</TableCell>
+                          <TableCell>Description</TableCell>
+                          <TableCell>Priority</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Created Date</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {tickets.map((ticket, index) => (
+                          <TableRow key={ticket._id || ticket.id || index}>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                {ticket.title || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ 
+                                maxWidth: 200, 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {ticket.description || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={ticket.priority || 'Unknown'}
+                                color={getPriorityColor(ticket.priority)}
+                                size="small"
+                                sx={{ textTransform: 'capitalize' }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={ticket.status || 'Unknown'}
+                                color={getTicketStatusColor(ticket.status)}
+                                size="small"
+                                sx={{ textTransform: 'capitalize' }}
+                              />
+                            </TableCell>
+                            <TableCell>{formatDate(ticket.createdAt)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+                
+                {/* Pagination for tickets */}
+                {tickets.length > 0 && (
+                  <SimplePagination
+                    currentPage={ticketsPage}
+                    totalPages={Math.max(1, Math.ceil(ticketsTotal / 10))}
+                    totalItems={ticketsTotal}
+                    pageSize={10}
+                    onPageChange={handleTicketPageChange}
+                  />
+                )}
+                
               </CardContent>
             </Card>
           </Box>
@@ -757,7 +1111,9 @@ const EmployeeDashboard = () => {
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
-            maxWidth: '500px'
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
           }}>
             <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
               Submit New Ticket
@@ -767,121 +1123,118 @@ const EmployeeDashboard = () => {
               e.preventDefault();
               handleTicketSubmit();
             }}>
-              <div style={{ marginBottom: '16px' }}>
-                <label htmlFor="ticket-title" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Title *
-                </label>
-                <select
-                  id="ticket-title"
-                  value={ticketForm.title}
-                  onChange={(e) => setTicketForm(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    backgroundColor: 'white'
-                  }}
-                >
-                  <option value="">Select ticket type</option>
-                  {ticketTitleOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div style={{ marginBottom: '16px' }}>
-                <label htmlFor="ticket-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Description *
-                </label>
-                <textarea
-                  id="ticket-description"
-                  value={ticketForm.description}
-                  onChange={(e) => setTicketForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe the issue in detail (10-500 characters)"
-                  rows={4}
-                  minLength={10}
-                  maxLength={500}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    resize: 'vertical'
-                  }}
-                  required
-                />
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                  {ticketForm.description.length}/500 characters (minimum 10)
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="ticket-type" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Issue Type                  </label>
+                  <select
+                    id="ticket-type"
+                    value={ticketForm.title}
+                    onChange={(e) => setTicketForm(prev => ({ ...prev, title: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                    required
+                  >
+                    <option value="">Select an issue type</option>
+                    {ticketTitleOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
               
-              <div style={{ marginBottom: '20px' }}>
-                <label htmlFor="ticket-priority" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Priority
-                </label>
-                <select
-                  id="ticket-priority"
-                  value={ticketForm.priority}
-                  onChange={(e) => setTicketForm(prev => ({ ...prev, priority: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="ticket-description" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Description                  </label>
+                  <textarea
+                    id="ticket-description"
+                    value={ticketForm.description}
+                    onChange={(e) => setTicketForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe the issue in detail (10-500 characters)"
+                    rows={4}
+                    minLength={10}
+                    maxLength={500}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      resize: 'vertical'
+                    }}
+                    required
+                  />
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                    {ticketForm.description.length}/500 characters
+                  </div>
+                </div>
               
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTicketDialogOpen(false);
-                    setTicketForm({
-                      title: '',
-                      description: '',
-                      priority: 'medium'
-                    });
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#6b7280',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: loading ? '#9ca3af' : '#1c242e',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    cursor: loading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {loading ? 'Submitting...' : 'Submit Ticket'}
-                </button>
-              </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label htmlFor="ticket-priority" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Priority
+                  </label>
+                  <select
+                    id="ticket-priority"
+                    value={ticketForm.priority}
+                    onChange={(e) => setTicketForm(prev => ({ ...prev, priority: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTicketDialogOpen(false);
+                      setTicketForm({
+                        title: '',
+                        description: '',
+                        priority: 'medium'
+                      });
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#6b7280',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: loading ? '#9ca3af' : '#1c242e',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {loading ? 'Submitting...' : 'Submit Ticket'}
+                  </button>
+                </div>
             </form>
           </div>
         </div>
