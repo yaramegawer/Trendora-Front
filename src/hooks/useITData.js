@@ -74,13 +74,13 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
     setLoading(true);
     setError(null);
     try {
-      console.log('🔄 Fetching IT projects from backend:', { pageNum, pageLimit, status });
+        ('🔄 Fetching IT projects from backend:', { pageNum, pageLimit, status });
       
       // Fetch data from backend with pagination and status filter
       // Backend handles all filtering - no client-side filtering
       const response = await itProjectApi.getAllProjects(pageNum, pageLimit, status);
       
-      console.log('📦 IT Projects API response:', response);
+        ('📦 IT Projects API response:', response);
       
       // Handle response format
       let projectsData = [];
@@ -98,7 +98,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
         totalCount = response.length;
       }
       
-      console.log('✅ Processed IT projects:', { count: projectsData.length, total: totalCount, pages: totalPagesNum });
+        ('✅ Processed IT projects:', { count: projectsData.length, total: totalCount, pages: totalPagesNum });
       
       setProjects(projectsData);
       setTotalProjects(totalCount);
@@ -173,7 +173,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
 
   // Method to change the status filter
   const changeStatusFilter = (newFilter) => {
-    console.log('🔄 Changing project status filter to:', newFilter);
+      ('🔄 Changing project status filter to:', newFilter);
     setCurrentPage(1); // Reset to first page
     setCurrentStatusFilter(newFilter); // This will trigger useEffect to re-fetch
   };
@@ -187,7 +187,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
 
   // Re-fetch when page, pageSize, or statusFilter changes
   useEffect(() => {
-    console.log('🔄 useITProjects useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
+      ('🔄 useITProjects useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
     fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter);
   }, [currentPage, pageSize, currentStatusFilter]);
 
@@ -253,13 +253,13 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
     setLoading(true);
     setError(null);
     try {
-      console.log('🔄 Fetching IT tickets from backend:', { pageNum, pageLimit, filter });
+        ('🔄 Fetching IT tickets from backend:', { pageNum, pageLimit, filter });
       
       // Fetch data from backend with pagination and status filter
       // Backend handles all filtering - no client-side filtering
       const response = await itTicketApi.getAllTickets(pageNum, pageLimit, filter);
       
-      console.log('📦 IT Tickets API response:', response);
+        ('📦 IT Tickets API response:', response);
       
       // Handle response format
       let ticketsData = [];
@@ -277,7 +277,7 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
         totalCount = response.length;
       }
       
-      console.log('✅ Processed IT tickets:', { count: ticketsData.length, total: totalCount, pages: totalPagesNum });
+        ('✅ Processed IT tickets:', { count: ticketsData.length, total: totalCount, pages: totalPagesNum });
       
       setTickets(ticketsData);
       setTotalTickets(totalCount);
@@ -337,14 +337,14 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
 
   // Method to change the status filter
   const changeStatusFilter = (newFilter) => {
-    console.log('🔄 Changing ticket status filter to:', newFilter);
+      ('🔄 Changing ticket status filter to:', newFilter);
     setCurrentPage(1); // Reset to first page
     setCurrentStatusFilter(newFilter); // This will trigger useEffect to re-fetch
   };
 
   // Re-fetch when page, pageSize, or statusFilter changes
   useEffect(() => {
-    console.log('🔄 useITTickets useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
+      ('🔄 useITTickets useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
     fetchTickets(currentPage, pageSize, currentStatusFilter);
   }, [currentPage, pageSize, currentStatusFilter]);
 

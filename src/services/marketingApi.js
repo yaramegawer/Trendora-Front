@@ -217,7 +217,7 @@ export const marketingCustomerApi = {
         params.status = status;
       }
       
-      console.log('🔗 Calling API endpoint:', endpoint, 'with params:', params);
+        ('🔗 Calling API endpoint:', endpoint, 'with params:', params);
       
       const response = await api({ 
         url: endpoint, 
@@ -225,11 +225,11 @@ export const marketingCustomerApi = {
         params
       });
       
-      console.log('📡 Raw API response:', response.data);
+        ('📡 Raw API response:', response.data);
       
       // Handle backend response format: { success: true, data: [...], total, page, limit, totalPages }
       if (response.data && response.data.success === true) {
-        console.log('✅ Success response detected, returning:', {
+          ('✅ Success response detected, returning:', {
           dataLength: response.data.data?.length || 0,
           total: response.data.total,
           page: response.data.page,
@@ -243,7 +243,7 @@ export const marketingCustomerApi = {
           totalPages: response.data.totalPages || 0
         };
       } else if (response.data && Array.isArray(response.data)) {
-        console.log('⚠️ Array response detected, returning:', response.data.length, 'items');
+          ('⚠️ Array response detected, returning:', response.data.length, 'items');
         return {
           data: response.data,
           total: response.data.length,

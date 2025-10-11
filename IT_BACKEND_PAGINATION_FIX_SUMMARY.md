@@ -53,9 +53,9 @@ const apiCall = async (endpoint, options = {}) => {
 // AFTER: Comprehensive logging and error handling
 const apiCall = async (endpoint, options = {}) => {
   try {
-    console.log('🌐 IT API Call:', { endpoint, options });
+      ('🌐 IT API Call:', { endpoint, options });
     const response = await api({ url: endpoint, ...options });
-    console.log('📥 IT API Response:', response);
+      ('📥 IT API Response:', response);
     
     // Detailed response handling with logging
     // Proper error structures for 404, 403, etc.
@@ -89,14 +89,14 @@ useEffect(() => {
 
 // AFTER: No client-side filtering + proper useEffect
 const fetchProjects = async (...) => {
-  console.log('🔄 Fetching IT projects from backend:', { pageNum, pageLimit, status });
+    ('🔄 Fetching IT projects from backend:', { pageNum, pageLimit, status });
   const response = await itProjectApi.getAllProjects(pageNum, pageLimit, status);
-  console.log('📦 IT Projects API response:', response);
+    ('📦 IT Projects API response:', response);
   // ✅ No client-side filtering - backend handles everything
 };
 
 useEffect(() => {
-  console.log('🔄 useITProjects useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
+    ('🔄 useITProjects useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
   fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter);
 }, [currentPage, pageSize, currentStatusFilter]); // ✅ Proper dependencies
 ```
@@ -111,7 +111,7 @@ const changeStatusFilter = (newFilter) => {
 
 // AFTER: State update triggers useEffect
 const changeStatusFilter = (newFilter) => {
-  console.log('🔄 Changing project status filter to:', newFilter);
+    ('🔄 Changing project status filter to:', newFilter);
   setCurrentPage(1); // Reset to first page
   setCurrentStatusFilter(newFilter); // ✅ Triggers useEffect to re-fetch
 };

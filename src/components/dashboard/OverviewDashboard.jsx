@@ -503,27 +503,11 @@ const OverviewDashboard = memo(() => {
               <CardContent sx={{ textAlign: 'center', py: 4 }}>
                 <EventNote sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  {userLeavesError ? 'Unable to load leave requests' : 'No leave requests found'}
+                  No Leave Requests Yet
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {userLeavesError 
-                    ? 'There was an issue loading your leave data. Please try refreshing the page or contact support if the issue persists.'
-                    : "You haven't submitted any leave requests yet."
-                  }
+                  You haven't submitted any leave requests. When you do, they'll appear here.
                 </Typography>
-                {userLeavesError && (
-                  <Box sx={{ mt: 2 }}>
-                    <Button 
-                      variant="outlined" 
-                      onClick={() => {
-                        setUserLeavesError('');
-                        fetchUserLeaves(userLeavesCurrentPage, userLeavesPageSize);
-                      }}
-                    >
-                      Try Again
-                    </Button>
-                  </Box>
-                )}
               </CardContent>
             </Card>
           ) : (

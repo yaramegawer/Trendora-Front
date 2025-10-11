@@ -255,13 +255,13 @@ const DigitalMarketingDepartment = () => {
   const fetchCustomerProjects = async (customerName, page = 1, pageSize = 10, status = null) => {
     try {
       setCustomerProjectsLoading(true);
-      console.log('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize, 'Status:', status);
-      console.log('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
+        ('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize, 'Status:', status);
+        ('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
       
       // Pass status filter to API
       const projectsData = await marketingCustomerApi.getCustomerProjects(customerName, page, pageSize, status);
-      console.log('📡 Customer Projects API Response:', projectsData);
-      console.log('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
+        ('📡 Customer Projects API Response:', projectsData);
+        ('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
       
       // Handle backend response format: { data: [...], total, page, limit, totalPages }
       let projectsList = [];
@@ -273,19 +273,19 @@ const DigitalMarketingDepartment = () => {
       } else if (projectsData && projectsData.data && Array.isArray(projectsData.data)) {
         projectsList = projectsData.data;
         totalProjects = projectsData.total || projectsData.totalPages * pageSize || projectsData.data.length;
-        console.log('📊 Using backend pagination data:', { total: totalProjects, page: projectsData.page, totalPages: projectsData.totalPages });
+          ('📊 Using backend pagination data:', { total: totalProjects, page: projectsData.page, totalPages: projectsData.totalPages });
       }
       
-      console.log('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
-      console.log('📊 Setting customerProjectsTotal to:', totalProjects);
-      console.log('📊 customerProjects array will have length:', projectsList.length);
-      console.log('📊 Pagination should show:', !customerProjectsLoading, '&&', projectsList.length > 0);
+        ('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
+        ('📊 Setting customerProjectsTotal to:', totalProjects);
+        ('📊 customerProjects array will have length:', projectsList.length);
+        ('📊 Pagination should show:', !customerProjectsLoading, '&&', projectsList.length > 0);
       
       setCustomerProjects(projectsList);
       setCustomerProjectsTotal(totalProjects);
       
       // Log after state is set to verify
-      console.log('✅ State updated - customerProjects:', projectsList.length, 'customerProjectsTotal:', totalProjects);
+        ('✅ State updated - customerProjects:', projectsList.length, 'customerProjectsTotal:', totalProjects);
       return { projects: projectsList, total: totalProjects };
     } catch (error) {
       console.error('Error fetching customer projects:', error);
@@ -315,8 +315,8 @@ const DigitalMarketingDepartment = () => {
     setProjectStatusFilter('all'); // Reset status filter when switching customers
     // Fetch projects for this specific customer using customer name
     const customerName = customer.name || customer.customerName || customer.title;
-    console.log('🔍 Customer object:', customer);
-    console.log('🔍 Extracted customer name:', customerName);
+      ('🔍 Customer object:', customer);
+      ('🔍 Extracted customer name:', customerName);
     await fetchCustomerProjects(customerName, 1, customerProjectsPageSize, 'all');
   };
   

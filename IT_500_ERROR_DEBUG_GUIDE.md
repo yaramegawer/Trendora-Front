@@ -62,7 +62,7 @@ This confirms the frontend is handling the error gracefully.
 ### After (Returns Empty Data):
 ```javascript
 // Catch-all: For any other error
-console.log('ℹ️ Returning empty data for unknown error to prevent UI crash');
+  ('ℹ️ Returning empty data for unknown error to prevent UI crash');
 return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };  // ✅ NO CRASH
 ```
 

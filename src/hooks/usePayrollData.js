@@ -13,13 +13,13 @@ export const usePayroll = (page = 1, limit = 10) => {
     try {
       setLoading(true);
       setError('');
-      console.log(`usePayrollData: Fetching payroll with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+        (`usePayrollData: Fetching payroll with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
       
       // Fetch all payroll data for client-side pagination
-      console.log('usePayrollData: Fetching all payroll data...');
+        ('usePayrollData: Fetching all payroll data...');
       const allPayrollResponse = await payrollApi.getAllPayroll(1, 1000); // Get all payroll
       
-      console.log('usePayrollData: All Payroll API Response:', allPayrollResponse);
+        ('usePayrollData: All Payroll API Response:', allPayrollResponse);
       
       // Process all payroll data
       let allPayrollData = [];
@@ -33,8 +33,8 @@ export const usePayroll = (page = 1, limit = 10) => {
       
       const totalPayrollCount = allPayrollData.length;
       
-      console.log('usePayrollData: All payroll count:', totalPayrollCount);
-      console.log('usePayrollData: All payroll data:', allPayrollData);
+        ('usePayrollData: All payroll count:', totalPayrollCount);
+        ('usePayrollData: All payroll data:', allPayrollData);
       
       // Store ALL payroll data for client-side pagination
       setPayroll(allPayrollData);
@@ -42,7 +42,7 @@ export const usePayroll = (page = 1, limit = 10) => {
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
     } catch (err) {
-      console.log('usePayrollData: Error fetching payroll:', err);
+        ('usePayrollData: Error fetching payroll:', err);
       setError(err.message || 'Failed to fetch payroll data');
       setPayroll([]);
       setTotalPayroll(0);
@@ -99,15 +99,15 @@ export const usePayroll = (page = 1, limit = 10) => {
   // Pagination functions
   const goToPage = (pageNum) => {
     const maxPages = Math.ceil(totalPayroll / pageSize);
-    console.log(`usePayrollData goToPage: pageNum=${pageNum}, totalPayroll=${totalPayroll}, pageSize=${pageSize}, maxPages=${maxPages}`);
+      (`usePayrollData goToPage: pageNum=${pageNum}, totalPayroll=${totalPayroll}, pageSize=${pageSize}, maxPages=${maxPages}`);
     
     // Always allow page changes if totalPayroll is 0 (initial state) or if page is in valid range
     // This prevents the issue where totalPayroll might be stale
     if (totalPayroll === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-      console.log(`usePayrollData goToPage: Fetching page ${pageNum}`);
+        (`usePayrollData goToPage: Fetching page ${pageNum}`);
       fetchPayroll(pageNum, pageSize);
     } else {
-      console.log(`usePayrollData goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
+        (`usePayrollData goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
   };
 
