@@ -933,15 +933,7 @@ const EmployeeManagement = () => {
                               {viewingEmployee.pendingDocuments.map((doc, index) => (
                                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Chip label={doc} color="warning" size="small" />
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="success"
-                                    onClick={() => handleSubmitDocument(viewingEmployee.id || viewingEmployee._id, doc)}
-                                    sx={{ minWidth: 'auto', px: 1, py: 0.5 }}
-                                  >
-                                    Submit
-                                  </Button>
+                                  
                                 </Box>
                               ))}
                             </Stack>

@@ -395,7 +395,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             error={!!errors.baseSalary}
             helperText={errors.baseSalary}
             required
-            inputProps={{ min: 0 }}
+            inputProps={{ min: 0, step: 'any' }}
           />
 
           <TextField
@@ -404,7 +404,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             type="number"
             value={formData.bonuses}
             onChange={(e) => handleChange('bonuses', e.target.value)}
-            inputProps={{ min: 0 }}
+            inputProps={{ min: 0, step: 'any' }}
           />
 
           <TextField
@@ -413,7 +413,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             type="number"
             value={formData.overtimeHours}
             onChange={(e) => handleChange('overtimeHours', e.target.value)}
-            inputProps={{ min: 0 }}
+            inputProps={{ min: 0, step: 'any' }}
           />
 
           <TextField
@@ -422,7 +422,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             type="number"
             value={formData.overtimeRate}
             onChange={(e) => handleChange('overtimeRate', e.target.value)}
-            inputProps={{ min: 0 }}
+            inputProps={{ min: 0, step: 'any' }}
           />
 
           <TextField
@@ -432,7 +432,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             value={formData.benefits}
             onChange={(e) => handleChange('benefits', e.target.value)}
             helperText="Allowances, insurance contributions, etc."
-            inputProps={{ min: 0 }}
+            inputProps={{ min: 0, step: 'any' }}
           />
         </Stack>
 
@@ -450,7 +450,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             value={formData.deductions}
             onChange={(e) => handleChange('deductions', e.target.value)}
             helperText="General deductions (insurance, etc.)"
-            inputProps={{ min: 0 }}
+            inputProps={{ min: 0, step: 'any' }}
           />
 
           <TextField
@@ -460,7 +460,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             value={formData.taxes}
             onChange={(e) => handleChange('taxes', e.target.value)}
             helperText="Auto-calculated or manually entered"
-            inputProps={{ min: 0 }}
+            inputProps={{ min: 0, step: 'any' }}
           />
         </Stack>
 
@@ -754,12 +754,15 @@ const PayrollManagement = () => {
     // Calculate net pay if not available
     const netPay = payroll.netPay || (payroll.baseSalary + (payroll.bonuses || 0) + ((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)) + (payroll.benefits || 0) - (payroll.deductions || 0) - (payroll.taxes || 0));
     
+    // Format pay date
+    const formattedPayDate = formatPayDate(payroll.payDate) || 'N/A';
+    
     // Create payslip HTML
     const payslipHTML = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Payslip - {employeeName}</title>
+        <title>Payslip - ${employeeName}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
           .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
@@ -785,15 +788,15 @@ const PayrollManagement = () => {
         <div class="employee-info">
           <div class="info-row">
             <span class="info-label">Employee Name:</span>
-            <span>{employeeName}</span>
+            <span>${employeeName}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Pay Period:</span>
-            <span>{formatPayDate(payroll.payDate) || 'N/A'}</span>
+            <span>${formattedPayDate}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Status:</span>
-            <span>{payroll.status || 'N/A'}</span>
+            <span>${payroll.status || 'N/A'}</span>
           </div>
         </div>
         
@@ -801,23 +804,23 @@ const PayrollManagement = () => {
           <h3>EARNINGS</h3>
           <div class="earnings-row">
             <span>Base Salary</span>
-            <span>EGP {(payroll.baseSalary || 0).toLocaleString()}</span>
+            <span>EGP ${(payroll.baseSalary || 0).toLocaleString()}</span>
           </div>
           <div class="earnings-row">
             <span>Bonuses</span>
-            <span>EGP {(payroll.bonuses || 0).toLocaleString()}</span>
+            <span>EGP ${(payroll.bonuses || 0).toLocaleString()}</span>
           </div>
           <div class="earnings-row">
-            <span>Overtime ({payroll.overtimeHours || 0} hrs × EGP {payroll.overtimeRate || 0})</span>
-            <span>EGP {((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)).toLocaleString()}</span>
+            <span>Overtime (${payroll.overtimeHours || 0} hrs × EGP ${payroll.overtimeRate || 0})</span>
+            <span>EGP ${((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)).toLocaleString()}</span>
           </div>
           <div class="earnings-row">
             <span>Benefits</span>
-            <span>EGP {(payroll.benefits || 0).toLocaleString()}</span>
+            <span>EGP ${(payroll.benefits || 0).toLocaleString()}</span>
           </div>
           <div class="total-row">
             <span>Total Earnings</span>
-            <span>EGP {((payroll.baseSalary || 0) + (payroll.bonuses || 0) + ((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)) + (payroll.benefits || 0)).toLocaleString()}</span>
+            <span>EGP ${((payroll.baseSalary || 0) + (payroll.bonuses || 0) + ((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)) + (payroll.benefits || 0)).toLocaleString()}</span>
           </div>
         </div>
         
@@ -825,20 +828,20 @@ const PayrollManagement = () => {
           <h3>DEDUCTIONS</h3>
           <div class="deductions-row">
             <span>Deductions</span>
-            <span>EGP {(payroll.deductions || 0).toLocaleString()}</span>
+            <span>EGP ${(payroll.deductions || 0).toLocaleString()}</span>
           </div>
           <div class="deductions-row">
             <span>Taxes</span>
-            <span>EGP {(payroll.taxes || 0).toLocaleString()}</span>
+            <span>EGP ${(payroll.taxes || 0).toLocaleString()}</span>
           </div>
           <div class="total-row">
             <span>Total Deductions</span>
-            <span>EGP {((payroll.deductions || 0) + (payroll.taxes || 0)).toLocaleString()}</span>
+            <span>EGP ${((payroll.deductions || 0) + (payroll.taxes || 0)).toLocaleString()}</span>
           </div>
         </div>
         
         <div class="net-pay">
-          NET PAY: EGP {netPay.toLocaleString()}
+          NET PAY: EGP ${netPay.toLocaleString()}
         </div>
       </body>
       </html>

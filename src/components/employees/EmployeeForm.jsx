@@ -18,7 +18,7 @@ const EmployeeStatus = {
   INACTIVE: 'inactive',
 };
 
-const Roles = [ 'Manager', 'Accountant', 'IT Staff', 'Employee', 'HR'];
+const Roles = [  'Accountant', 'IT Staff', 'Employee', 'HR'];
 
 const DocumentTypes = [
   'ID Copy',
@@ -228,9 +228,13 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         hireDate: formData.hireDate,
         phone: formData.phone,
         status: formData.status,
-        role: formData.role,
-        address: formData.address
+        role: formData.role
       };
+      
+      // Only include address if it's not empty (address is optional)
+      if (formData.address && formData.address.trim() !== '') {
+        dataToSend.address = formData.address;
+      }
       
       // Only include documents if they exist and are not empty
       if (formData.submittedDocuments && formData.submittedDocuments.length > 0) {
@@ -367,10 +371,10 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
 
       {/* Address Section */}
       <Typography variant="h6" className="mt-6 mb-4" style={{ fontSize: '16px', fontWeight: '600' }}>
-        Address Information
+        Address Information (Optional)
       </Typography>
       <TextField
-        label="Address"
+        label="Address (Optional)"
         value={formData.address}
         onChange={(e) => handleChange('address', e.target.value)}
         fullWidth
