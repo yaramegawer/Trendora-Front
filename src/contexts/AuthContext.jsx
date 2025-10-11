@@ -24,41 +24,41 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-('AuthProvider: Component starting to render');
+  console.log('AuthProvider: Component starting to render');
   
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   
-('AuthProvider: Initial state:', { user, isAuthenticated, loading });
+  console.log('AuthProvider: Initial state:', { user, isAuthenticated, loading });
 
   useEffect(() => {
-('AuthProvider: useEffect running');
+    console.log('AuthProvider: useEffect running');
     
     // Check if user is already logged in (from localStorage)
     const checkAuth = () => {
       try {
-('AuthProvider: Checking authentication from localStorage');
+        console.log('AuthProvider: Checking authentication from localStorage');
         
         const storedUser = localStorage.getItem('user');
         const storedAuth = localStorage.getItem('isAuthenticated');
         
-('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
+        console.log('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
         
         if (storedUser && storedAuth === 'true') {
-('AuthProvider: User found in localStorage, setting authenticated state');
+          console.log('AuthProvider: User found in localStorage, setting authenticated state');
           setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
         } else {
-('AuthProvider: No valid user data in localStorage');
+          console.log('AuthProvider: No valid user data in localStorage');
         }
       } catch (error) {
-('AuthProvider: Error checking authentication:', error);
+        console.log('AuthProvider: Error checking authentication:', error);
         // Clear invalid data
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
       } finally {
-('AuthProvider: Setting loading to false');
+        console.log('AuthProvider: Setting loading to false');
         setLoading(false);
       }
     };
@@ -97,13 +97,13 @@ export const AuthProvider = ({ children }) => {
       const data = response.data;
       
       // Debug logging
-('Login response data:', data);
-('Response success field:', data.success);
-('Response message:', data.message);
-('Data keys:', Object.keys(data));
-('Data.user:', data.user);
-('Data.id:', data.id);
-('Data.token:', data.token);
+      console.log('Login response data:', data);
+      console.log('Response success field:', data.success);
+      console.log('Response message:', data.message);
+      console.log('Data keys:', Object.keys(data));
+      console.log('Data.user:', data.user);
+      console.log('Data.id:', data.id);
+      console.log('Data.token:', data.token);
       
       // Validate that we have a valid response
       if (!data) {
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }) => {
       
       // Check if the response indicates authentication failure (backend returns success: false)
       if (data.success === false) {
-('Login failed - success is false');
+        console.log('Login failed - success is false');
         const errorMessage = data.message || 'Invalid credentials';
         // Provide more helpful error message for invalid credentials
         if (errorMessage.includes('invalid credentials')) {
@@ -129,13 +129,13 @@ export const AuthProvider = ({ children }) => {
       // Check if we have a token in the response
       const token = data.token || data.accessToken || data.access_token || data.jwt;
       if (!token) {
-('No token found in response. Available fields:', Object.keys(data));
+        console.log('No token found in response. Available fields:', Object.keys(data));
         throw new Error('No authentication token received from server. Please check your credentials.');
       }
       
       // Debug: Log the token to see its structure
-('🔍 Token received:', token.substring(0, 50) + '...');
-('🔍 Full response data:', data);
+      console.log('🔍 Token received:', token.substring(0, 50) + '...');
+      console.log('🔍 Full response data:', data);
       
       // Try to decode token immediately to see its structure
       try {
@@ -143,14 +143,14 @@ export const AuthProvider = ({ children }) => {
         if (tokenParts.length === 3) {
           const header = JSON.parse(atob(tokenParts[0]));
           const payload = JSON.parse(atob(tokenParts[1]));
-('🔍 Token header:', header);
-('🔍 Token payload (raw):', payload);
-('🔍 Token payload keys:', Object.keys(payload));
+          console.log('🔍 Token header:', header);
+          console.log('🔍 Token payload (raw):', payload);
+          console.log('🔍 Token payload keys:', Object.keys(payload));
         } else {
-('❌ Token is not a valid JWT format');
+          console.log('❌ Token is not a valid JWT format');
         }
       } catch (e) {
-('❌ Could not decode token for debugging:', e);
+        console.log('❌ Could not decode token for debugging:', e);
       }
       
       // Check if user data exists and is valid
@@ -343,52 +343,93 @@ export const AuthProvider = ({ children }) => {
       // Store token (already extracted above)
       localStorage.setItem('token', token);
       
-('Login successful. Token stored:', token?.substring(0, 20) + '...');
-('Token verification - stored token:', localStorage.getItem('token')?.substring(0, 20) + '...');
-('Final user data with role:', userData);
+      console.log('Login successful. Token stored:', token?.substring(0, 20) + '...');
+      console.log('Token verification - stored token:', localStorage.getItem('token')?.substring(0, 20) + '...');
+      console.log('Final user data with role:', userData);
       
       return data;
     } catch (error) {
-('Login error:', error);
+      console.log('=== Login Error Details ===');
+      console.log('Full error object:', error);
+      console.log('Error response:', error.response);
+      console.log('Error response data:', error.response?.data);
+      console.log('Error response status:', error.response?.status);
+      console.log('Error message:', error.message);
+      console.log('=========================');
       
       // Handle different types of errors
       let errorMessage = 'Login failed. Please try again.';
       
-      if (error.response?.status === 400) {
-        // Handle validation errors from the server
-        const errorData = error.response.data;
+      // First, try to extract message from response data (highest priority)
+      if (error.response?.data) {
+        const responseData = error.response.data;
         
-        if (errorData.message) {
-          // If server returns a specific validation message
-          if (errorData.message.includes('email')) {
-            errorMessage = 'Please enter a valid email address';
-          } else if (errorData.message.includes('password')) {
-            errorMessage = 'The password cannot be empty';
-          } else {
-            errorMessage = errorData.message;
-          }
-        } else if (errorData.errors) {
-          // Handle Joi validation errors
-          const errors = errorData.errors;
-          if (errors.email) {
-            errorMessage = 'Please enter a valid email address';
-          } else if (errors.password) {
-            errorMessage = 'The password cannot be empty';
-          } else {
-            errorMessage = Object.values(errors)[0] || 'Please check your input';
+        // Try various possible error message fields
+        const possibleMessageFields = [
+          'message', 'error', 'msg', 'errorMessage', 'error_message',
+          'detail', 'details', 'description'
+        ];
+        
+        for (const field of possibleMessageFields) {
+          if (responseData[field] && typeof responseData[field] === 'string') {
+            errorMessage = responseData[field];
+            console.log(`Found error message in field '${field}':`, errorMessage);
+            break;
           }
         }
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Invalid email or password';
-      } else if (error.response?.status === 404) {
-        errorMessage = 'Login service not found';
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later';
-      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-        errorMessage = 'Unable to connect to the server. Please check your internet connection';
-      } else if (error.message) {
-        // Use the error message from our validation or other sources
-        errorMessage = error.message;
+      }
+      
+      // Replace generic backend error messages with user-friendly ones
+      const genericErrors = [
+        'internal server error',
+        'Internal server error',
+        'Internal Server Error',
+        'INTERNAL_SERVER_ERROR',
+        'server error',
+        'Server error'
+      ];
+      
+      if (genericErrors.some(msg => errorMessage.toLowerCase().includes(msg.toLowerCase()))) {
+        console.log('Replacing generic backend error with user-friendly message');
+        // For 400 status with generic error, it's likely invalid credentials
+        if (error.response?.status === 400) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        }
+      }
+      
+      // If no message found in response, handle by status code
+      if (errorMessage === 'Login failed. Please try again.') {
+        if (error.response?.status === 400) {
+          // Handle validation errors from the server
+          const errorData = error.response.data;
+          
+          if (errorData.errors) {
+            // Handle Joi validation errors
+            const errors = errorData.errors;
+            if (errors.email) {
+              errorMessage = 'Please enter a valid email address';
+            } else if (errors.password) {
+              errorMessage = 'The password cannot be empty';
+            } else {
+              errorMessage = Object.values(errors)[0] || 'Please check your input';
+            }
+          } else {
+            errorMessage = 'Invalid input. Please check your credentials.';
+          }
+        } else if (error.response?.status === 401) {
+          errorMessage = 'Invalid email or password';
+        } else if (error.response?.status === 404) {
+          errorMessage = 'Login service not found';
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Server error. Please try again later';
+        } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+          errorMessage = 'Unable to connect to the server. Please check your internet connection';
+        } else if (error.message && !error.message.includes('Request failed')) {
+          // Use the error message from our validation or other sources (but not generic axios messages)
+          errorMessage = error.message;
+        }
       }
       
       // Clear any partial data on error

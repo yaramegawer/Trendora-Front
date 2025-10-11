@@ -51,8 +51,9 @@ export const checkDepartmentAccess = (user, targetDepartment) => {
   
   const userDepartment = getUserDepartment(user);
   
-  // Admin and Manager users can access any department
-  if (user.role === 'Admin' || user.role === 'Manager' || userDepartment === 'Admin') {
+  // Only Admin users can access any department
+  // Managers are restricted to their own department
+  if (user.role === 'Admin' || userDepartment === 'Admin') {
     return {
       isAuthorized: true,
       errorMessage: null,

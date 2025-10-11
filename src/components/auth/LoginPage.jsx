@@ -86,7 +86,7 @@ const LoginPage = () => {
       setSuccess(true);
       
     } catch (err) {
-('Login error:', err);
+      console.log('Login error:', err);
       
       // Create more user-friendly error messages
       let errorMessage = err.message || 'Login failed. Please try again.';
