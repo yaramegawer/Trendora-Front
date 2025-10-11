@@ -2064,6 +2064,25 @@ const ITDepartment = () => {
                           </span>
                         </div>
                       )}
+                      {project.notes && (
+                        <div style={{ 
+                          marginTop: '12px', 
+                          padding: '12px', 
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ffc107',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          color: '#856404'
+                        }}>
+                          <div style={{ fontWeight: '600', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>📝</span>
+                            <span>Note:</span>
+                          </div>
+                          <div style={{ lineHeight: '1.5' }}>
+                            {project.notes}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button style={{

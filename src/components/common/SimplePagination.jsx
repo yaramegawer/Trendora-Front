@@ -22,14 +22,14 @@ const SimplePagination = ({
       pages.push(i);
     }
     
-      ('📄 Generated page numbers:', pages, 'for total pages:', calculatedTotalPages);
+    console.log('📄 Generated page numbers:', pages, 'for total pages:', calculatedTotalPages);
     return pages;
   };
 
   const pageNumbers = getPageNumbers();
 
   // Debug logging
-    ('🔍 SimplePagination Debug:', {
+  console.log('🔍 SimplePagination Debug:', {
     currentPage,
     totalPages,
     calculatedTotalPages,
@@ -41,7 +41,7 @@ const SimplePagination = ({
   // Show pagination even with 1 page for debugging/testing
   // In production, you might want to hide it with: if (calculatedTotalPages <= 1) return null;
   if (calculatedTotalPages <= 0 || totalItems <= 0) {
-      ('🚫 Not rendering pagination - no items', {
+    console.log('🚫 Not rendering pagination - no items', {
       calculatedTotalPages,
       totalItems,
       pageSize

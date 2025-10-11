@@ -304,19 +304,11 @@ const DigitalMarketingDepartment = () => {
     }
   };
 
-  // Extract customer name from project (handles both customerName field and notes fallback)
+  // Extract customer name from project (uses customerName field only)
   const extractCustomerFromProject = (project) => {
-    // First try the direct customerName field
+    // Only use the direct customerName field
     if (project.customerName && project.customerName.trim() !== '') {
       return project.customerName.trim();
-    }
-    
-    // Fallback to parsing from notes field
-    if (project.notes) {
-      const match = project.notes.match(/^Customer:\s*(.+?)(?:\n|$)/);
-      if (match) {
-        return match[1].trim();
-      }
     }
     
     return '';
@@ -1824,6 +1816,12 @@ const DigitalMarketingDepartment = () => {
                                   </span>
                                 ))}
                               </span>
+                            </div>
+                          )}
+                          {project.notes && (
+                            <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                              <span style={{ fontWeight: '500', marginRight: '8px' }}>📝 Notes:</span>
+                              <span>{project.notes}</span>
                             </div>
                           )}
                         </div>

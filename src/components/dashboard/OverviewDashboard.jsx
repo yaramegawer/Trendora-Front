@@ -81,6 +81,7 @@ const OverviewDashboard = memo(() => {
         // Try multiple endpoints to find working one
         let leavesData = [];
         let totalLeaves = 0;
+        let allLeavesData = [];
         
         // Use the correct dashboard leaves endpoint
         
@@ -101,15 +102,19 @@ const OverviewDashboard = memo(() => {
               });
               if (Array.isArray(countResponse.data)) {
                 totalLeaves = countResponse.data.length;
+                allLeavesData = countResponse.data;
               } else {
                 totalLeaves = leavesData.length;
+                allLeavesData = leavesData;
               }
             } catch {
               totalLeaves = leavesData.length;
+              allLeavesData = leavesData;
             }
           } else {
             // If we got less than the limit, this is all the data
             totalLeaves = leavesData.length;
+            allLeavesData = leavesData;
           }
         } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
           leavesData = response.data.data;
@@ -128,14 +133,38 @@ const OverviewDashboard = memo(() => {
             
             if (Array.isArray(countResponse.data)) {
               totalLeaves = countResponse.data.length;
+              allLeavesData = countResponse.data;
             } else if (countResponse.data && countResponse.data.data && Array.isArray(countResponse.data.data)) {
               totalLeaves = countResponse.data.data.length;
+              allLeavesData = countResponse.data.data;
             } else {
               totalLeaves = countResponse.data?.total || countResponse.data?.totalLeaves || countResponse.data?.count || countResponse.data?.totalCount || leavesData.length;
+              allLeavesData = leavesData;
             }
           } catch (countError) {
             // If counting fails, use a reasonable estimate
             totalLeaves = leavesData.length;
+            allLeavesData = leavesData;
+          }
+        }
+        
+        // Fetch all leaves for accurate status counts
+        if (!allLeavesData || allLeavesData.length === 0) {
+          try {
+            const allLeavesResponse = await api.get('/dashboard/leaves', {
+              params: { page: 1, limit: 10000 } // Large limit to get all leaves
+            });
+            
+            if (Array.isArray(allLeavesResponse.data)) {
+              allLeavesData = allLeavesResponse.data;
+            } else if (allLeavesResponse.data && allLeavesResponse.data.data && Array.isArray(allLeavesResponse.data.data)) {
+              allLeavesData = allLeavesResponse.data.data;
+            } else {
+              allLeavesData = leavesData; // Fallback to current page data
+            }
+          } catch (error) {
+            console.warn('Failed to fetch all leaves for status counts, using current page data');
+            allLeavesData = leavesData;
           }
         }
         
@@ -143,11 +172,11 @@ const OverviewDashboard = memo(() => {
         setUserLeavesTotal(totalLeaves);
         setUserLeavesCurrentPage(page);
         
-        // Calculate status counts from current data
+        // Calculate status counts from ALL leaves data (not just current page)
         const statusCounts = {
-          pending: leavesData.filter(leave => (leave.status || '').toLowerCase() === 'pending').length,
-          approved: leavesData.filter(leave => (leave.status || '').toLowerCase() === 'approved').length,
-          rejected: leavesData.filter(leave => (leave.status || '').toLowerCase() === 'rejected').length
+          pending: allLeavesData.filter(leave => (leave.status || '').toLowerCase() === 'pending').length,
+          approved: allLeavesData.filter(leave => (leave.status || '').toLowerCase() === 'approved').length,
+          rejected: allLeavesData.filter(leave => (leave.status || '').toLowerCase() === 'rejected').length
         };
         setUserLeavesStatusCounts(statusCounts);
         
