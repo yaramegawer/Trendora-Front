@@ -67,63 +67,61 @@ export const useOperationEmployees = () => {
 };
 
 // Custom hook for Operation campaign data management
-export const useOperationCampaigns = (page = 1, limit = 10) => {
+export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all') => {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalCampaigns, setTotalCampaigns] = useState(0);
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
+  const [status, setStatus] = useState(statusFilter);
 
-  const fetchCampaigns = async (pageNum = currentPage, pageLimit = pageSize) => {
+  const fetchCampaigns = async (pageNum = currentPage, pageLimit = pageSize, statusVal = status) => {
     try {
       setLoading(true);
       setError(null);
-(`Fetching campaigns with pagination - Page: ${pageNum}, Limit: ${pageLimit}`);
+(`Fetching campaigns with pagination - Page: ${pageNum}, Limit: ${pageLimit}, Status: ${statusVal}`);
       
-      // First, fetch all campaigns to get total count
-('🔄 Fetching all campaigns for total count...');
-      const allCampaignsResponse = await operationCampaignApi.getAllCampaigns(1, 1000); // Get all campaigns
+      // Fetch paginated data with status filter
+      const response = await operationCampaignApi.getAllCampaigns(pageNum, pageLimit, statusVal);
       
-      // Then fetch paginated data
-      const paginatedResponse = await operationCampaignApi.getAllCampaigns(pageNum, pageLimit);
+('📡 Operation Campaigns API Response:', response);
       
-('📡 All Campaigns API Response:', allCampaignsResponse);
-('📡 Paginated Campaigns API Response:', paginatedResponse);
-      
-      // Process all campaigns for total count
-      let allCampaignsData = [];
-      if (Array.isArray(allCampaignsResponse)) {
-        allCampaignsData = allCampaignsResponse;
-      } else if (allCampaignsResponse && allCampaignsResponse.data && Array.isArray(allCampaignsResponse.data)) {
-        allCampaignsData = allCampaignsResponse.data;
-      } else if (allCampaignsResponse && allCampaignsResponse.success && Array.isArray(allCampaignsResponse.data)) {
-        allCampaignsData = allCampaignsResponse.data;
-      }
-      
-      // Process paginated data for current page
+      // Handle backend pagination response format
       let campaignsData = [];
-      if (Array.isArray(paginatedResponse)) {
-        campaignsData = paginatedResponse;
-      } else if (paginatedResponse && paginatedResponse.data && Array.isArray(paginatedResponse.data)) {
-        campaignsData = paginatedResponse.data;
-      } else if (paginatedResponse && paginatedResponse.success && Array.isArray(paginatedResponse.data)) {
-        campaignsData = paginatedResponse.data;
+      let totalCount = 0;
+      let pageNumber = pageNum;
+      let totalPagesCount = 1;
+      
+      if (response && response.success) {
+        // Backend returns: { success: true, data: [...], total, page, limit, totalPages }
+        campaignsData = response.data || [];
+        totalCount = response.total || 0;
+        pageNumber = response.page || pageNum;
+        totalPagesCount = response.totalPages || 1;
+      } else if (Array.isArray(response)) {
+        // Fallback for array response
+        campaignsData = response;
+        totalCount = response.length;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        campaignsData = response.data;
+        totalCount = response.total || response.data.length;
       }
       
-      const totalCampaignsCount = allCampaignsData.length;
-      
-('📊 All campaigns count:', totalCampaignsCount);
+('📊 Campaigns total count:', totalCount);
 ('📊 Current page campaigns data:', campaignsData);
+('📊 Total pages:', totalPagesCount);
       
       setCampaigns(campaignsData);
-      setTotalCampaigns(totalCampaignsCount);
-      setCurrentPage(pageNum);
+      setTotalCampaigns(totalCount);
+      setCurrentPage(pageNumber);
       setPageSize(pageLimit);
+      setStatus(statusVal);
     } catch (err) {
 ('Error fetching campaigns:', err);
       setError(err.message || 'Network Error');
       setCampaigns([]);
+      setTotalCampaigns(0);
     } finally {
       setLoading(false);
     }
@@ -137,7 +135,7 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
     try {
       const response = await operationCampaignApi.createCampaign(campaignData);
       if (response.success) {
-        fetchCampaigns(currentPage, pageSize); // Refresh current page
+        fetchCampaigns(currentPage, pageSize, status); // Refresh current page with current status
         return { success: true, data: response.data };
       } else {
         return { success: false, message: response.message };
@@ -151,7 +149,7 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
     try {
       const response = await operationCampaignApi.updateCampaign(id, campaignData);
       if (response.success) {
-        fetchCampaigns(currentPage, pageSize); // Refresh current page
+        fetchCampaigns(currentPage, pageSize, status); // Refresh current page with current status
         return { success: true, data: response.data };
       } else {
         return { success: false, message: response.message };
@@ -165,7 +163,7 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
     try {
       const response = await operationCampaignApi.deleteCampaign(id);
       if (response.success) {
-        fetchCampaigns(currentPage, pageSize); // Refresh current page
+        fetchCampaigns(currentPage, pageSize, status); // Refresh current page with current status
         return { success: true, data: response.data };
       } else {
         return { success: false, message: response.message };
@@ -180,7 +178,7 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
 (`Operation Campaigns goToPage: pageNum=${pageNum}, totalCampaigns=${totalCampaigns}, pageSize=${pageSize}, maxPages=${maxPages}`);
     if (totalCampaigns === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
 (`Operation Campaigns goToPage: Fetching page ${pageNum}`);
-      fetchCampaigns(pageNum, pageSize);
+      fetchCampaigns(pageNum, pageSize, status);
     } else {
 (`Operation Campaigns goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
@@ -188,7 +186,13 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
 
   const changePageSize = (newPageSize) => {
     setPageSize(newPageSize);
-    fetchCampaigns(1, newPageSize);
+    fetchCampaigns(1, newPageSize, status);
+  };
+
+  const changeStatus = (newStatus) => {
+    setStatus(newStatus);
+    setCurrentPage(1); // Reset to first page when changing status
+    fetchCampaigns(1, pageSize, newStatus);
   };
 
   const nextPage = () => {
@@ -210,6 +214,7 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
     error, 
     totalCampaigns,
     currentPage,
+    status,
     totalPages: Math.ceil(totalCampaigns / pageSize),
     fetchCampaigns, 
     createCampaign, 
@@ -217,6 +222,7 @@ export const useOperationCampaigns = (page = 1, limit = 10) => {
     deleteCampaign,
     goToPage,
     changePageSize,
+    changeStatus,
     nextPage,
     prevPage
   };
@@ -539,7 +545,7 @@ export const useOperationRecentActivities = () => {
       // Fetch all operation data in parallel (tickets removed)
       const [employeesResponse, campaignsResponse, leavesResponse] = await Promise.all([
         operationEmployeeApi.getAllEmployees().catch(() => ({ data: [] })),
-        operationCampaignApi.getAllCampaigns(1, 100).catch(() => ({ data: [] })),
+        operationCampaignApi.getAllCampaigns(1, 100, 'all').catch(() => ({ data: [] })),
         operationLeaveApi.getEmployeeLeaves().catch(() => ({ data: [] }))
       ]);
 

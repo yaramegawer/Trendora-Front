@@ -53,7 +53,6 @@ const OperationDepartment = () => {
   }
 
   // Pagination state
-  const [campaignsCurrentPage, setCampaignsCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
   // Filter state for campaigns
@@ -61,7 +60,7 @@ const OperationDepartment = () => {
   const [campaignStatusFilter, setCampaignStatusFilter] = useState('all');
   const [showCampaignStatusDropdown, setShowCampaignStatusDropdown] = useState(false);
 
-  // Use real API data with pagination
+  // Use real API data with pagination and status filter
   const { employees, loading: employeesLoading, error: employeesError, updateEmployeeRating, fetchEmployees } = useOperationEmployees();
   const { 
     campaigns, 
@@ -70,11 +69,13 @@ const OperationDepartment = () => {
     totalCampaigns,
     currentPage: campaignsPage,
     totalPages: campaignsTotalPages,
+    status: campaignStatus,
     goToPage: campaignsGoToPage,
+    changeStatus: campaignsChangeStatus,
     createCampaign, 
     updateCampaign, 
     deleteCampaign 
-  } = useOperationCampaigns(campaignsCurrentPage, pageSize);
+  } = useOperationCampaigns(1, pageSize, campaignStatusFilter);
   const { addLeave } = useOperationLeaves();
   const { recentActivities, loading: recentActivitiesLoading, error: recentActivitiesError } = useOperationRecentActivities();
 
@@ -96,46 +97,33 @@ const OperationDepartment = () => {
   const [leaveFormErrors, setLeaveFormErrors] = useState({});
   const [leaveFormLoading, setLeaveFormLoading] = useState(false);
 
-  // Filter campaigns by search term and status
+  // Filter campaigns by search term only (status filtering is done on backend)
   const filteredCampaigns = Array.isArray(campaigns) ? campaigns.filter(campaign => {
-    // Search filter
+    // Client-side search filter only
     const matchesSearch = campaignSearchTerm === '' || 
       (campaign.name && campaign.name.toLowerCase().includes(campaignSearchTerm.toLowerCase())) ||
       (campaign.description && campaign.description.toLowerCase().includes(campaignSearchTerm.toLowerCase())) ||
       (campaign.customerName && campaign.customerName.toLowerCase().includes(campaignSearchTerm.toLowerCase()));
     
-    // Status filter
-    const matchesStatus = campaignStatusFilter === 'all' || 
-      (campaign.status && campaign.status.toLowerCase() === campaignStatusFilter.toLowerCase());
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   }) : [];
 
-  // Client-side pagination for filtered campaigns
-  const campaignsStartIndex = (campaignsCurrentPage - 1) * pageSize;
-  const campaignsEndIndex = campaignsStartIndex + pageSize;
-  const paginatedCampaigns = filteredCampaigns.slice(campaignsStartIndex, campaignsEndIndex);
+  // Use backend-paginated campaigns directly when no search term
+  const displayedCampaigns = campaignSearchTerm ? filteredCampaigns : campaigns;
 
   // Pagination handlers
   const handleCampaignsPageChange = (newPage) => {
 ('Operation Department Styled: Campaigns page change to:', newPage);
-    setCampaignsCurrentPage(newPage);
-    
-    // Use server-side pagination when no filters are applied
-    if (!campaignSearchTerm && campaignStatusFilter === 'all') {
-      campaignsGoToPage(newPage);
-    }
-    // Client-side pagination is handled by the filteredCampaigns logic when filters are active
+    campaignsGoToPage(newPage);
   };
 
   const handleCampaignSearchChange = (searchTerm) => {
     setCampaignSearchTerm(searchTerm);
-    setCampaignsCurrentPage(1); // Reset to first page when search changes
   };
 
   const handleCampaignStatusFilterChange = (status) => {
     setCampaignStatusFilter(status);
-    setCampaignsCurrentPage(1); // Reset to first page when filter changes
+    campaignsChangeStatus(status); // Use backend status filtering
   };
 
   // Close dropdown when clicking outside
@@ -833,7 +821,6 @@ const OperationDepartment = () => {
                   <p style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}>
                   {employeesLoading ? '...' : Array.isArray(employees) ? employees.length : 0}
                 </p>
-                  <p style={{ fontSize: '10px', color: '#10b981', margin: '4px 0 0 0' }}>+8% from last month</p>
               </div>
                 <div style={{ padding: '12px', backgroundColor: '#f59e0b', borderRadius: '8px' }}>
                 <Users size={20} color="white" />
@@ -865,14 +852,12 @@ const OperationDepartment = () => {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div>
-                  <p style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>Campaign Status</p>
+                  <p style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>Total Campaigns</p>
                   <p style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}>
-                  {campaignsLoading ? '...' : Array.isArray(campaigns) ? 
-                    campaigns.filter(c => c.status === 'active').length + ' Active' : '0 Active'}
+                  {campaignsLoading ? '...' : totalCampaigns || 0}
                 </p>
                   <p style={{ fontSize: '10px', color: '#3b82f6', margin: '4px 0 0 0' }}>
-                    {campaignsLoading ? '' : Array.isArray(campaigns) ? 
-                      `${campaigns.filter(c => c.status === 'planned').length} Planned, ${campaigns.filter(c => c.status === 'completed').length} Completed` : ''}
+                    All campaign records
                   </p>
               </div>
                 <div style={{ padding: '12px', backgroundColor: '#7c3aed', borderRadius: '8px' }}>
@@ -1373,7 +1358,10 @@ const OperationDepartment = () => {
 
                   {/* Results Count */}
                   <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
-                    Showing {filteredCampaigns.length} of {campaigns.length} campaigns
+                    {campaignSearchTerm 
+                      ? `Showing ${displayedCampaigns.length} of ${campaigns.length} campaigns`
+                      : `Showing ${campaigns.length} of ${totalCampaigns} campaigns`
+                    }
                   </div>
                 </div>
               </div>
@@ -1412,7 +1400,7 @@ const OperationDepartment = () => {
                 </div>
 
                 {/* Campaigns Rows */}
-                {(campaignSearchTerm || campaignStatusFilter !== 'all' ? paginatedCampaigns : campaigns).map((campaign) => {
+                {displayedCampaigns.map((campaign) => {
                   const status = getCampaignStatus(campaign);
                   return (
                     <div key={campaign.id || campaign._id} style={{
@@ -1561,18 +1549,12 @@ const OperationDepartment = () => {
             )}
             
             {/* Pagination for Campaigns */}
-            {Array.isArray(campaigns) && campaigns.length > 0 && (
+            {!campaignSearchTerm && Array.isArray(campaigns) && totalCampaigns > 0 && (
               <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
                 <SimplePagination
-                  currentPage={campaignsCurrentPage}
-                  totalPages={campaignSearchTerm || campaignStatusFilter !== 'all' 
-                    ? Math.ceil(filteredCampaigns.length / pageSize)
-                    : campaignsTotalPages || Math.ceil(totalCampaigns / pageSize)
-                  }
-                  totalItems={campaignSearchTerm || campaignStatusFilter !== 'all' 
-                    ? filteredCampaigns.length
-                    : totalCampaigns || campaigns.length
-                  }
+                  currentPage={campaignsPage}
+                  totalPages={campaignsTotalPages || Math.ceil(totalCampaigns / pageSize)}
+                  totalItems={totalCampaigns}
                   pageSize={pageSize}
                   onPageChange={handleCampaignsPageChange}
                 />
@@ -1580,10 +1562,10 @@ const OperationDepartment = () => {
             )}
             
             {/* Show message when no campaigns match filter */}
-            {Array.isArray(campaigns) && campaigns.length > 0 && filteredCampaigns.length === 0 && (
+            {campaignSearchTerm && Array.isArray(campaigns) && campaigns.length > 0 && displayedCampaigns.length === 0 && (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>
-                  No campaigns found matching your search or filter criteria
+                  No campaigns found matching your search criteria
                 </div>
               </div>
             )}

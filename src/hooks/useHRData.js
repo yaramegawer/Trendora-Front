@@ -1,45 +1,57 @@
 import { useState, useEffect } from 'react';
 import { employeeApi, departmentApi, leaveApi, payrollApi } from '../services/hrApi';
 
-// Custom hook for employee data
-export const useEmployees = (page = 1, limit = 10) => {
+// Custom hook for employee data  
+export const useEmployees = (page = 1, limit = 10, statusFilter = 'all') => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
+  const [currentStatusFilter, setCurrentStatusFilter] = useState(statusFilter);
 
-  const fetchEmployees = async (pageNum = currentPage, pageLimit = pageSize) => {
+  const fetchEmployees = async (pageNum = currentPage, pageLimit = pageSize, status = currentStatusFilter) => {
     try {
       setLoading(true);
       setError(null);
-('🔍 useEmployees: Fetching all employees for client-side pagination');
+('🔍 useEmployees: Fetching ALL employees for client-side filtering');
       
-      // Get all employees at once for client-side pagination
-      const data = await employeeApi.getAllEmployees(1, 1000); // Get all employees
+      // Get ALL employees from backend (client-side pagination like accounting)
+      const data = await employeeApi.getAllEmployees(1, 1000);
 ('🔍 useEmployees: API response:', data);
       
-      // Handle response structure
+      // Handle response structure - get ALL employees
       let allEmployees = [];
-      if (data && typeof data === 'object' && data.data) {
-        allEmployees = Array.isArray(data.data) ? data.data : [];
-      } else {
-        allEmployees = Array.isArray(data) ? data : [];
+      
+      if (data && typeof data === 'object') {
+        if (data.data && Array.isArray(data.data)) {
+          allEmployees = data.data;
+        } else if (Array.isArray(data)) {
+          allEmployees = data;
+        }
       }
       
 ('🔍 useEmployees: Total employees fetched:', allEmployees.length);
       setTotalEmployees(allEmployees.length);
-      setEmployees(allEmployees); // Store all employees for client-side pagination
+      setEmployees(allEmployees); // Store ALL for client-side filtering
       
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
-('🔍 useEmployees: Final state - totalEmployees:', allEmployees.length);
+      setCurrentStatusFilter(status);
+('🔍 useEmployees: Final state - storing all employees for client-side filtering');
     } catch (err) {
 ('Error fetching employees:', err);
-      setError(err.message || 'Failed to fetch employees');
-      setEmployees([]);
-      setTotalEmployees(0);
+      // Silently handle 404 errors (no data found) - this is not a real error
+      if (err.message && err.message.includes('No employees found')) {
+        setEmployees([]);
+        setTotalEmployees(0);
+        setError(null); // Don't show error for empty results
+      } else {
+        setError(err.message || 'Failed to fetch employees');
+        setEmployees([]);
+        setTotalEmployees(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -113,17 +125,32 @@ export const useEmployees = (page = 1, limit = 10) => {
   // Pagination functions
   const goToPage = (pageNum) => {
 ('🔍 goToPage called with:', pageNum);
-    const maxPages = Math.ceil(totalEmployees / pageSize);
+    const maxPages = Math.ceil(totalEmployees / pageSize) || 1; // At least 1 page
 ('🔍 Max pages:', maxPages, 'Total employees:', totalEmployees, 'Page size:', pageSize);
-    if (pageNum >= 1 && pageNum <= maxPages) {
-      fetchEmployees(pageNum, pageSize);
+    
+    // Ensure pageNum is valid
+    if (totalEmployees === 0) {
+      // No data, stay on page 1
+      fetchEmployees(1, pageSize, currentStatusFilter);
+    } else if (pageNum >= 1 && pageNum <= maxPages) {
+      fetchEmployees(pageNum, pageSize, currentStatusFilter);
+    } else {
+      // Invalid page number, go to closest valid page
+      const validPage = pageNum < 1 ? 1 : maxPages;
+      fetchEmployees(validPage, pageSize, currentStatusFilter);
     }
   };
 
   const changePageSize = (newPageSize) => {
 ('🔍 changePageSize called with:', newPageSize);
     setPageSize(newPageSize);
-    fetchEmployees(1, newPageSize); // Reset to first page when changing page size
+    fetchEmployees(1, newPageSize, currentStatusFilter); // Reset to first page when changing page size
+  };
+
+  const changeStatusFilter = (newStatus) => {
+('🔍 changeStatusFilter called with:', newStatus);
+    setCurrentStatusFilter(newStatus);
+    fetchEmployees(1, pageSize, newStatus); // Reset to first page when changing filter
   };
 
   const nextPage = () => {
@@ -155,6 +182,7 @@ export const useEmployees = (page = 1, limit = 10) => {
     refetch: fetchEmployees,
     goToPage,
     changePageSize,
+    changeStatusFilter,
     nextPage,
     prevPage
   };
@@ -248,44 +276,59 @@ export const useDepartments = () => {
 };
 
 // Custom hook for leave data
-export const useLeaves = (page = 1, limit = 10) => {
+export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalLeaves, setTotalLeaves] = useState(0);
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
+  const [currentStatusFilter, setCurrentStatusFilter] = useState(statusFilter);
 
-  const fetchLeaves = async (pageNum = currentPage, pageLimit = pageSize) => {
+  const fetchLeaves = async (pageNum = currentPage, pageLimit = pageSize, status = currentStatusFilter) => {
     try {
       setLoading(true);
       setError(null);
-('🔍 useLeaves: Fetching all leaves for client-side pagination');
+('🔍 useLeaves: Fetching leaves with backend pagination');
       
-      // Get all leaves at once for client-side pagination and filtering
-      const data = await leaveApi.getAllLeaves(1, 1000); // Get all leaves
+      // Get leaves from backend with pagination and status filter
+      const data = await leaveApi.getAllLeaves(pageNum, pageLimit, status);
 ('🔍 useLeaves: API response:', data);
       
       // Handle response structure
-      let allLeaves = [];
-      if (data && typeof data === 'object' && data.data) {
-        allLeaves = Array.isArray(data.data) ? data.data : [];
-      } else {
-        allLeaves = Array.isArray(data) ? data : [];
+      let leavesData = [];
+      let total = 0;
+      
+      if (data && typeof data === 'object') {
+        if (data.data && Array.isArray(data.data)) {
+          leavesData = data.data;
+          total = data.total || data.totalLeaves || leavesData.length;
+        } else if (Array.isArray(data)) {
+          leavesData = data;
+          total = leavesData.length;
+        }
       }
       
-('🔍 useLeaves: Total leaves fetched:', allLeaves.length);
-      setTotalLeaves(allLeaves.length);
-      setLeaves(allLeaves); // Store all leaves for client-side pagination
+('🔍 useLeaves: Total leaves:', total);
+      setTotalLeaves(total);
+      setLeaves(leavesData);
       
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
-('🔍 useLeaves: Final state - totalLeaves:', allLeaves.length);
+      setCurrentStatusFilter(status);
+('🔍 useLeaves: Final state - totalLeaves:', total);
     } catch (err) {
 ('Error fetching leaves:', err);
-      setError(err.message || 'Failed to fetch leaves');
-      setLeaves([]);
-      setTotalLeaves(0);
+      // Silently handle 404 errors (no data found) - this is not a real error
+      if (err.message && err.message.includes('No leaves found')) {
+        setLeaves([]);
+        setTotalLeaves(0);
+        setError(null); // Don't show error for empty results
+      } else {
+        setError(err.message || 'Failed to fetch leaves');
+        setLeaves([]);
+        setTotalLeaves(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -345,20 +388,35 @@ export const useLeaves = (page = 1, limit = 10) => {
     fetchLeaves();
   }, []);
 
-  // Pagination functions (client-side only, no server calls)
+  // Pagination functions
   const goToPage = (pageNum) => {
-    const maxPages = Math.ceil(totalLeaves / pageSize);
+    const maxPages = Math.ceil(totalLeaves / pageSize) || 1; // At least 1 page
 ('🔍 goToPage called with:', pageNum);
 ('🔍 Max pages:', maxPages, 'Total leaves:', totalLeaves, 'Page size:', pageSize);
-    if (pageNum >= 1 && pageNum <= maxPages) {
-      setCurrentPage(pageNum); // Just update the page number, data is already loaded
+    
+    // Ensure pageNum is valid
+    if (totalLeaves === 0) {
+      // No data, stay on page 1
+      fetchLeaves(1, pageSize, currentStatusFilter);
+    } else if (pageNum >= 1 && pageNum <= maxPages) {
+      fetchLeaves(pageNum, pageSize, currentStatusFilter);
+    } else {
+      // Invalid page number, go to closest valid page
+      const validPage = pageNum < 1 ? 1 : maxPages;
+      fetchLeaves(validPage, pageSize, currentStatusFilter);
     }
   };
 
   const changePageSize = (newPageSize) => {
 ('🔍 changePageSize called with:', newPageSize);
     setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
+    fetchLeaves(1, newPageSize, currentStatusFilter); // Reset to first page when changing page size
+  };
+
+  const changeStatusFilter = (newStatus) => {
+('🔍 changeStatusFilter called with:', newStatus);
+    setCurrentStatusFilter(newStatus);
+    fetchLeaves(1, pageSize, newStatus); // Reset to first page when changing filter
   };
 
   const nextPage = () => {
@@ -390,50 +448,66 @@ export const useLeaves = (page = 1, limit = 10) => {
     refetch: fetchLeaves,
     goToPage,
     changePageSize,
+    changeStatusFilter,
     nextPage,
     prevPage
   };
 };
 
 // Custom hook for payroll data
-export const usePayroll = (page = 1, limit = 10) => {
+export const usePayroll = (page = 1, limit = 10, statusFilter = 'all') => {
   const [payroll, setPayroll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalPayroll, setTotalPayroll] = useState(0);
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
+  const [currentStatusFilter, setCurrentStatusFilter] = useState(statusFilter);
 
-  const fetchPayroll = async (pageNum = currentPage, pageLimit = pageSize) => {
+  const fetchPayroll = async (pageNum = currentPage, pageLimit = pageSize, status = currentStatusFilter) => {
     try {
       setLoading(true);
       setError(null);
-('🔍 usePayroll: Fetching all payroll for client-side pagination');
+('🔍 usePayroll: Fetching payroll with backend pagination');
       
-      // Get all payroll at once for client-side pagination and filtering
-      const data = await payrollApi.getAllPayroll(1, 1000); // Get all payroll
+      // Get payroll from backend with pagination and status filter
+      const data = await payrollApi.getAllPayroll(pageNum, pageLimit, status);
 ('🔍 usePayroll: API response:', data);
       
       // Handle response structure
-      let allPayroll = [];
-      if (data && typeof data === 'object' && data.data) {
-        allPayroll = Array.isArray(data.data) ? data.data : [];
-      } else {
-        allPayroll = Array.isArray(data) ? data : [];
+      let payrollData = [];
+      let total = 0;
+      
+      if (data && typeof data === 'object') {
+        if (data.data && Array.isArray(data.data)) {
+          payrollData = data.data;
+          total = data.total || data.totalPayroll || payrollData.length;
+        } else if (Array.isArray(data)) {
+          payrollData = data;
+          total = payrollData.length;
+        }
       }
       
-('🔍 usePayroll: Total payroll fetched:', allPayroll.length);
-      setTotalPayroll(allPayroll.length);
-      setPayroll(allPayroll); // Store all payroll for client-side pagination
+('🔍 usePayroll: Total payroll:', total);
+      setTotalPayroll(total);
+      setPayroll(payrollData);
       
       setCurrentPage(pageNum);
       setPageSize(pageLimit);
-('🔍 usePayroll: Final state - totalPayroll:', allPayroll.length);
+      setCurrentStatusFilter(status);
+('🔍 usePayroll: Final state - totalPayroll:', total);
     } catch (err) {
 ('Error fetching payroll:', err);
-      setError(err.message || 'Failed to fetch payroll');
-      setPayroll([]);
-      setTotalPayroll(0);
+      // Silently handle 404 errors (no data found) - this is not a real error
+      if (err.message && err.message.includes('No payrolls found')) {
+        setPayroll([]);
+        setTotalPayroll(0);
+        setError(null); // Don't show error for empty results
+      } else {
+        setError(err.message || 'Failed to fetch payroll');
+        setPayroll([]);
+        setTotalPayroll(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -502,20 +576,35 @@ export const usePayroll = (page = 1, limit = 10) => {
     fetchPayroll();
   }, []);
 
-  // Pagination functions (client-side only, no server calls)
+  // Pagination functions
   const goToPage = (pageNum) => {
-    const maxPages = Math.ceil(totalPayroll / pageSize);
+    const maxPages = Math.ceil(totalPayroll / pageSize) || 1; // At least 1 page
 ('🔍 goToPage called with:', pageNum);
 ('🔍 Max pages:', maxPages, 'Total payroll:', totalPayroll, 'Page size:', pageSize);
-    if (pageNum >= 1 && pageNum <= maxPages) {
-      setCurrentPage(pageNum); // Just update the page number, data is already loaded
+    
+    // Ensure pageNum is valid
+    if (totalPayroll === 0) {
+      // No data, stay on page 1
+      fetchPayroll(1, pageSize, currentStatusFilter);
+    } else if (pageNum >= 1 && pageNum <= maxPages) {
+      fetchPayroll(pageNum, pageSize, currentStatusFilter);
+    } else {
+      // Invalid page number, go to closest valid page
+      const validPage = pageNum < 1 ? 1 : maxPages;
+      fetchPayroll(validPage, pageSize, currentStatusFilter);
     }
   };
 
   const changePageSize = (newPageSize) => {
 ('🔍 changePageSize called with:', newPageSize);
     setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
+    fetchPayroll(1, newPageSize, currentStatusFilter); // Reset to first page when changing page size
+  };
+
+  const changeStatusFilter = (newStatus) => {
+('🔍 changeStatusFilter called with:', newStatus);
+    setCurrentStatusFilter(newStatus);
+    fetchPayroll(1, pageSize, newStatus); // Reset to first page when changing filter
   };
 
   const nextPage = () => {
@@ -548,6 +637,7 @@ export const usePayroll = (page = 1, limit = 10) => {
     refetch: fetchPayroll,
     goToPage,
     changePageSize,
+    changeStatusFilter,
     nextPage,
     prevPage
   };

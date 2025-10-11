@@ -58,11 +58,16 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
 // Employee API functions
 export const employeeApi = {
   // Get all employees
-  getAllEmployees: async (page = 1, limit = 10) => {
+  getAllEmployees: async (page = 1, limit = 10, status = null) => {
     try {
       
+      const params = { page, limit };
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.EMPLOYEES_HR_DEPT, {
-        params: { page, limit }
+        params
       });
       
       
@@ -456,16 +461,22 @@ export const departmentApi = {
 // Leave API functions
 export const leaveApi = {
   // Get all leaves
-  getAllLeaves: async (page = 1, limit = 10) => {
+  getAllLeaves: async (page = 1, limit = 10, status = null) => {
     try {
       
+      const params = { 
+        page, 
+        limit,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      };
+      
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.LEAVES, {
-        params: { 
-          page, 
-          limit,
-          sortBy: 'createdAt',
-          sortOrder: 'desc'
-        }
+        params
       });
       
       // Check if response indicates an error
@@ -542,16 +553,22 @@ export const leaveApi = {
 // Payroll API functions
 export const payrollApi = {
   // Get all payroll
-  getAllPayroll: async (page = 1, limit = 10) => {
+  getAllPayroll: async (page = 1, limit = 10, status = null) => {
     try {
       
+      const params = { 
+        page, 
+        limit,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      };
+      
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
       const response = await api.get(API_CONFIG.ENDPOINTS.HR.PAYROLL, {
-        params: { 
-          page, 
-          limit,
-          sortBy: 'createdAt',
-          sortOrder: 'desc'
-        }
+        params
       });
       
       // Debug: Log the actual data structure

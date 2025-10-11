@@ -45,11 +45,16 @@ export const operationEmployeeApi = {
 
 // Campaign API functions
 export const operationCampaignApi = {
-  // Get all campaigns
-  getAllCampaigns: async (page = 1, limit = 10) => {
+  // Get all campaigns with pagination and status filter
+  getAllCampaigns: async (page = 1, limit = 10, status = null) => {
+    const params = { page, limit };
+    if (status && status !== 'all') {
+      params.status = status;
+    }
+    
     return await apiCall(API_CONFIG.ENDPOINTS.OPERATION.CAMPAIGNS, {
       method: 'GET',
-      params: { page, limit }
+      params
     });
   },
 

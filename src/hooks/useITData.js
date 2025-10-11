@@ -58,9 +58,8 @@ export const useITEmployees = () => {
   };
 };
 
-// Custom hook for IT project data management with frontend pagination
+// Custom hook for IT project data management with backend pagination
 export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilter = 'all') => {
-  const [allProjects, setAllProjects] = useState([]); // Store all projects
   const [projects, setProjects] = useState([]); // Current page projects
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -69,102 +68,65 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
   const [pageSize, setPageSize] = useState(limit);
   const [currentSearchTerm, setCurrentSearchTerm] = useState(searchTerm);
   const [currentStatusFilter, setCurrentStatusFilter] = useState(statusFilter);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchProjects = async (pageNum = currentPage, pageLimit = pageSize, search = currentSearchTerm, status = currentStatusFilter) => {
-    // Only fetch from API if we don't have all data yet
-    if (allProjects.length === 0 || pageNum === 1) {
-      setLoading(true);
-      setError(null);
-      try {
-        
-        // Fetch ALL data from backend
-        const response = await itProjectApi.getAllProjects();
-        
-        
-        // Extract all projects data
-        let allProjectsData = [];
-        
-        if (Array.isArray(response)) {
-          allProjectsData = response;
-        } else if (response && response.data && Array.isArray(response.data)) {
-          allProjectsData = response.data;
-        }
-        
-        
-        // Store all projects
-        setAllProjects(allProjectsData);
-        
-        // Apply filters BEFORE pagination
-        const filteredProjects = allProjectsData.filter(project => {
-          // Search filter
-          const matchesSearch = search === '' || 
-            (project.name && project.name.toLowerCase().includes(search.toLowerCase())) ||
-            (project.description && project.description.toLowerCase().includes(search.toLowerCase()));
-          
-          // Status filter - normalize status by replacing hyphens with underscores for comparison
-          const matchesStatus = status === 'all' || 
-            (project.status && 
-             project.status.toLowerCase().replace(/-/g, '_') === status.toLowerCase().replace(/-/g, '_'));
-          
-          return matchesSearch && matchesStatus;
-        });
-        
-        setTotalProjects(filteredProjects.length);
-        
-        // Calculate pagination on frontend with filtered data
-        const startIndex = (pageNum - 1) * pageLimit;
-        const endIndex = startIndex + pageLimit;
-        const paginatedProjects = filteredProjects.slice(startIndex, endIndex);
-        
-        
-        setProjects(paginatedProjects);
-        setCurrentPage(pageNum);
-        setPageSize(pageLimit);
-        setCurrentSearchTerm(search);
-        setCurrentStatusFilter(status);
-      } catch (err) {
-        // Handle specific ObjectId casting errors silently
-        if (err.message && err.message.includes('Cast to ObjectId failed')) {
-          setError(null); // Don't set error for this specific case
-        } else {
-          setError(err.message);
-        }
-        
-        setProjects([]);
-        setTotalProjects(0);
-        setAllProjects([]);
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('🔄 Fetching IT projects from backend:', { pageNum, pageLimit, status });
+      
+      // Fetch data from backend with pagination and status filter
+      // Backend handles all filtering - no client-side filtering
+      const response = await itProjectApi.getAllProjects(pageNum, pageLimit, status);
+      
+      console.log('📦 IT Projects API response:', response);
+      
+      // Handle response format
+      let projectsData = [];
+      let totalCount = 0;
+      let currentPageNum = pageNum;
+      let totalPagesNum = 1;
+      
+      if (response && response.data && Array.isArray(response.data)) {
+        projectsData = response.data;
+        totalCount = response.total || response.data.length;
+        currentPageNum = response.page || pageNum;
+        totalPagesNum = response.totalPages || Math.ceil(totalCount / pageLimit);
+      } else if (Array.isArray(response)) {
+        projectsData = response;
+        totalCount = response.length;
       }
-    } else {
-      // We already have all data, just filter and paginate on frontend
-      // Apply filters BEFORE pagination
-      const filteredProjects = allProjects.filter(project => {
-        // Search filter
-        const matchesSearch = search === '' || 
-          (project.name && project.name.toLowerCase().includes(search.toLowerCase())) ||
-          (project.description && project.description.toLowerCase().includes(search.toLowerCase()));
-        
-        // Status filter - normalize status by replacing hyphens with underscores for comparison
-        const matchesStatus = status === 'all' || 
-          (project.status && 
-           project.status.toLowerCase().replace(/-/g, '_') === status.toLowerCase().replace(/-/g, '_'));
-        
-        return matchesSearch && matchesStatus;
-      });
       
-      setTotalProjects(filteredProjects.length);
+      console.log('✅ Processed IT projects:', { count: projectsData.length, total: totalCount, pages: totalPagesNum });
       
-      const startIndex = (pageNum - 1) * pageLimit;
-      const endIndex = startIndex + pageLimit;
-      const paginatedProjects = filteredProjects.slice(startIndex, endIndex);
-      
-      
-      setProjects(paginatedProjects);
-      setCurrentPage(pageNum);
+      setProjects(projectsData);
+      setTotalProjects(totalCount);
+      setCurrentPage(currentPageNum);
       setPageSize(pageLimit);
       setCurrentSearchTerm(search);
       setCurrentStatusFilter(status);
+      setTotalPages(totalPagesNum);
+    } catch (err) {
+      console.error('❌ Error fetching IT projects:', err);
+      console.error('❌ Error type:', err.constructor.name);
+      console.error('❌ Error message:', err.message);
+      console.error('❌ Error stack:', err.stack);
+      
+      // Handle specific ObjectId casting errors silently
+      if (err.message && err.message.includes('Cast to ObjectId failed')) {
+        setError(null); // Don't set error for this specific case
+      } else if (err.message && err.message.includes('API Error')) {
+        setError(null); // Don't show generic API errors to users
+      } else {
+        setError(err.message);
+      }
+      
+      setProjects([]);
+      setTotalProjects(0);
+      setTotalPages(0);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,8 +173,9 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
 
   // Method to change the status filter
   const changeStatusFilter = (newFilter) => {
-    setCurrentStatusFilter(newFilter);
-    fetchProjects(1, pageSize, currentSearchTerm, newFilter); // Reset to first page when filter changes
+    console.log('🔄 Changing project status filter to:', newFilter);
+    setCurrentPage(1); // Reset to first page
+    setCurrentStatusFilter(newFilter); // This will trigger useEffect to re-fetch
   };
 
   // Method to change both filters at once
@@ -222,21 +185,17 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
     fetchProjects(1, pageSize, newSearchTerm, newStatusFilter); // Reset to first page when filters change
   };
 
+  // Re-fetch when page, pageSize, or statusFilter changes
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    console.log('🔄 useITProjects useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
+    fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter);
+  }, [currentPage, pageSize, currentStatusFilter]);
 
   // Pagination functions
   const goToPage = (pageNum) => {
-    const maxPages = Math.ceil(totalProjects / pageSize);
-// Navigating to page
-    
     // Always allow page changes if totalProjects is 0 (initial state) or if page is in valid range
-    if (totalProjects === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-// Fetching page
+    if (totalProjects === 0 || (pageNum >= 1 && pageNum <= totalPages)) {
       fetchProjects(pageNum, pageSize, currentSearchTerm, currentStatusFilter);
-    } else {
-// Page out of range
     }
   };
 
@@ -246,7 +205,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
   };
 
   const nextPage = () => {
-    if (currentPage < Math.ceil(totalProjects / pageSize)) {
+    if (currentPage < totalPages) {
       goToPage(currentPage + 1);
     }
   };
@@ -264,7 +223,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
     totalProjects,
     currentPage,
     pageSize,
-    totalPages: Math.ceil(totalProjects / pageSize),
+    totalPages,
     fetchProjects,
     createProject,
     updateProject,
@@ -279,9 +238,8 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
   };
 };
 
-// Custom hook for IT ticket data management with frontend pagination
+// Custom hook for IT ticket data management with backend pagination
 export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
-  const [allTickets, setAllTickets] = useState([]); // Store all tickets
   const [tickets, setTickets] = useState([]); // Current page tickets
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -289,80 +247,62 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
   const [currentStatusFilter, setCurrentStatusFilter] = useState(statusFilter);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchTickets = async (pageNum = currentPage, pageLimit = pageSize, filter = currentStatusFilter) => {
-    // Only fetch from API if we don't have all data yet
-    if (allTickets.length === 0 || pageNum === 1) {
-      setLoading(true);
-      setError(null);
-      try {
-        
-        // Fetch ALL data from backend
-        const response = await itTicketApi.getAllTickets();
-        
-        
-        // Extract all tickets data
-        let allTicketsData = [];
-        
-        if (Array.isArray(response)) {
-          allTicketsData = response;
-        } else if (response && response.data && Array.isArray(response.data)) {
-          allTicketsData = response.data;
-        }
-        
-        
-        // Store all tickets
-        setAllTickets(allTicketsData);
-        
-        // Apply status filter BEFORE pagination
-        // Normalize status by replacing hyphens with underscores for comparison
-        const filteredTickets = filter === 'all' 
-          ? allTicketsData 
-          : allTicketsData.filter(ticket => 
-              ticket.status && 
-              ticket.status.toLowerCase().replace(/-/g, '_') === filter.toLowerCase().replace(/-/g, '_'));
-        
-        setTotalTickets(filteredTickets.length);
-        
-        // Calculate pagination on frontend with filtered data
-        const startIndex = (pageNum - 1) * pageLimit;
-        const endIndex = startIndex + pageLimit;
-        const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
-        
-        
-        setTickets(paginatedTickets);
-        setCurrentPage(pageNum);
-        setPageSize(pageLimit);
-        setCurrentStatusFilter(filter);
-      } catch (err) {
-        setError(err.message);
-        setTickets([]);
-        setTotalTickets(0);
-        setAllTickets([]);
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('🔄 Fetching IT tickets from backend:', { pageNum, pageLimit, filter });
+      
+      // Fetch data from backend with pagination and status filter
+      // Backend handles all filtering - no client-side filtering
+      const response = await itTicketApi.getAllTickets(pageNum, pageLimit, filter);
+      
+      console.log('📦 IT Tickets API response:', response);
+      
+      // Handle response format
+      let ticketsData = [];
+      let totalCount = 0;
+      let currentPageNum = pageNum;
+      let totalPagesNum = 1;
+      
+      if (response && response.data && Array.isArray(response.data)) {
+        ticketsData = response.data;
+        totalCount = response.total || response.data.length;
+        currentPageNum = response.page || pageNum;
+        totalPagesNum = response.totalPages || Math.ceil(totalCount / pageLimit);
+      } else if (Array.isArray(response)) {
+        ticketsData = response;
+        totalCount = response.length;
       }
-    } else {
-      // We already have all data, just filter and paginate on frontend
-      // Apply status filter BEFORE pagination
-      // Normalize status by replacing hyphens with underscores for comparison
-      const filteredTickets = filter === 'all' 
-        ? allTickets 
-        : allTickets.filter(ticket => 
-            ticket.status && 
-            ticket.status.toLowerCase().replace(/-/g, '_') === filter.toLowerCase().replace(/-/g, '_'));
       
-      setTotalTickets(filteredTickets.length);
+      console.log('✅ Processed IT tickets:', { count: ticketsData.length, total: totalCount, pages: totalPagesNum });
       
-      const startIndex = (pageNum - 1) * pageLimit;
-      const endIndex = startIndex + pageLimit;
-      const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
-      
-      
-      setTickets(paginatedTickets);
-      setCurrentPage(pageNum);
+      setTickets(ticketsData);
+      setTotalTickets(totalCount);
+      setCurrentPage(currentPageNum);
       setPageSize(pageLimit);
       setCurrentStatusFilter(filter);
+      setTotalPages(totalPagesNum);
+    } catch (err) {
+      console.error('❌ Error fetching IT tickets:', err);
+      console.error('❌ Error type:', err.constructor.name);
+      console.error('❌ Error message:', err.message);
+      console.error('❌ Error stack:', err.stack);
+      
+      // Set error message only if it's meaningful (not just API errors)
+      if (err.message && !err.message.includes('API Error')) {
+        setError(err.message);
+      } else {
+        setError(null); // Don't show generic API errors to users
+      }
+      
+      setTickets([]);
+      setTotalTickets(0);
+      setTotalPages(0);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -397,26 +337,22 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
 
   // Method to change the status filter
   const changeStatusFilter = (newFilter) => {
-    setCurrentStatusFilter(newFilter);
-    fetchTickets(1, pageSize, newFilter); // Reset to first page when filter changes
+    console.log('🔄 Changing ticket status filter to:', newFilter);
+    setCurrentPage(1); // Reset to first page
+    setCurrentStatusFilter(newFilter); // This will trigger useEffect to re-fetch
   };
 
-  // Enable automatic API call to fetch tickets on component mount
+  // Re-fetch when page, pageSize, or statusFilter changes
   useEffect(() => {
-    fetchTickets();
-  }, []);
+    console.log('🔄 useITTickets useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
+    fetchTickets(currentPage, pageSize, currentStatusFilter);
+  }, [currentPage, pageSize, currentStatusFilter]);
 
   // Pagination functions
   const goToPage = (pageNum) => {
-    const maxPages = Math.ceil(totalTickets / pageSize);
-// Navigating to tickets page
-    
     // Always allow page changes if totalTickets is 0 (initial state) or if page is in valid range
-    if (totalTickets === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
-// Fetching tickets page
+    if (totalTickets === 0 || (pageNum >= 1 && pageNum <= totalPages)) {
       fetchTickets(pageNum, pageSize, currentStatusFilter);
-    } else {
-// Tickets page out of range
     }
   };
 
@@ -426,7 +362,7 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
   };
 
   const nextPage = () => {
-    if (currentPage < Math.ceil(totalTickets / pageSize)) {
+    if (currentPage < totalPages) {
       goToPage(currentPage + 1);
     }
   };
@@ -444,7 +380,7 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
     totalTickets,
     currentPage,
     pageSize,
-    totalPages: Math.ceil(totalTickets / pageSize),
+    totalPages,
     fetchTickets,
     createTicket,
     updateTicket,

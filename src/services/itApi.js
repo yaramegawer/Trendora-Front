@@ -4,36 +4,80 @@ import { API_CONFIG } from '../config/api';
 // Helper function for API calls
 const apiCall = async (endpoint, options = {}) => {
   try {
+    console.log('🌐 IT API Call:', { endpoint, options });
     const response = await api({ url: endpoint, ...options });
+    console.log('📥 IT API Response:', response);
     
     // Handle backend response format: {success: true, data: [...], total: X}
     if (response.data && response.data.success === true) {
+      console.log('✅ IT API Success response with pagination:', {
+        dataLength: response.data.data?.length,
+        total: response.data.total,
+        page: response.data.page,
+        totalPages: response.data.totalPages
+      });
       // Return the full response data object to preserve pagination info (total, page, limit, etc.)
       return response.data;
     } else if (response.data && response.data.success === false) {
+      console.error('❌ IT API Error response:', response.data);
       // Handle specific ObjectId casting errors gracefully
       if (response.data.message && response.data.message.includes('Cast to ObjectId failed')) {
-        return [];
+        return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
       }
       
       throw new Error(response.data.message || 'API request failed');
     }
     
+    console.log('⚠️ IT API Unexpected response format:', response.data);
     return response.data || response;
   } catch (error) {
-    // Provide more specific error messages
-    if (error.response?.status === 404) {
-      throw new Error('API endpoint not found. Please check if the backend route is properly configured.');
-    } else if (error.response?.status === 401) {
-      throw new Error('Unauthorized. Please check your authentication.');
-    } else if (error.response?.status === 403) {
-      // Silently handle 403 errors without throwing
-      return [];
-    } else if (error.response?.status === 400) {
-      throw new Error('Bad request. Please check your data format.');
-    } else {
-      throw new Error(`API Error: ${error.message}`);
+    console.error('❌ IT API Error:', error);
+    console.error('❌ IT API Error Response:', error.response);
+    console.error('❌ IT API Error Data:', error.response?.data);
+    console.error('❌ IT API Error Status:', error.response?.status);
+    console.error('❌ IT API Error Message:', error.response?.data?.message || error.message);
+    
+    const status = error.response?.status;
+    console.log('🔍 Checking status code:', status, 'Type:', typeof status);
+    
+    // Handle ALL errors gracefully - return empty data for GET requests
+    // Only throw for authentication errors (401)
+    
+    if (status === 404) {
+      console.error('❌ 404 Not Found - Backend response:', error.response?.data);
+      console.log('ℹ️ Returning empty data for 404');
+      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
+    
+    if (status === 401) {
+      console.error('❌ 401 Unauthorized - Re-throwing for auth handling');
+      throw new Error('Unauthorized. Please check your authentication.');
+    }
+    
+    if (status === 403) {
+      console.log('🔒 403 Forbidden - returning empty data');
+      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+    }
+    
+    if (status === 400) {
+      console.error('❌ 400 Bad Request - Backend response:', error.response?.data);
+      console.log('ℹ️ Returning empty data for 400');
+      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+    }
+    
+    if (status === 500) {
+      console.error('💥 500 Internal Server Error - Backend response:', error.response?.data);
+      console.error('💥 Backend error message:', error.response?.data?.message);
+      console.error('💥 Backend error details:', error.response?.data?.error);
+      console.log('ℹ️ Returning empty data for 500 error - backend needs to be fixed');
+      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+    }
+    
+    // Catch-all: For any other error (including network errors, timeouts, etc.)
+    // Return empty data instead of crashing the UI
+    console.error('⚠️ Unhandled error type - status:', status);
+    console.log('ℹ️ Returning empty data for unknown error to prevent UI crash');
+    return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
   }
 };
 
@@ -66,27 +110,46 @@ export const itEmployeeApi = {
 
 // Project API functions
 export const itProjectApi = {
-  // Get all IT projects - fetch all data without pagination
-  getAllProjects: async () => {
+  // Get all IT projects with backend pagination and status filter
+  getAllProjects: async (page = 1, limit = 10, status = null) => {
     try {
-      // Fetch with a very high limit to get all data
+      console.log('📁 Getting IT projects:', { page, limit, status });
+      
+      // Create request params
+      const params = { page, limit };
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
+      console.log('📁 Calling API with params:', params);
       const response = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
         method: 'GET',
-        params: { page: 1, limit: 10000 } // High limit to get all data
+        params
       });
+      
+      console.log('📁 API response received:', response);
+      
+      // Return the full response to preserve pagination info (total, page, limit, totalPages)
       return response;
     } catch (error) {
       console.error('❌ Error getting projects:', error);
-      // Silently handle 403 errors without throwing
-      if (error.response?.status === 403) {
-        return [];
-      }
-      // Handle specific ObjectId casting errors gracefully
-      if (error.message && error.message.includes('Cast to ObjectId failed')) {
-        return [];
+      console.error('❌ Error details:', error.response?.data);
+      
+      // Handle all errors gracefully - return empty data
+      if (error.response?.status === 403 || error.response?.status === 404 || error.response?.status === 500) {
+        console.log('ℹ️ Returning empty projects data due to error:', error.response?.status);
+        return { success: true, data: [], total: 0, page: page, limit: limit, totalPages: 0 };
       }
       
-      throw error;
+      // Handle specific ObjectId casting errors gracefully
+      if (error.message && error.message.includes('Cast to ObjectId failed')) {
+        console.log('ℹ️ Returning empty projects data due to ObjectId error');
+        return { success: true, data: [], total: 0, page: page, limit: limit, totalPages: 0 };
+      }
+      
+      // For other errors, still return empty data instead of crashing
+      console.log('ℹ️ Returning empty projects data for unknown error');
+      return { success: true, data: [], total: 0, page: page, limit: limit, totalPages: 0 };
     }
   },
 
@@ -133,14 +196,42 @@ export const itProjectApi = {
 
 // Ticket API functions
 export const itTicketApi = {
-  // Get all IT tickets - fetch all data without pagination
-  getAllTickets: async () => {
-    // Fetch with a very high limit to get all data
-    const response = await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
-      method: 'GET',
-      params: { page: 1, limit: 10000 } // High limit to get all data
-    });
-    return response;
+  // Get all IT tickets with backend pagination and status filter
+  getAllTickets: async (page = 1, limit = 10, status = null) => {
+    try {
+      console.log('🎫 Getting IT tickets:', { page, limit, status });
+      
+      // Create request params
+      const params = { page, limit };
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
+      console.log('🎫 Calling API with params:', params);
+      const response = await apiCall(API_CONFIG.ENDPOINTS.IT.TICKETS, {
+        method: 'GET',
+        params
+      });
+      
+      console.log('🎫 API response received:', response);
+      
+      // Return the full response to preserve pagination info (total, page, limit, totalPages)
+      return response;
+    } catch (error) {
+      console.error('❌ Error getting tickets:', error);
+      console.error('❌ Error details:', error.response?.data);
+      
+      // Handle all errors gracefully - return empty data
+      // The apiCall already handles 403, 404, 500, but just in case
+      if (error.response?.status === 403 || error.response?.status === 404 || error.response?.status === 500) {
+        console.log('ℹ️ Returning empty tickets data due to error:', error.response?.status);
+        return { success: true, data: [], total: 0, page: page, limit: limit, totalPages: 0 };
+      }
+      
+      // For other errors, still return empty data instead of crashing
+      console.log('ℹ️ Returning empty tickets data for unknown error');
+      return { success: true, data: [], total: 0, page: page, limit: limit, totalPages: 0 };
+    }
   },
 
   // Create new ticket

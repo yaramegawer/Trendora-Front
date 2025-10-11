@@ -18,6 +18,7 @@ export const useAccountingData = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalInvoices, setTotalInvoices] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [currentStatusFilter, setCurrentStatusFilter] = useState('all');
   
   // Pagination state for transactions
   const [transactionCurrentPage, setTransactionCurrentPage] = useState(1);
@@ -25,14 +26,14 @@ export const useAccountingData = () => {
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [transactionPageSize, setTransactionPageSize] = useState(10);
 
-  // Fetch all invoices with pagination
-  const fetchInvoices = useCallback(async (page = currentPage, limit = pageSize) => {
+  // Fetch all invoices with pagination and status filter
+  const fetchInvoices = useCallback(async (page = currentPage, limit = pageSize, status = currentStatusFilter) => {
     setLoading(true);
     setError(null);
     setFieldErrors({});
     
     try {
-      const result = await accountingApi.getAllInvoices(page, limit);
+      const result = await accountingApi.getAllInvoices(page, limit, status);
       
       if (result.success) {
         setInvoices(result.data || []);
@@ -55,6 +56,7 @@ export const useAccountingData = () => {
         }
         
         setCurrentPage(result.page || page);
+        setCurrentStatusFilter(status);
       } else {
         // Handle specific error cases
         if (result.error && result.error.includes('500')) {
@@ -83,7 +85,7 @@ export const useAccountingData = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, currentStatusFilter]);
 
   // Add new invoice
   const addInvoice = async (invoiceData) => {
@@ -257,13 +259,18 @@ export const useAccountingData = () => {
   // Pagination functions
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
-      fetchInvoices(page, pageSize);
+      fetchInvoices(page, pageSize, currentStatusFilter);
     }
   };
 
   const changePageSize = (newPageSize) => {
     setPageSize(newPageSize);
-    fetchInvoices(1, newPageSize);
+    fetchInvoices(1, newPageSize, currentStatusFilter);
+  };
+
+  const changeStatusFilter = (newStatus) => {
+    setCurrentStatusFilter(newStatus);
+    fetchInvoices(1, pageSize, newStatus); // Reset to first page when filter changes
   };
 
   // Transaction Management Functions
@@ -516,6 +523,7 @@ export const useAccountingData = () => {
     submitTicket,
     goToPage,
     changePageSize,
+    changeStatusFilter,
     // Transaction functions
     fetchTransactions,
     addTransaction,

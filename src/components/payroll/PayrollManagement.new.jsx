@@ -330,8 +330,10 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
           {/* Only show employee field for new payrolls */}
           {!isEditing && (
             <FormControl fullWidth required error={!!errors.employeeId}>
-              <InputLabel>Employee</InputLabel>
+              <InputLabel id="employee-payroll-label">Employee</InputLabel>
               <Select
+                labelId="employee-payroll-label"
+                id="employee-payroll"
                 value={formData.employeeId}
                 onChange={(e) => handleChange('employeeId', e.target.value)}
                 label="Employee"
@@ -469,8 +471,10 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
               Status
             </Typography>
             <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
+              <InputLabel id="payroll-status-label">Status</InputLabel>
               <Select
+                labelId="payroll-status-label"
+                id="payroll-status"
                 value={formData.status}
                 onChange={(e) => handleChange('status', e.target.value)}
                 label="Status"
@@ -1227,8 +1231,10 @@ const PayrollManagement = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>Status Filter</InputLabel>
+                <InputLabel id="status-filter-payroll-label">Status Filter</InputLabel>
                 <Select
+                  labelId="status-filter-payroll-label"
+                  id="status-filter-payroll"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   label="Status Filter"
@@ -1309,14 +1315,16 @@ const PayrollManagement = () => {
           </Box>
         )}
         
-        {/* Client-side Pagination */}
-        <SimplePagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalFilteredItems}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-        />
+        {/* Pagination - Only show if there's data and more than 1 page */}
+        {totalFilteredItems > 0 && totalPages > 1 && (
+          <SimplePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalFilteredItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
+        )}
       </Card>
 
       {/* Action Menu */}

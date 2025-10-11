@@ -65,6 +65,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     getInvoice,
     goToPage,
     changePageSize,
+    changeStatusFilter,
     clearError
   } = useAccountingData();
 
@@ -79,7 +80,6 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [formData, setFormData] = useState({
     invoice_type: 'customer',
     client_name: '',
@@ -116,30 +116,20 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Filter invoices based on search term and status
-  useEffect(() => {
-    let filtered = [...invoices];
-
-    // Filter by search term
-    if (debouncedSearchTerm.trim()) {
-      const searchLower = debouncedSearchTerm.toLowerCase();
-      filtered = filtered.filter(invoice => 
-        (invoice.client_name && invoice.client_name.toLowerCase().includes(searchLower)) ||
-        (invoice.description && invoice.description.toLowerCase().includes(searchLower)) ||
-        (invoice._id && invoice._id.toLowerCase().includes(searchLower)) ||
-        (invoice.invoice_type && invoice.invoice_type.toLowerCase().includes(searchLower)) ||
-        (invoice.amount && invoice.amount.toString().includes(debouncedSearchTerm)) ||
-        (invoice.status && invoice.status.toLowerCase().includes(searchLower))
-      );
-    }
-
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(invoice => invoice.status === statusFilter);
-    }
-
-    setFilteredInvoices(filtered);
-  }, [invoices, debouncedSearchTerm, statusFilter]);
+  // Client-side filtering for search only (backend handles status and pagination)
+  const filteredInvoices = invoices.filter(invoice => {
+    if (!debouncedSearchTerm.trim()) return true;
+    
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return (
+      (invoice.client_name && invoice.client_name.toLowerCase().includes(searchLower)) ||
+      (invoice.description && invoice.description.toLowerCase().includes(searchLower)) ||
+      (invoice._id && invoice._id.toLowerCase().includes(searchLower)) ||
+      (invoice.invoice_type && invoice.invoice_type.toLowerCase().includes(searchLower)) ||
+      (invoice.amount && invoice.amount.toString().includes(debouncedSearchTerm)) ||
+      (invoice.status && invoice.status.toLowerCase().includes(searchLower))
+    );
+  });
 
   const handleOpenDialog = (invoice = null) => {
     if (invoice) {
@@ -267,13 +257,16 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
   };
 
   const handleStatusFilterChange = (event) => {
-    setStatusFilter(event.target.value);
+    const newStatus = event.target.value;
+    setStatusFilter(newStatus);
+    changeStatusFilter(newStatus); // Send to backend
   };
 
   const clearFilters = () => {
     setSearchTerm('');
     setDebouncedSearchTerm('');
     setStatusFilter('all');
+    changeStatusFilter('all'); // Send to backend
   };
 
   const handleViewDetails = async () => {
@@ -469,8 +462,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
 
             {/* Status Filter */}
             <FormControl sx={{ minWidth: 200, maxWidth: 250 }}>
-              <InputLabel>Filter by Status</InputLabel>
+              <InputLabel id="filter-status-label">Filter by Status</InputLabel>
               <Select
+                labelId="filter-status-label"
+                id="filter-status"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
                 label="Filter by Status"
@@ -635,8 +630,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               </Typography>
               
               <FormControl size="small" sx={{ minWidth: 80 }}>
-                <InputLabel>Per page</InputLabel>
+                <InputLabel id="per-page-label">Per page</InputLabel>
                 <Select
+                  labelId="per-page-label"
+                  id="per-page-select"
                   value={pageSize}
                   onChange={(e) => changePageSize(e.target.value)}
                   label="Per page"
@@ -691,8 +688,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
             </Typography>
 
             <FormControl fullWidth required error={!!formFieldErrors.invoice_type}>
-              <InputLabel>Invoice Type</InputLabel>
+              <InputLabel id="invoice-type-label">Invoice Type</InputLabel>
               <Select
+                labelId="invoice-type-label"
+                id="invoice-type"
                 value={formData.invoice_type}
                 onChange={handleInputChange('invoice_type')}
                 label="Invoice Type"
@@ -743,8 +742,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
             </Typography>
 
             <FormControl fullWidth error={!!formFieldErrors.status}>
-              <InputLabel>Status</InputLabel>
+              <InputLabel id="invoice-status-label">Status</InputLabel>
               <Select
+                labelId="invoice-status-label"
+                id="invoice-status"
                 value={formData.status}
                 onChange={handleInputChange('status')}
                 label="Status"
@@ -761,8 +762,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
             </FormControl>
 
             <FormControl fullWidth required error={!!formFieldErrors.method}>
-              <InputLabel>Payment Method</InputLabel>
+              <InputLabel id="payment-method-label">Payment Method</InputLabel>
               <Select
+                labelId="payment-method-label"
+                id="payment-method"
                 value={formData.method}
                 onChange={handleInputChange('method')}
                 label="Payment Method"

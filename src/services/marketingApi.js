@@ -206,44 +206,58 @@ export const marketingCustomerApi = {
     }
   },
 
-  // Get projects for a specific customer (with pagination)
-  getCustomerProjects: async (customerName, page = 1, limit = 10) => {
+  // Get projects for a specific customer (with pagination and status filter)
+  getCustomerProjects: async (customerName, page = 1, limit = 10, status = null) => {
     try {
       const endpoint = API_CONFIG.ENDPOINTS.MARKETING.CUSTOMER_PROJECTS.replace(':customerName', encodeURIComponent(customerName));
-        ('🔗 Calling API endpoint:', endpoint, 'with params:', { page, limit });
+      
+      // Build query params
+      const params = { page, limit };
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
+      console.log('🔗 Calling API endpoint:', endpoint, 'with params:', params);
       
       const response = await api({ 
         url: endpoint, 
         method: 'GET',
-        params: { page, limit }
+        params
       });
       
-        ('📡 Raw API response:', response.data);
+      console.log('📡 Raw API response:', response.data);
       
-      // Return the full response object to preserve pagination data
-      // Backend format: { success: true, data: [...], pagination: { total, page, pages } }
+      // Handle backend response format: { success: true, data: [...], total, page, limit, totalPages }
       if (response.data && response.data.success === true) {
-          ('✅ Success response detected, returning:', {
+        console.log('✅ Success response detected, returning:', {
           dataLength: response.data.data?.length || 0,
-          pagination: response.data.pagination
+          total: response.data.total,
+          page: response.data.page,
+          totalPages: response.data.totalPages
         });
         return {
           data: response.data.data || [],
-          pagination: response.data.pagination || { total: 0, page: 1, pages: 0 }
+          total: response.data.total || 0,
+          page: response.data.page || 1,
+          limit: response.data.limit || limit,
+          totalPages: response.data.totalPages || 0
         };
       } else if (response.data && Array.isArray(response.data)) {
-          ('⚠️ Array response detected, returning:', response.data.length, 'items');
+        console.log('⚠️ Array response detected, returning:', response.data.length, 'items');
         return {
           data: response.data,
-          pagination: { total: response.data.length, page: 1, pages: 1 }
+          total: response.data.length,
+          page: 1,
+          limit: response.data.length,
+          totalPages: 1
         };
       }
       
       console.warn('⚠️ Unexpected response format, returning empty');
-      return { data: [], pagination: { total: 0, page: 1, pages: 0 } };
+      return { data: [], total: 0, page: 1, limit, totalPages: 0 };
     } catch (error) {
       console.error('❌ Error fetching customer projects:', error);
-      return { data: [], pagination: { total: 0, page: 1, pages: 0 } }; // Return empty array as fallback
+      return { data: [], total: 0, page: 1, limit, totalPages: 0 }; // Return empty array as fallback
     }
   }
 };

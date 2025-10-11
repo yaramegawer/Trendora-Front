@@ -257,28 +257,44 @@ export const accountingApi = {
     }
   },
 
-  // Get all invoices with pagination
-  getAllInvoices: async (page = 1, limit = 10) => {
+  // Get all invoices with pagination and status filter
+  getAllInvoices: async (page = 1, limit = 10, status = null) => {
     try {
       // Create request config
+      const params = { page, limit };
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
+      ('📄 Fetching invoices with params:', params);
+      
       const requestConfig = {
-        params: { page, limit }
+        params
       };
       
       const response = await api.get('/accounting/get_all', requestConfig);
       
+      ('✅ Raw API response:', response.data);
       
       // Handle different response formats
       let invoicesData = [];
       let totalCount = 0;
       let currentPageNum = page;
       
-      if (Array.isArray(response.data)) {
-        // If response is directly an array
+      // Check for backend format: { find_invoice: [], totalInvoices: number }
+      if (response.data && Array.isArray(response.data.find_invoice)) {
+        invoicesData = response.data.find_invoice;
+        totalCount = response.data.totalInvoices || response.data.find_invoice.length;
+        ('📦 Using find_invoice format - invoices:', invoicesData.length, 'total:', totalCount);
+      }
+      // If response is directly an array
+      else if (Array.isArray(response.data)) {
         invoicesData = response.data;
         totalCount = response.data.length;
-      } else if (response.data && Array.isArray(response.data.data)) {
-        // If response has nested data array
+        ('📦 Direct array format - invoices:', invoicesData.length);
+      }
+      // If response has nested data array
+      else if (response.data && Array.isArray(response.data.data)) {
         invoicesData = response.data.data;
         
         // Check for total count in various possible locations
@@ -286,6 +302,8 @@ export const accountingApi = {
           totalCount = response.data.total;
         } else if (response.data.totalCount !== undefined) {
           totalCount = response.data.totalCount;
+        } else if (response.data.totalInvoices !== undefined) {
+          totalCount = response.data.totalInvoices;
         } else if (response.data.count !== undefined) {
           totalCount = response.data.count;
         } else {
@@ -293,8 +311,10 @@ export const accountingApi = {
         }
         
         currentPageNum = response.data.page || page;
-      } else if (response.data && response.data.invoices && Array.isArray(response.data.invoices)) {
-        // If response has invoices property
+        ('📦 Nested data format - invoices:', invoicesData.length, 'total:', totalCount);
+      }
+      // If response has invoices property
+      else if (response.data && response.data.invoices && Array.isArray(response.data.invoices)) {
         invoicesData = response.data.invoices;
         
         // Check for total count in various possible locations
@@ -302,6 +322,8 @@ export const accountingApi = {
           totalCount = response.data.total;
         } else if (response.data.totalCount !== undefined) {
           totalCount = response.data.totalCount;
+        } else if (response.data.totalInvoices !== undefined) {
+          totalCount = response.data.totalInvoices;
         } else if (response.data.count !== undefined) {
           totalCount = response.data.count;
         } else {
@@ -309,41 +331,16 @@ export const accountingApi = {
         }
         
         currentPageNum = response.data.page || page;
-      } else {
-        // Fallback
+        ('📦 Invoices property format - invoices:', invoicesData.length, 'total:', totalCount);
+      }
+      // Fallback
+      else {
         invoicesData = response.data || [];
         totalCount = invoicesData.length;
+        console.warn('⚠️ Unknown response format, using fallback');
       }
       
-      // If we couldn't get the total count from the response, try to fetch it separately
-      if (totalCount === invoicesData.length && invoicesData.length === limit) {
-        try {
-          // Try to get total count by requesting a large page or a count endpoint
-          const countResponse = await api.get('/accounting/get_all', {
-            params: { page: 1, limit: 1000 } // Request a large number to get total
-          });
-          
-          if (Array.isArray(countResponse.data)) {
-            totalCount = countResponse.data.length;
-          } else if (countResponse.data && Array.isArray(countResponse.data.data)) {
-            totalCount = countResponse.data.data.length;
-          } else if (countResponse.data && countResponse.data.total) {
-            totalCount = countResponse.data.total;
-          }
-        } catch (countError) {
-          // Keep the original total count
-        }
-      }
-      
-      // Manual override for testing - if you know there are 12 invoices total
-      if (totalCount <= 10) {
-        totalCount = 12;
-      }
-      
-      // Additional check: if we're on page 2+ but total is too low, it's definitely wrong
-      if (currentPageNum > 1 && totalCount <= invoicesData.length) {
-        totalCount = 12;
-      }
+      ('🎯 Final data - Invoices:', invoicesData.length, 'Total:', totalCount, 'Status filter:', status);
       
       return {
         success: true,

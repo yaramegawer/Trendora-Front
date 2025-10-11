@@ -53,7 +53,10 @@ import EmployeeForm from './EmployeeForm';
 import { useAuth } from '../../contexts/AuthContext';
 
 const EmployeeManagement = () => {
-  // Server-side pagination state - declare first
+  // Local state for filters and pagination (client-side like accounting)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   
@@ -61,13 +64,10 @@ const EmployeeManagement = () => {
     employees, 
     loading, 
     error, 
-    totalEmployees,
     addEmployee, 
     updateEmployee, 
-    deleteEmployee,
-    goToPage,
-    changePageSize
-  } = useEmployees(currentPage, pageSize);
+    deleteEmployee
+  } = useEmployees();
   const { departments } = useDepartments();
   const { user, isAuthenticated } = useAuth();
   
@@ -76,9 +76,6 @@ const EmployeeManagement = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [viewingEmployee, setViewingEmployee] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [userError, setUserError] = useState('');
@@ -406,8 +403,25 @@ const EmployeeManagement = () => {
 
   // Helper function to normalize employee data
   const normalizeEmployee = (employee) => {
-    const departmentId = employee.department || employee.department_id || employee.departmentId;
-    const departmentName = getDepartmentName(departmentId);
+    // Handle department - it can be either an ID string or a populated object {_id, name}
+    let departmentName = 'Unknown Department';
+    let departmentId = null;
+    
+    if (employee.department) {
+      // Check if department is a populated object with name
+      if (typeof employee.department === 'object' && employee.department.name) {
+        departmentName = employee.department.name;
+        departmentId = employee.department._id || employee.department.id;
+      } 
+      // If it's just an ID string, look it up
+      else if (typeof employee.department === 'string') {
+        departmentId = employee.department;
+        departmentName = getDepartmentName(departmentId);
+      }
+    } else if (employee.department_id || employee.departmentId) {
+      departmentId = employee.department_id || employee.departmentId;
+      departmentName = getDepartmentName(departmentId);
+    }
     
     return {
       id: employee.id || employee._id,
@@ -430,28 +444,36 @@ const EmployeeManagement = () => {
 
   const normalizedEmployees = currentEmployees.map(normalizeEmployee);
   
+  // Client-side filtering for ALL filters (like accounting)
   const filteredEmployees = normalizedEmployees.filter(employee => {
     const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
-    const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (employee.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchTerm === '' || 
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
     const matchesStatus = statusFilter === 'all' || 
-                         employee.status?.toLowerCase() === statusFilter?.toLowerCase();
+      employee.status?.toLowerCase() === statusFilter?.toLowerCase();
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  // Client-side pagination for filtered results
-  const totalFilteredPages = Math.ceil(filteredEmployees.length / pageSize);
+  // Client-side pagination (like accounting)
+  const totalFilteredPages = Math.ceil(filteredEmployees.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
   
-  // Handle page change
+  // Handle page change (client-side only)
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
-  // Reset pagination when filters change
+  // Handle status filter change (client-side only)
+  const handleStatusFilterChange = (newStatus) => {
+    setStatusFilter(newStatus);
+    setCurrentPage(1); // Reset to page 1 when filter changes
+  };
+
+  // Reset to page 1 when any filter changes (client-side only)
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, departmentFilter, statusFilter]);
@@ -629,7 +651,7 @@ const EmployeeManagement = () => {
                 select
                 label="Status"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -720,8 +742,8 @@ const EmployeeManagement = () => {
           </Box>
         )}
         
-        {/* Client-side Pagination */}
-        {filteredEmployees.length > 0 && (
+        {/* Pagination - Only show if there's data and more than 1 page */}
+        {filteredEmployees.length > 0 && totalFilteredPages > 1 && (
           <SimplePagination
             currentPage={currentPage}
             totalPages={totalFilteredPages}

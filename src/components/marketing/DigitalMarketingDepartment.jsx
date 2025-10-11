@@ -150,17 +150,13 @@ const DigitalMarketingDepartment = () => {
   
   // No longer need to filter all projects - we show customers instead
 
-  // Filter customer projects by status and search term when in customer view
+  // Filter customer projects by search term when in customer view
+  // Note: Status filtering is now handled by backend
   const filteredCustomerProjects = (() => {
     if (showCustomerSections && selectedCustomer) {
       let filtered = customerProjects;
       
-      // Filter by status first
-      if (projectStatusFilter !== 'all') {
-        filtered = filtered.filter(project => project.status === projectStatusFilter);
-      }
-      
-      // Then filter by search term if provided
+      // Filter by search term if provided (client-side for quick search)
       if (projectSearchTerm.trim()) {
         filtered = filtered.filter(project => {
           const projectName = project.name || '';
@@ -194,9 +190,17 @@ const DigitalMarketingDepartment = () => {
      ('🔍 Customers:', customers);
   };
 
-  // Status filter handler
-  const handleProjectStatusFilterChange = (status) => {
+  // Status filter handler - refetch customer projects with new status
+  const handleProjectStatusFilterChange = async (status) => {
     setProjectStatusFilter(status);
+    setShowProjectStatusDropdown(false);
+    
+    // If we're viewing customer projects, refetch with new status filter
+    if (showCustomerSections && selectedCustomer) {
+      setCustomerProjectsCurrentPage(1); // Reset to first page when filtering
+      const customerName = selectedCustomer.name || selectedCustomer.customerName || selectedCustomer.title;
+      await fetchCustomerProjects(customerName, 1, customerProjectsPageSize, status);
+    }
   };
 
   // Fetch customers on component mount
@@ -247,17 +251,19 @@ const DigitalMarketingDepartment = () => {
     }
   };
 
-  // Fetch projects for a specific customer
-  const fetchCustomerProjects = async (customerName, page = 1, pageSize = 10) => {
+  // Fetch projects for a specific customer (with pagination and status filter)
+  const fetchCustomerProjects = async (customerName, page = 1, pageSize = 10, status = null) => {
     try {
       setCustomerProjectsLoading(true);
-       ('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize);
-       ('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
-      const projectsData = await marketingCustomerApi.getCustomerProjects(customerName, page, pageSize);
-       ('📡 Customer Projects API Response:', projectsData);
-       ('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
+      console.log('🔄 Fetching projects for customer:', customerName, 'Page:', page, 'PageSize:', pageSize, 'Status:', status);
+      console.log('🔄 API Endpoint will be:', `/digitalMarketing/customers/${customerName}/projects`);
       
-      // Handle different response structures from backend
+      // Pass status filter to API
+      const projectsData = await marketingCustomerApi.getCustomerProjects(customerName, page, pageSize, status);
+      console.log('📡 Customer Projects API Response:', projectsData);
+      console.log('📡 Response type:', typeof projectsData, 'Is Array:', Array.isArray(projectsData));
+      
+      // Handle backend response format: { data: [...], total, page, limit, totalPages }
       let projectsList = [];
       let totalProjects = 0;
       
@@ -266,33 +272,20 @@ const DigitalMarketingDepartment = () => {
         totalProjects = projectsData.length;
       } else if (projectsData && projectsData.data && Array.isArray(projectsData.data)) {
         projectsList = projectsData.data;
-          ('📊 projectsData structure:', { hasData: !!projectsData.data, hasPagination: !!projectsData.pagination });
-        // Check for pagination object (backend format: { data: [...], pagination: { total, page, pages } })
-        if (projectsData.pagination) {
-          totalProjects = projectsData.pagination.total || projectsData.data.length;
-            ('📊 Using pagination.total:', totalProjects, 'from:', projectsData.pagination);
-        } else {
-          totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
-            ('📊 Using total/count:', totalProjects);
-        }
-      } else if (projectsData && projectsData.success && Array.isArray(projectsData.data)) {
-        projectsList = projectsData.data;
-        if (projectsData.pagination) {
-          totalProjects = projectsData.pagination.total || projectsData.data.length;
-        } else {
-          totalProjects = projectsData.total || projectsData.count || projectsData.data.length;
-        }
+        totalProjects = projectsData.total || projectsData.totalPages * pageSize || projectsData.data.length;
+        console.log('📊 Using backend pagination data:', { total: totalProjects, page: projectsData.page, totalPages: projectsData.totalPages });
       }
       
-        ('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
-        ('📊 Setting customerProjectsTotal to:', totalProjects);
-        ('📊 customerProjects array will have length:', projectsList.length);
-        ('📊 Pagination should show:', !customerProjectsLoading, '&&', projectsList.length > 0);
+      console.log('📊 Customer projects loaded:', projectsList.length, 'Total:', totalProjects);
+      console.log('📊 Setting customerProjectsTotal to:', totalProjects);
+      console.log('📊 customerProjects array will have length:', projectsList.length);
+      console.log('📊 Pagination should show:', !customerProjectsLoading, '&&', projectsList.length > 0);
+      
       setCustomerProjects(projectsList);
       setCustomerProjectsTotal(totalProjects);
       
       // Log after state is set to verify
-        ('✅ State updated - customerProjects:', projectsList.length, 'customerProjectsTotal:', totalProjects);
+      console.log('✅ State updated - customerProjects:', projectsList.length, 'customerProjectsTotal:', totalProjects);
       return { projects: projectsList, total: totalProjects };
     } catch (error) {
       console.error('Error fetching customer projects:', error);
@@ -319,11 +312,12 @@ const DigitalMarketingDepartment = () => {
     setSelectedCustomer(customer);
     setShowCustomerSections(true);
     setCustomerProjectsCurrentPage(1); // Reset to first page
+    setProjectStatusFilter('all'); // Reset status filter when switching customers
     // Fetch projects for this specific customer using customer name
     const customerName = customer.name || customer.customerName || customer.title;
-     ('🔍 Customer object:', customer);
-     ('🔍 Extracted customer name:', customerName);
-    await fetchCustomerProjects(customerName, 1, customerProjectsPageSize);
+    console.log('🔍 Customer object:', customer);
+    console.log('🔍 Extracted customer name:', customerName);
+    await fetchCustomerProjects(customerName, 1, customerProjectsPageSize, 'all');
   };
   
   // Handle back to all projects
@@ -340,7 +334,7 @@ const DigitalMarketingDepartment = () => {
     if (selectedCustomer) {
       setCustomerProjectsCurrentPage(newPage);
       const customerName = selectedCustomer.name || selectedCustomer.customerName || selectedCustomer.title;
-      await fetchCustomerProjects(customerName, newPage, customerProjectsPageSize);
+      await fetchCustomerProjects(customerName, newPage, customerProjectsPageSize, projectStatusFilter);
     }
   };
 
@@ -1625,9 +1619,9 @@ const DigitalMarketingDepartment = () => {
                         >
                           {projectStatusFilter === 'all' ? 'All Projects' : 
                            projectStatusFilter === 'planned' ? 'Planned' :
-                           projectStatusFilter === 'in-progress' ? 'In Progress' :
+                           projectStatusFilter === 'in_progress' ? 'In Progress' :
                            projectStatusFilter === 'completed' ? 'Completed' :
-                           projectStatusFilter === 'on-hold' ? 'On Hold' : 'All Projects'}
+                           projectStatusFilter === 'on_hold' ? 'On Hold' : 'All Projects'}
                         </div>
                         
                         {showProjectStatusDropdown && (

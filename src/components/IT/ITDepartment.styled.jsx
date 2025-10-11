@@ -803,14 +803,30 @@ const ITDepartment = () => {
                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                   {employeesLoading ? '...' : Array.isArray(employees) ? employees.length : 0}
                 </p>
-                <p style={{ fontSize: '8px', color: '#10b981', marginTop: '4px', margin: 0 }}>+12% from last month</p>
               </div>
               <div style={{
                 padding: '10px',
                 background: 'linear-gradient(135deg, #1c242e 0%, #334155 100%)',
-                borderRadius: '10px'
+                borderRadius: '10px',
+                position: 'relative'
               }}>
                 <Users size={20} color="white" />
+                <div style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  minWidth: '24px',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}>
+                  {Array.isArray(employees) ? employees.length : 0}
+                </div>
               </div>
             </div>
             {/* Mini Chart */}
@@ -849,18 +865,34 @@ const ITDepartment = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div>
-                <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>Open Tickets</p>
+                <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>Total Tickets</p>
                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => t.status === 'open' || !t.handled).length : 0}
+                  {ticketsLoading ? '...' : totalTickets || 0}
                 </p>
-                <p style={{ fontSize: '8px', color: '#ef4444', marginTop: '4px', margin: 0 }}>+3 new today</p>
               </div>
               <div style={{
                 padding: '10px',
                 background: 'linear-gradient(135deg, #1c242e 0%, #334155 100%)',
-                borderRadius: '10px'
+                borderRadius: '10px',
+                position: 'relative'
               }}>
                 <Ticket size={20} color="white" />
+                <div style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  minWidth: '24px',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}>
+                  {totalTickets || 0}
+                </div>
               </div>
             </div>
             {/* Mini Chart */}
@@ -899,18 +931,34 @@ const ITDepartment = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div>
-                <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>Active Projects</p>
+                <p style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>Total Projects</p>
                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {projectsLoading ? '...' : Array.isArray(projects) ? projects.length : 0}
+                  {projectsLoading ? '...' : totalProjects || 0}
                 </p>
-                <p style={{ fontSize: '8px', color: '#1c242e', marginTop: '4px', margin: 0 }}>2 due this week</p>
               </div>
               <div style={{
                 padding: '10px',
                 background: 'linear-gradient(135deg, #1c242e 0%, #334155 100%)',
-                borderRadius: '10px'
+                borderRadius: '10px',
+                position: 'relative'
               }}>
                 <FolderOpen size={20} color="white" />
+                <div style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  minWidth: '24px',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}>
+                  {totalProjects || 0}
+                </div>
               </div>
             </div>
             {/* Mini Chart */}
@@ -973,14 +1021,14 @@ const ITDepartment = () => {
                     }}
                     onMouseOver={(e) => {
                       if (!isActive) {
-                        e.target.style.backgroundColor = '#f3f4f6';
-                        e.target.style.color = '#374151';
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        e.currentTarget.style.color = '#374151';
                       }
                     }}
                     onMouseOut={(e) => {
                       if (!isActive) {
-                        e.target.style.backgroundColor = 'transparent';
-                        e.target.style.color = '#6b7280';
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#6b7280';
                       }
                     }}
                   >
@@ -1106,9 +1154,26 @@ const ITDepartment = () => {
                     borderRadius: '8px', 
                     display: 'flex', 
                     alignItems: 'center', 
-                    justifyContent: 'center' 
+                    justifyContent: 'center',
+                    position: 'relative'
                   }}>
                     <Users size={20} color="#3b82f6" />
+                    <div style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      minWidth: '20px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}>
+                      {Array.isArray(employees) ? employees.length : 0}
+                    </div>
                   </div>
                   <div>
                     <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Total Employees</h4>
@@ -1134,14 +1199,31 @@ const ITDepartment = () => {
                     borderRadius: '8px', 
                     display: 'flex', 
                     alignItems: 'center', 
-                    justifyContent: 'center' 
+                    justifyContent: 'center',
+                    position: 'relative'
                   }}>
                     <Ticket size={20} color="#d97706" />
+                    <div style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      backgroundColor: '#ef4444',
+                      color: 'white',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      minWidth: '20px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}>
+                      {totalTickets || 0}
+                    </div>
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Open Tickets</h4>
+                    <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Total Tickets</h4>
                     <p style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                      {ticketsLoading ? '...' : Array.isArray(tickets) ? tickets.filter(t => t.status === 'open' || !t.handled).length : 0}
+                      {ticketsLoading ? '...' : totalTickets || 0}
                     </p>
                   </div>
                 </div>
@@ -1162,14 +1244,31 @@ const ITDepartment = () => {
                     borderRadius: '8px', 
                     display: 'flex', 
                     alignItems: 'center', 
-                    justifyContent: 'center' 
+                    justifyContent: 'center',
+                    position: 'relative'
                   }}>
                     <FolderOpen size={20} color="#059669" />
+                    <div style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      minWidth: '20px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}>
+                      {totalProjects || 0}
+                    </div>
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Active Projects</h4>
+                    <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Total Projects</h4>
                     <p style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                      {projectsLoading ? '...' : Array.isArray(projects) ? projects.length : 0}
+                      {projectsLoading ? '...' : totalProjects || 0}
                     </p>
                   </div>
                 </div>

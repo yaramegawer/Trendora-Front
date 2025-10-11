@@ -57,6 +57,9 @@ const LeaveType = {
 };
 
 const LeaveManagement = () => {
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  
   const { 
     leaves, 
     loading, 
@@ -70,20 +73,18 @@ const LeaveManagement = () => {
     deleteLeave,
     goToPage,
     changePageSize,
+    changeStatusFilter,
     nextPage,
     prevPage
-  } = useLeaves();
+  } = useLeaves(1, 10, statusFilter);
   const { employees: hrEmployees } = useEmployees();
   const { employees: itEmployees } = useITEmployees();
   const { user } = useAuth();
 
-  // Use all leaves data from backend (all leaves are loaded at once)
+  // Use leaves data from backend (backend handles pagination and status filtering)
   const currentLeaves = leaves || [];
   // Combine HR and IT employees for display
   const currentEmployees = [...(hrEmployees || []), ...(itEmployees || [])];
-  
-  // Use leaves as they come from backend (backend handles sorting)
-  const sortedLeaves = currentLeaves;
   
   // Debug logging
 ('HR Leave Management - Leaves data from backend:', currentLeaves);
@@ -93,12 +94,11 @@ const LeaveManagement = () => {
 ('🔍 Leaves data changed:', {
       leavesLength: leaves.length,
       currentLeavesLength: currentLeaves.length,
-      sortedLeavesLength: sortedLeaves.length,
       currentPage,
       totalLeaves,
       hookTotalPages
     });
-  }, [leaves, currentLeaves, sortedLeaves, currentPage, totalLeaves, hookTotalPages]);
+  }, [leaves, currentLeaves, currentPage, totalLeaves, hookTotalPages]);
   
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -106,8 +106,6 @@ const LeaveManagement = () => {
   const [editingLeave, setEditingLeave] = useState(null);
   const [deletingLeave, setDeletingLeave] = useState(null);
   const [newStatus, setNewStatus] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [userError, setUserError] = useState('');
   const [userSuccess, setUserSuccess] = useState('');
   
@@ -269,47 +267,47 @@ const LeaveManagement = () => {
     return `Unknown Employee (ID: ${leave.employeeId || 'N/A'})`;
   };
 
-  // Filter leaves based on search and status
-  const filteredLeaves = sortedLeaves.filter(leave => {
-    const matchesSearch = getEmployeeName(leave).toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (leave.leaveType || leave.type || '').toLowerCase().includes(searchTerm.toLowerCase());
+  // Client-side search filtering only (backend handles status and pagination)
+  const filteredLeaves = currentLeaves.filter(leave => {
+    const matchesSearch = searchTerm === '' || 
+      getEmployeeName(leave).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (leave.leaveType || leave.type || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Handle status filter with case-insensitive comparison
-    const matchesStatus = statusFilter === 'all' || 
-                         (leave.status || '').toLowerCase() === statusFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
-  // Always use client-side pagination (all data is loaded)
-  const displayCurrentPage = currentPage;
-  const displayTotalPages = Math.ceil(filteredLeaves.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedLeaves = filteredLeaves.slice(startIndex, endIndex);
+  // Use backend pagination data directly
+  const paginatedLeaves = filteredLeaves;
+  const displayTotalPages = hookTotalPages;
 
-  // Debug logging after all variables are declared
+  // Debug logging
 ('🔍 Pagination Debug:', {
-    displayCurrentPage,
+    currentPage,
     displayTotalPages,
     filteredLeavesLength: filteredLeaves.length,
-    paginatedLeavesLength: paginatedLeaves.length,
     totalLeaves,
     pageSize,
-    leavesLength: leaves.length,
-    sortedLeavesLength: sortedLeaves.length
+    leavesLength: leaves.length
   });
   
-  // Handle page change (always client-side)
+  // Handle page change
   const handlePageChange = (newPage) => {
 (`🔍 LeaveManagement: handlePageChange called with page ${newPage}`);
     goToPage(newPage);
   };
 
-  // Reset to page 1 when filters change
+  // Handle status filter change - call backend
+  const handleStatusFilterChange = (newStatus) => {
+    setStatusFilter(newStatus);
+    changeStatusFilter(newStatus);
+  };
+
+  // Reset to page 1 when search changes (client-side only)
   React.useEffect(() => {
-    goToPage(1);
-  }, [searchTerm, statusFilter]);
+    if (currentPage !== 1 && searchTerm !== '') {
+      goToPage(1);
+    }
+  }, [searchTerm]);
 
   if (loading) {
     return (
@@ -360,10 +358,12 @@ const LeaveManagement = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>Status Filter</InputLabel>
+                <InputLabel id="status-filter-label">Status Filter</InputLabel>
                 <Select
+                  labelId="status-filter-label"
+                  id="status-filter"
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(e) => handleStatusFilterChange(e.target.value)}
                   label="Status Filter"
                 >
                   <MenuItem value="all">All Status</MenuItem>
@@ -446,14 +446,16 @@ const LeaveManagement = () => {
           </Box>
         )}
         
-        {/* Pagination - Always visible */}
-        <SimplePagination
-          currentPage={displayCurrentPage}
-          totalPages={displayTotalPages}
-          totalItems={filteredLeaves.length}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-        />
+        {/* Pagination - Only show if there's data and more than 1 page */}
+        {totalLeaves > 0 && displayTotalPages > 1 && (
+          <SimplePagination
+            currentPage={currentPage}
+            totalPages={displayTotalPages}
+            totalItems={totalLeaves}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
+        )}
       </Card>
 
       {/* Update Status Dialog */}
@@ -477,13 +479,15 @@ const LeaveManagement = () => {
               Current Status: {editingLeave?.status}
             </Typography>
             
-            <FormControl fullWidth>
-              <InputLabel>New Status</InputLabel>
-              <Select
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                label="New Status"
-              >
+          <FormControl fullWidth>
+            <InputLabel id="new-status-label">New Status</InputLabel>
+            <Select
+              labelId="new-status-label"
+              id="new-status"
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              label="New Status"
+            >
                 <MenuItem value={LeaveStatus.PENDING}>Pending</MenuItem>
                 <MenuItem value={LeaveStatus.APPROVED}>Approved</MenuItem>
                 <MenuItem value={LeaveStatus.REJECTED}>Rejected</MenuItem>
@@ -540,13 +544,15 @@ const LeaveManagement = () => {
         <DialogTitle>Submit Leave Request</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Employee *</InputLabel>
-              <Select
-                value={leaveForm.employeeId}
-                onChange={(e) => setLeaveForm({...leaveForm, employeeId: e.target.value})}
-                label="Employee *"
-              >
+          <FormControl fullWidth>
+            <InputLabel id="employee-select-label">Employee *</InputLabel>
+            <Select
+              labelId="employee-select-label"
+              id="employee-select"
+              value={leaveForm.employeeId}
+              onChange={(e) => setLeaveForm({...leaveForm, employeeId: e.target.value})}
+              label="Employee *"
+            >
                 {currentEmployees.map((employee) => (
                   <MenuItem key={employee.id || employee._id} value={employee.id || employee._id}>
                     {employee.firstName} {employee.lastName}
@@ -555,13 +561,15 @@ const LeaveManagement = () => {
               </Select>
             </FormControl>
 
-            <FormControl fullWidth>
-              <InputLabel>Leave Type *</InputLabel>
-              <Select
-                value={leaveForm.leaveType}
-                onChange={(e) => setLeaveForm({...leaveForm, leaveType: e.target.value})}
-                label="Leave Type *"
-              >
+          <FormControl fullWidth>
+            <InputLabel id="leave-type-label">Leave Type *</InputLabel>
+            <Select
+              labelId="leave-type-label"
+              id="leave-type-select"
+              value={leaveForm.leaveType}
+              onChange={(e) => setLeaveForm({...leaveForm, leaveType: e.target.value})}
+              label="Leave Type *"
+            >
                 <MenuItem value={LeaveType.SICK}>Sick</MenuItem>
                 <MenuItem value={LeaveType.VACATION}>Vacation</MenuItem>
                 <MenuItem value={LeaveType.PERSONAL}>Personal</MenuItem>
