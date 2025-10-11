@@ -237,9 +237,13 @@ export const employeeApi = {
         status: employeeData.status || 'active',
         phone: employeeData.phone || employeeData.phone_number || '',
         role: employeeData.role || employeeData.user_role || 'Employee',
-        hireDate: employeeData.hireDate || employeeData.hire_date || employeeData.created_at || '',
-        address: employeeData.address || ''
+        hireDate: employeeData.hireDate || employeeData.hire_date || employeeData.created_at || ''
       };
+      
+      // Only include address if it has actual content (min 5 chars per backend validation)
+      if (employeeData.address && employeeData.address.trim().length >= 5) {
+        cleanedData.address = employeeData.address.trim();
+      }
       
       // Only include documents if they exist and are not empty
       if (employeeData.submittedDocuments && employeeData.submittedDocuments.length > 0) {

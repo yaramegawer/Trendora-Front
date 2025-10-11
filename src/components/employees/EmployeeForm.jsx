@@ -18,7 +18,13 @@ const EmployeeStatus = {
   INACTIVE: 'inactive',
 };
 
-const Roles = [  'Accountant', 'IT Staff', 'Employee', 'HR'];
+const Roles = [
+  'Manager',
+  'Employee', 
+  'HR',
+  'IT Staff',
+  'Accountant'
+];
 
 const DocumentTypes = [
   'ID Copy',
@@ -221,20 +227,23 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
     if (validateForm()) {
       // Send only fields allowed by backend validation schema
       const dataToSend = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
         department: formData.department,
         hireDate: formData.hireDate,
-        phone: formData.phone,
+        phone: formData.phone.trim(),
         status: formData.status,
         role: formData.role
       };
       
-      // Only include address if it's not empty (address is optional)
-      if (formData.address && formData.address.trim() !== '') {
-        dataToSend.address = formData.address;
+      // Only include address if it has actual content (address is optional)
+      // Never send empty strings or whitespace-only values
+      const trimmedAddress = formData.address ? formData.address.trim() : '';
+      if (trimmedAddress && trimmedAddress.length > 0) {
+        dataToSend.address = trimmedAddress;
       }
+      // If address is empty, completely omit it from the request
       
       // Only include documents if they exist and are not empty
       if (formData.submittedDocuments && formData.submittedDocuments.length > 0) {
