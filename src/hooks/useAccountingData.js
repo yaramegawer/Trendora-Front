@@ -3,15 +3,27 @@ import { accountingApi } from '../services/accountingApi';
 
 export const useAccountingData = () => {
   const [invoices, setInvoices] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [summary, setSummary] = useState({
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netProfit: 0
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   
-  // Pagination state
+  // Pagination state for invoices
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalInvoices, setTotalInvoices] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  
+  // Pagination state for transactions
+  const [transactionCurrentPage, setTransactionCurrentPage] = useState(1);
+  const [transactionTotalPages, setTransactionTotalPages] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [transactionPageSize, setTransactionPageSize] = useState(10);
 
   // Fetch all invoices with pagination
   const fetchInvoices = useCallback(async (page = currentPage, limit = pageSize) => {
@@ -254,8 +266,240 @@ export const useAccountingData = () => {
     fetchInvoices(1, newPageSize);
   };
 
+  // Transaction Management Functions
+
+  // Fetch all transactions with backend pagination
+  const fetchTransactions = useCallback(async (page = transactionCurrentPage, limit = transactionPageSize) => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    
+    try {
+        ('🔄 Fetching transactions - Page:', page, 'Limit:', limit);
+      const result = await accountingApi.getAllTransactions(page, limit);
+        ('📦 Transaction result:', result);
+      
+      if (result.success) {
+          ('✅ Setting transactions:', result.data?.length, 'items');
+          ('📊 Total transactions from API:', result.total);
+          ('📄 Total pages from API:', result.totalPages);
+        
+        setTransactions(result.data || []);
+        
+        // Update pagination info from API response
+        if (result.total !== undefined && result.total > result.data?.length) {
+          // Use the total from API if it's greater than current page data
+          setTotalTransactions(result.total);
+          setTransactionTotalPages(result.totalPages || Math.ceil(result.total / limit));
+            ('✅ Using total from API:', result.total);
+        } else {
+          // Fallback: get accurate total count
+            ('⚠️ Getting accurate total count from helper...');
+          try {
+            const accurateTotal = await accountingApi.getTransactionTotalCount();
+            setTotalTransactions(accurateTotal);
+            setTransactionTotalPages(Math.ceil(accurateTotal / limit));
+              ('✅ Got accurate total from helper:', accurateTotal);
+          } catch (totalError) {
+            console.error('❌ Could not get accurate total:', totalError);
+            setTotalTransactions(result.data?.length || 0);
+            setTransactionTotalPages(1);
+          }
+        }
+        
+        setTransactionCurrentPage(result.page || page);
+          ('✅ State updated - Total:', result.total, 'Pages:', result.totalPages);
+      } else {
+        setError(result.error || 'Failed to fetch transactions');
+        setFieldErrors(result.fieldErrors || {});
+        setTransactions([]);
+        setTotalTransactions(0);
+        setTransactionTotalPages(0);
+      }
+    } catch (err) {
+      console.error('❌ Error fetching transactions:', err);
+      setError('Network error: Unable to connect to the server. Please check your connection.');
+      setFieldErrors({});
+      setTransactions([]);
+      setTotalTransactions(0);
+      setTransactionTotalPages(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [transactionCurrentPage, transactionPageSize]);
+
+  // Add new transaction
+  const addTransaction = async (transactionData) => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    
+    try {
+      const result = await accountingApi.addTransaction(transactionData);
+      if (result.success) {
+        // Refresh the transactions list and summary
+        await fetchTransactions();
+        await fetchSummary();
+        return { success: true, message: result.message };
+      } else {
+        setError(result.error);
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
+      }
+    } catch (err) {
+      const errorMsg = 'Failed to add transaction';
+      setError(errorMsg);
+      setFieldErrors({});
+      return { success: false, error: errorMsg, fieldErrors: {} };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update existing transaction
+  const updateTransaction = async (transactionId, updateData) => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    
+    try {
+      const result = await accountingApi.updateTransaction(transactionId, updateData);
+      if (result.success) {
+        // Refresh the transactions list and summary
+        await fetchTransactions();
+        await fetchSummary();
+        return { success: true, message: result.message };
+      } else {
+        setError(result.error);
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
+      }
+    } catch (err) {
+      const errorMsg = 'Failed to update transaction';
+      setError(errorMsg);
+      setFieldErrors({});
+      return { success: false, error: errorMsg, fieldErrors: {} };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete transaction
+  const deleteTransaction = async (transactionId) => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    
+    try {
+      const result = await accountingApi.deleteTransaction(transactionId);
+      if (result.success) {
+        // Remove the transaction from local state
+        setTransactions(prevTransactions => 
+          prevTransactions.filter(transaction => transaction._id !== transactionId)
+        );
+        // Refresh summary
+        await fetchSummary();
+        return { success: true, message: result.message };
+      } else {
+        setError(result.error);
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
+      }
+    } catch (err) {
+      const errorMsg = 'Failed to delete transaction';
+      setError(errorMsg);
+      setFieldErrors({});
+      return { success: false, error: errorMsg, fieldErrors: {} };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get single transaction by ID
+  const getTransaction = async (transactionId) => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    
+    try {
+      const result = await accountingApi.getTransaction(transactionId);
+      if (result.success) {
+        return { success: true, data: result.data, message: result.message };
+      } else {
+        setError(result.error);
+        setFieldErrors(result.fieldErrors || {});
+        return { success: false, error: result.error, fieldErrors: result.fieldErrors || {} };
+      }
+    } catch (err) {
+      const errorMsg = 'Failed to fetch transaction';
+      setError(errorMsg);
+      setFieldErrors({});
+      return { success: false, error: errorMsg, fieldErrors: {} };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch accounting summary
+  const fetchSummary = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    
+    try {
+      const result = await accountingApi.getSummary();
+      
+      if (result.success) {
+        // Map API response to frontend format (snake_case to camelCase)
+        setSummary({
+          totalRevenue: result.data.total_revenue || 0,
+          totalExpenses: result.data.total_expenses || 0,
+          netProfit: result.data.net_profit || 0
+        });
+      } else {
+        setError(result.error || 'Failed to fetch summary');
+        setFieldErrors(result.fieldErrors || {});
+        setSummary({
+          totalRevenue: 0,
+          totalExpenses: 0,
+          netProfit: 0
+        });
+      }
+    } catch (err) {
+      setError('Network error: Unable to connect to the server. Please check your connection.');
+      setFieldErrors({});
+      setSummary({
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netProfit: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load transactions and summary on component mount
+  useEffect(() => {
+    fetchTransactions();
+    fetchSummary();
+  }, [fetchTransactions, fetchSummary]);
+
+  // Transaction pagination functions
+  const goToTransactionPage = (page) => {
+    if (page >= 1 && page <= transactionTotalPages) {
+      fetchTransactions(page, transactionPageSize);
+    }
+  };
+
+  const changeTransactionPageSize = (newPageSize) => {
+    setTransactionPageSize(newPageSize);
+    fetchTransactions(1, newPageSize);
+  };
+
   return {
     invoices,
+    transactions,
+    summary,
     loading,
     error,
     fieldErrors,
@@ -272,6 +516,20 @@ export const useAccountingData = () => {
     submitTicket,
     goToPage,
     changePageSize,
+    // Transaction functions
+    fetchTransactions,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    getTransaction,
+    fetchSummary,
+    // Transaction pagination
+    transactionCurrentPage,
+    transactionTotalPages,
+    totalTransactions,
+    transactionPageSize,
+    goToTransactionPage,
+    changeTransactionPageSize,
     clearError: () => {
       setError(null);
       setFieldErrors({});

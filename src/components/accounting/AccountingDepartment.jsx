@@ -19,12 +19,39 @@ import {
   Select,
   MenuItem,
   Divider,
-  Alert
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
-import { AccountBalance, TrendingUp, AttachMoney, Assessment, Receipt, Timeline, CreditCard, Support, EventNote } from '@mui/icons-material';
+import { 
+  AccountBalance, 
+  TrendingUp, 
+  AttachMoney, 
+  Assessment, 
+  Receipt, 
+  CreditCard, 
+  Support, 
+  EventNote,
+  MoreVert,
+  Edit,
+  Delete,
+  Visibility,
+  Print,
+  Refresh
+} from '@mui/icons-material';
 import InvoiceManagement from './InvoiceManagement';
 import { useAccountingData } from '../../hooks/useAccountingData';
 import { useAuth } from '../../contexts/AuthContext';
+import SimplePagination from '../common/SimplePagination';
 
 const AccountingDepartment = () => {
   const { user } = useAuth();
@@ -51,18 +78,27 @@ const AccountingDepartment = () => {
   const [showTransactionDialog, setShowTransactionDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showTicketDialog, setShowTicketDialog] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  const [detailedTransaction, setDetailedTransaction] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
   const [formData, setFormData] = useState({
     invoice_type: 'customer',
     client_name: '',
     description: '',
     amount: '',
     due_date: '',
-    status: 'unpaid'
+    status: 'unpaid',
+    method: 'cash'
   });
   const [transactionData, setTransactionData] = useState({
     description: '',
     amount: '',
     type: 'income',
+    method: 'cash',
     date: new Date().toISOString().split('T')[0]
   });
   const [leaveData, setLeaveData] = useState({
@@ -84,7 +120,38 @@ const AccountingDepartment = () => {
   const [ticketFieldErrors, setTicketFieldErrors] = useState({});
   const [ticketSubmitError, setTicketSubmitError] = useState('');
 
-  const { addInvoice, submitLeave, submitTicket, loading } = useAccountingData();
+  const { 
+    addInvoice, 
+    submitLeave, 
+    submitTicket, 
+    addTransaction,
+    updateTransaction,
+    getTransaction,
+    transactions,
+    summary,
+    deleteTransaction,
+    fetchTransactions,
+    fetchSummary,
+    loading,
+    transactionCurrentPage,
+    transactionTotalPages,
+    totalTransactions,
+    transactionPageSize,
+    goToTransactionPage,
+    changeTransactionPageSize
+  } = useAccountingData();
+
+  // Add React useEffect for debugging - AFTER hook declaration
+  React.useEffect(() => {
+      ('🔍 Transactions loaded:', transactions.length);
+      ('📊 Transaction data:', transactions);
+      ('📄 Pagination state:', {
+      currentPage: transactionCurrentPage,
+      totalPages: transactionTotalPages,
+      totalTransactions,
+      pageSize: transactionPageSize
+    });
+  }, [transactions, transactionCurrentPage, transactionTotalPages, totalTransactions, transactionPageSize]);
 
   const handleInputChange = (field) => (event) => {
     setFormData(prev => ({
@@ -152,7 +219,8 @@ const AccountingDepartment = () => {
       description: '',
       amount: '',
       due_date: '',
-      status: 'unpaid'
+      status: 'unpaid',
+      method: 'cash'
     });
     setFieldErrors({});
     setSubmitError('');
@@ -183,43 +251,267 @@ const AccountingDepartment = () => {
       setTransactionSubmitError('');
       setTransactionFieldErrors({});
 
+      // Validate required fields before submission
+      const errors = {};
+      if (!transactionData.description || transactionData.description.trim() === '') {
+        errors.description = 'Description is required';
+      }
+      if (!transactionData.amount || transactionData.amount === '' || parseFloat(transactionData.amount) <= 0) {
+        errors.amount = 'Amount must be greater than 0';
+      }
+      if (!transactionData.date) {
+        errors.date = 'Date is required';
+      }
+      if (!transactionData.type) {
+        errors.type = 'Transaction type is required';
+      }
+      if (!transactionData.method) {
+        errors.method = 'Payment method is required';
+      }
+
+      // If there are validation errors, show them and return
+      if (Object.keys(errors).length > 0) {
+        setTransactionFieldErrors(errors);
+        return;
+      }
+
       const transaction = {
         ...transactionData,
         amount: parseFloat(transactionData.amount)
       };
 
-      // For now, we'll just log it since we don't have a transaction API
-('New Transaction:', transaction);
+        ('Submitting transaction:', transaction);
       
+      let result;
+      if (editingTransaction) {
+        result = await updateTransaction(editingTransaction._id, transaction);
+      } else {
+        result = await addTransaction(transaction);
+      }
+        ('Transaction result:', result);
+      
+      if (result.success) {
       // Close dialog and reset form
       setShowTransactionDialog(false);
+        setEditingTransaction(null);
       setTransactionData({
         description: '',
         amount: '',
         type: 'income',
+          method: 'cash',
         date: new Date().toISOString().split('T')[0]
       });
       setTransactionFieldErrors({});
       setTransactionSubmitError('');
       
-      // Show success message (you can replace this with a proper notification)
-      alert('Transaction created successfully!');
+        // Show success message
+        alert(`Transaction ${editingTransaction ? 'updated' : 'created'} successfully!`);
+      } else {
+        // Handle backend validation errors
+          ('Backend validation errors:', result.fieldErrors);
+        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+          setTransactionFieldErrors(result.fieldErrors);
+        }
+        if (result.error) {
+          setTransactionSubmitError(result.error);
+        }
+      }
     } catch (err) {
-('Error creating transaction:', err);
+      console.error('Error creating transaction:', err);
       setTransactionSubmitError('An unexpected error occurred. Please try again.');
     }
   };
 
   const handleCloseTransactionDialog = () => {
     setShowTransactionDialog(false);
+    setEditingTransaction(null);
     setTransactionData({
       description: '',
       amount: '',
       type: 'income',
+      method: 'cash',
       date: new Date().toISOString().split('T')[0]
     });
     setTransactionFieldErrors({});
     setTransactionSubmitError('');
+  };
+
+  // Transaction menu handlers
+  const handleMenuClick = (event, transaction) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedTransaction(transaction);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedTransaction(null);
+  };
+
+  const handleViewTransactionDetails = async () => {
+    if (!selectedTransaction || !selectedTransaction._id) {
+      console.error('No transaction selected or missing ID');
+      return;
+    }
+
+    setViewDetailsOpen(true);
+    setDetailsLoading(true);
+    setDetailsError('');
+    setDetailedTransaction(null);
+    handleMenuClose();
+
+    try {
+      const result = await getTransaction(selectedTransaction._id);
+      if (result.success) {
+        setDetailedTransaction(result.data);
+      } else {
+        setDetailsError(result.error || 'Failed to fetch transaction details');
+        // Fallback to using the selected transaction data if API fails
+        setDetailedTransaction(selectedTransaction);
+      }
+    } catch (err) {
+      console.error('Error fetching transaction details:', err);
+      setDetailsError('Failed to fetch transaction details');
+      // Fallback to using the selected transaction data if API fails
+      setDetailedTransaction(selectedTransaction);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleEditTransaction = () => {
+    if (selectedTransaction) {
+      setEditingTransaction(selectedTransaction);
+      setTransactionData({
+        description: selectedTransaction.description || '',
+        amount: selectedTransaction.amount || '',
+        type: selectedTransaction.type || 'income',
+        method: selectedTransaction.method || 'cash',
+        date: selectedTransaction.date ? new Date(selectedTransaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      });
+      setShowTransactionDialog(true);
+    }
+    handleMenuClose();
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (selectedTransaction && window.confirm('Are you sure you want to delete this transaction?')) {
+      const result = await deleteTransaction(selectedTransaction._id);
+      if (result.success) {
+        alert('Transaction deleted successfully!');
+      } else {
+        alert('Failed to delete transaction: ' + result.error);
+      }
+    }
+    handleMenuClose();
+  };
+
+  const handlePrintTransaction = () => {
+    const transaction = detailedTransaction || selectedTransaction;
+    if (transaction) {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Transaction - ${transaction.description}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+            .company-name { font-size: 28px; font-weight: bold; color: #333; }
+            .transaction-title { font-size: 18px; color: #666; margin-top: 10px; }
+            .transaction-info { margin: 30px 0; }
+            .detail-row { margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+            .label { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
+            .value { font-size: 16px; color: #333; }
+            .amount { font-size: 24px; font-weight: bold; }
+            .amount.income { color: #2e7d32; }
+            .amount.expense { color: #c62828; }
+            .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px; }
+            @media print { 
+              body { margin: 0; } 
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company-name">Trendora</div>
+            <div class="transaction-title">TRANSACTION RECEIPT</div>
+          </div>
+          
+          <div class="transaction-info">
+            <div class="detail-row">
+              <span class="label">Description</span>
+              <span class="value">${transaction.description}</span>
+            </div>
+            
+            <div class="detail-row">
+              <span class="label">Amount</span>
+              <span class="value amount ${transaction.type}">EGP ${transaction.amount?.toLocaleString()}</span>
+            </div>
+            
+            <div class="detail-row">
+              <span class="label">Type</span>
+              <span class="value">${transaction.type.toUpperCase()}</span>
+            </div>
+            
+            <div class="detail-row">
+              <span class="label">Payment Method</span>
+              <span class="value">${transaction.method.toUpperCase()}</span>
+            </div>
+            
+            <div class="detail-row">
+              <span class="label">Date</span>
+              <span class="value">${new Date(transaction.date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</span>
+            </div>
+            
+            ${transaction.createdAt ? `
+            <div class="detail-row">
+              <span class="label">Created At</span>
+              <span class="value">${new Date(transaction.createdAt).toLocaleString()}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div class="footer">
+            <p>Thank you for your business</p>
+            <p>This is a computer-generated receipt</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Create iframe for printing
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+      
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(printContent);
+      doc.close();
+      
+      // Wait for content to load, then print
+      iframe.contentWindow.onload = () => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        
+        // Remove iframe after printing
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      };
+    }
+    handleMenuClose();
   };
 
   // Leave handlers
@@ -397,81 +689,100 @@ const AccountingDepartment = () => {
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
-                  <TrendingUp />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    $125,430
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Card sx={{ 
+            height: '100%',
+            borderLeft: 4,
+            borderColor: 'success.main',
+            '&:hover': {
+              boxShadow: 3,
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s'
+            }
+          }}>
+            <CardContent sx={{ p: 3 }}>
+              <Stack spacing={1}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
                     Total Revenue
                   </Typography>
-                </Box>
+                <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
+                  EGP {summary.totalRevenue?.toLocaleString() || '0'}
+                  </Typography>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <TrendingUp sx={{ fontSize: 16, color: 'success.main' }} />
+                  <Typography variant="caption" color="success.main" sx={{ fontWeight: 500 }}>
+                    Income
+                  </Typography>
+                </Stack>
               </Stack>
             </CardContent>
           </Card>
         </Grid>
         
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'error.main' }}>
-                  <AttachMoney />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    $89,210
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Card sx={{ 
+            height: '100%',
+            borderLeft: 4,
+            borderColor: 'error.main',
+            '&:hover': {
+              boxShadow: 3,
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s'
+            }
+          }}>
+            <CardContent sx={{ p: 3 }}>
+              <Stack spacing={1}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
+                  Total Expenses
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Expenses
+                <Typography variant="h4" sx={{ fontWeight: 700, color: 'error.main' }}>
+                  EGP {summary.totalExpenses?.toLocaleString() || '0'}
                   </Typography>
-                </Box>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <AttachMoney sx={{ fontSize: 16, color: 'error.main' }} />
+                  <Typography variant="caption" color="error.main" sx={{ fontWeight: 500 }}>
+                    Expenses
+                  </Typography>
+                </Stack>
               </Stack>
             </CardContent>
           </Card>
         </Grid>
         
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'info.main' }}>
-                  <Assessment />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    $36,220
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Card sx={{ 
+            height: '100%',
+            borderLeft: 4,
+            borderColor: summary.netProfit >= 0 ? 'info.main' : 'warning.main',
+            '&:hover': {
+              boxShadow: 3,
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s'
+            }
+          }}>
+            <CardContent sx={{ p: 3 }}>
+              <Stack spacing={1}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
+                  Net Profit
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Net Profit
+                <Typography variant="h4" sx={{ 
+                  fontWeight: 700, 
+                  color: summary.netProfit >= 0 ? 'info.main' : 'warning.main'
+                }}>
+                  EGP {summary.netProfit?.toLocaleString() || '0'}
                   </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
-                  <AccountBalance />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    $245,890
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Assessment sx={{ 
+                    fontSize: 16, 
+                    color: summary.netProfit >= 0 ? 'info.main' : 'warning.main'
+                  }} />
+                  <Typography variant="caption" sx={{ 
+                    fontWeight: 500,
+                    color: summary.netProfit >= 0 ? 'info.main' : 'warning.main'
+                  }}>
+                    {summary.netProfit >= 0 ? 'Profit' : 'Loss'}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Cash Balance
-                  </Typography>
-                </Box>
+                </Stack>
               </Stack>
             </CardContent>
           </Card>
@@ -490,9 +801,10 @@ const AccountingDepartment = () => {
                 variant="outlined"
                 fullWidth
                 startIcon={<AttachMoney />}
+                onClick={() => setShowTransactionDialog(true)}
                 sx={{ py: 1.5, borderRadius: 2, fontSize: '13px' }}
               >
-                Record Payment
+                New Transaction
               </Button>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
@@ -557,8 +869,7 @@ const AccountingDepartment = () => {
             {[
               { id: 'transactions', label: 'Transactions', icon: Receipt },
               { id: 'invoices', label: 'Invoices', icon: AttachMoney },
-              { id: 'reports', label: 'Reports', icon: Assessment },
-              { id: 'analytics', label: 'Analytics', icon: Timeline }
+              { id: 'reports', label: 'Reports', icon: Assessment }
             ].map((tab) => (
               <Button
                 key={tab.id}
@@ -601,62 +912,125 @@ const AccountingDepartment = () => {
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Recent Transactions
               </Typography>
+              <Stack direction="row" spacing={2}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Refresh />}
+                  onClick={() => {
+                      ('🔄 Manual refresh triggered');
+                    fetchTransactions();
+                  }}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Refresh
+                </Button>
               <Button
                 variant="contained"
                 startIcon={<AttachMoney />}
-                onClick={() => setShowTransactionDialog(true)}
+                  onClick={() => {
+                    setEditingTransaction(null);
+                    setShowTransactionDialog(true);
+                  }}
                 sx={{ borderRadius: 2 }}
               >
                 New Transaction
               </Button>
+              </Stack>
             </Box>
-            <Stack spacing={2}>
-              {[
-                { id: 1, description: 'Office Supplies Purchase', amount: '$1,250', type: 'expense', date: '2024-01-15' },
-                { id: 2, description: 'Client Payment - Project Alpha', amount: '$5,000', type: 'income', date: '2024-01-14' },
-                { id: 3, description: 'Software License Renewal', amount: '$2,400', type: 'expense', date: '2024-01-13' },
-                { id: 4, description: 'Consulting Services', amount: '$3,200', type: 'income', date: '2024-01-12' },
-              ].map((transaction) => (
-                <Box
-                  key={transaction.id}
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    p: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    '&:hover': { backgroundColor: 'action.hover' }
-                  }}
-                >
-                  <Box>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {transaction.description}
+            {loading ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Loading transactions...
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {transaction.date}
+              </Box>
+            ) : transactions.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  No transactions found. Create your first transaction using the button above.
                     </Typography>
                   </Box>
-                  <Stack direction="row" alignItems="center" spacing={1}>
+            ) : (
+              <>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                        <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Amount</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Method</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="center">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {transactions.map((transaction) => (
+                        <TableRow 
+                          key={transaction._id}
+                          sx={{ '&:hover': { backgroundColor: 'action.hover' } }}
+                        >
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell>
                     <Typography
-                      variant="body1"
                       sx={{
                         fontWeight: 600,
                         color: transaction.type === 'income' ? 'success.main' : 'error.main'
                       }}
                     >
-                      {transaction.amount}
+                              EGP {transaction.amount?.toLocaleString()}
                     </Typography>
+                          </TableCell>
+                          <TableCell>
                     <Chip
                       label={transaction.type}
                       color={transaction.type === 'income' ? 'success' : 'error'}
                       size="small"
                     />
-                  </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={transaction.method}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {new Date(transaction.date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell align="center">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => handleMenuClick(e, transaction)}
+                            >
+                              <MoreVert />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                {/* Pagination */}
+                <Box sx={{ 
+                  mt: 3, 
+                  display: 'flex', 
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <SimplePagination
+                    currentPage={transactionCurrentPage}
+                    totalPages={transactionTotalPages}
+                    totalItems={totalTransactions}
+                    pageSize={transactionPageSize}
+                    onPageChange={(page) => {
+                        ('📄 Page changed to:', page);
+                      goToTransactionPage(page);
+                    }}
+                  />
                 </Box>
-              ))}
-            </Stack>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
@@ -745,18 +1119,6 @@ const AccountingDepartment = () => {
               Invoice Settings
             </Typography>
 
-            <TextField
-              fullWidth
-              label="Due Date"
-              type="date"
-              value={formData.due_date}
-              onChange={handleInputChange('due_date')}
-              InputLabelProps={{ shrink: true }}
-              required
-              error={!!fieldErrors.due_date}
-              helperText={fieldErrors.due_date || "Payment due date for this invoice"}
-            />
-
             <FormControl fullWidth error={!!fieldErrors.status}>
               <InputLabel>Status</InputLabel>
               <Select
@@ -769,11 +1131,41 @@ const AccountingDepartment = () => {
                 <MenuItem value="overdue">Overdue</MenuItem>
               </Select>
               {fieldErrors.status && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'block' }}>
                   {fieldErrors.status}
                 </Typography>
               )}
             </FormControl>
+
+            <FormControl fullWidth required error={!!fieldErrors.method}>
+              <InputLabel>Payment Method</InputLabel>
+              <Select
+                value={formData.method}
+                onChange={handleInputChange('method')}
+                label="Payment Method"
+              >
+                <MenuItem value="visa">Visa</MenuItem>
+                <MenuItem value="wallet">Wallet</MenuItem>
+                <MenuItem value="cash">Cash</MenuItem>
+              </Select>
+              {fieldErrors.method && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'block' }}>
+                  {fieldErrors.method}
+                </Typography>
+              )}
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Due Date"
+              type="date"
+              value={formData.due_date}
+              onChange={handleInputChange('due_date')}
+              InputLabelProps={{ shrink: true }}
+              required
+              error={!!fieldErrors.due_date}
+              helperText={fieldErrors.due_date || "Payment due date for this invoice"}
+            />
 
             <Divider />
 
@@ -809,50 +1201,313 @@ const AccountingDepartment = () => {
       {activeTab === 'reports' && (
         <Card>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Financial Reports
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Financial Reports & Summary
             </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<Refresh />}
+                onClick={() => {
+                    ('🔄 Refreshing summary data');
+                  fetchSummary();
+                }}
+                sx={{ borderRadius: 2 }}
+              >
+                Refresh Data
+              </Button>
+            </Box>
+
+            {loading ? (
+              <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="body2" color="text.secondary">
-              Financial reports and statements will be displayed here.
+                  Loading financial data...
             </Typography>
+              </Box>
+            ) : (
+              <Stack spacing={4}>
+                {/* Summary Overview */}
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                    Financial Summary
+                  </Typography>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
+                      <Card sx={{ 
+                        height: '100%',
+                        borderLeft: 4,
+                        borderColor: 'success.main',
+                        '&:hover': {
+                          boxShadow: 3,
+                          transform: 'translateY(-2px)',
+                          transition: 'all 0.3s'
+                        }
+                      }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Stack spacing={1}>
+                            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
+                              Total Revenue
+                            </Typography>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
+                              EGP {summary.totalRevenue?.toLocaleString() || '0'}
+                            </Typography>
+                            <Stack direction="row" alignItems="center" spacing={0.5}>
+                              <TrendingUp sx={{ fontSize: 16, color: 'success.main' }} />
+                              <Typography variant="caption" color="success.main" sx={{ fontWeight: 500 }}>
+                                Income
+                              </Typography>
+                            </Stack>
+                          </Stack>
+          </CardContent>
+        </Card>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <Card sx={{ 
+                        height: '100%',
+                        borderLeft: 4,
+                        borderColor: 'error.main',
+                        '&:hover': {
+                          boxShadow: 3,
+                          transform: 'translateY(-2px)',
+                          transition: 'all 0.3s'
+                        }
+                      }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Stack spacing={1}>
+                            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
+                              Total Expenses
+                            </Typography>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'error.main' }}>
+                              EGP {summary.totalExpenses?.toLocaleString() || '0'}
+                            </Typography>
+                            <Stack direction="row" alignItems="center" spacing={0.5}>
+                              <AttachMoney sx={{ fontSize: 16, color: 'error.main' }} />
+                              <Typography variant="caption" color="error.main" sx={{ fontWeight: 500 }}>
+                                Expenses
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <Card sx={{ 
+                        height: '100%',
+                        borderLeft: 4,
+                        borderColor: summary.netProfit >= 0 ? 'info.main' : 'warning.main',
+                        '&:hover': {
+                          boxShadow: 3,
+                          transform: 'translateY(-2px)',
+                          transition: 'all 0.3s'
+                        }
+                      }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Stack spacing={1}>
+                            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 }}>
+                              Net Profit
+                            </Typography>
+                            <Typography variant="h4" sx={{ 
+                              fontWeight: 700, 
+                              color: summary.netProfit >= 0 ? 'info.main' : 'warning.main'
+                            }}>
+                              EGP {summary.netProfit?.toLocaleString() || '0'}
+                            </Typography>
+                            <Stack direction="row" alignItems="center" spacing={0.5}>
+                              <Assessment sx={{ 
+                                fontSize: 16, 
+                                color: summary.netProfit >= 0 ? 'info.main' : 'warning.main'
+                              }} />
+                              <Typography variant="caption" sx={{ 
+                                fontWeight: 500,
+                                color: summary.netProfit >= 0 ? 'info.main' : 'warning.main'
+                              }}>
+                                {summary.netProfit >= 0 ? 'Profit' : 'Loss'}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Divider />
+
+                {/* Detailed Breakdown */}
+                <Box>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                    Financial Breakdown
+            </Typography>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: 'grey.100' }}>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '16px' }}>Category</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600, fontSize: '16px' }}>Amount (EGP)</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600, fontSize: '16px' }}>Percentage</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow sx={{ '&:hover': { bgcolor: 'success.50' } }}>
+                          <TableCell>
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              <Chip label="Income" color="success" size="small" />
+                              <Typography>Total Revenue</Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography sx={{ fontWeight: 600, color: 'success.main', fontSize: '16px' }}>
+                              {summary.totalRevenue?.toLocaleString() || '0'}
+            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography sx={{ fontWeight: 500 }}>
+                              100%
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                        
+                        <TableRow sx={{ '&:hover': { bgcolor: 'error.50' } }}>
+                          <TableCell>
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              <Chip label="Expense" color="error" size="small" />
+                              <Typography>Total Expenses</Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography sx={{ fontWeight: 600, color: 'error.main', fontSize: '16px' }}>
+                              {summary.totalExpenses?.toLocaleString() || '0'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography sx={{ fontWeight: 500 }}>
+                              {summary.totalRevenue > 0 
+                                ? ((summary.totalExpenses / summary.totalRevenue) * 100).toFixed(1) 
+                                : '0'}%
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+
+                        <TableRow sx={{ bgcolor: 'grey.50', borderTop: '2px solid', borderColor: 'divider' }}>
+                          <TableCell>
+                            <Typography sx={{ fontWeight: 700, fontSize: '16px' }}>
+                              Net Profit/Loss
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography 
+                              sx={{ 
+                                fontWeight: 700, 
+                                fontSize: '18px',
+                                color: summary.netProfit >= 0 ? 'success.main' : 'error.main'
+                              }}
+                            >
+                              {summary.netProfit?.toLocaleString() || '0'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Chip 
+                              label={summary.netProfit >= 0 ? 'Profit' : 'Loss'}
+                              color={summary.netProfit >= 0 ? 'success' : 'error'}
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+
+                {/* Additional Metrics */}
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                    Key Performance Indicators
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Profit Margin
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                          {summary.totalRevenue > 0 
+                            ? ((summary.netProfit / summary.totalRevenue) * 100).toFixed(1) 
+                            : '0'}%
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Expense Ratio
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600, color: 'warning.main' }}>
+                          {summary.totalRevenue > 0 
+                            ? ((summary.totalExpenses / summary.totalRevenue) * 100).toFixed(1) 
+                            : '0'}%
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Total Transactions
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600, color: 'info.main' }}>
+                          {transactions.length}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'background.default' }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Avg Transaction
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                          EGP {transactions.length > 0 
+                            ? ((summary.totalRevenue + summary.totalExpenses) / transactions.length).toFixed(0)
+                            : '0'}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Report Generation Info */}
+                <Box sx={{ mt: 4, p: 3, bgcolor: 'grey.50', borderRadius: 2 }}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Assessment color="primary" />
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Report Generated: {new Date().toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Data is updated in real-time from your transactions
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              </Stack>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {activeTab === 'analytics' && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Financial Analytics
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Financial analytics and insights will be shown here.
-            </Typography>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* New Transaction Dialog */}
+      {/* Transaction Dialog */}
       <Dialog open={showTransactionDialog} onClose={handleCloseTransactionDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <AttachMoney color="primary" />
-            New Transaction
+            {editingTransaction ? 'Edit Transaction' : 'New Transaction'}
           </Box>
         </DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
-            {/* Error Alert */}
-            {transactionSubmitError && (
-              <Alert 
-                severity="error" 
-                sx={{ mb: 2 }}
-                onClose={() => setTransactionSubmitError('')}
-              >
-                {transactionSubmitError}
-              </Alert>
-            )}
-
             <Typography variant="h6" gutterBottom>
               Transaction Details
             </Typography>
@@ -902,8 +1557,26 @@ const AccountingDepartment = () => {
                 <MenuItem value="expense">Expense</MenuItem>
               </Select>
               {transactionFieldErrors.type && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'block' }}>
                   {transactionFieldErrors.type}
+                </Typography>
+              )}
+            </FormControl>
+
+            <FormControl fullWidth required error={!!transactionFieldErrors.method}>
+              <InputLabel>Payment Method</InputLabel>
+              <Select
+                value={transactionData.method}
+                onChange={handleTransactionInputChange('method')}
+                label="Payment Method"
+              >
+                <MenuItem value="visa">Visa</MenuItem>
+                <MenuItem value="wallet">Wallet</MenuItem>
+                <MenuItem value="cash">Cash</MenuItem>
+              </Select>
+              {transactionFieldErrors.method && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'block' }}>
+                  {transactionFieldErrors.method}
                 </Typography>
               )}
             </FormControl>
@@ -915,7 +1588,7 @@ const AccountingDepartment = () => {
             onClick={handleTransactionSubmit}
             variant="contained"
           >
-            Create Transaction
+            {editingTransaction ? 'Update Transaction' : 'Create Transaction'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1308,6 +1981,166 @@ const AccountingDepartment = () => {
           </div>
         </div>
       )}
+
+      {/* Transaction Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={handleViewTransactionDetails}>
+          <ListItemIcon>
+            <Visibility fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>View Details</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleEditTransaction}>
+          <ListItemIcon>
+            <Edit fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handlePrintTransaction}>
+          <ListItemIcon>
+            <Print fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Print Transaction</ListItemText>
+        </MenuItem>
+        <MenuItem 
+          onClick={handleDeleteTransaction}
+          sx={{ color: 'error.main' }}
+        >
+          <ListItemIcon>
+            <Delete fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* View Transaction Details Dialog */}
+      <Dialog open={viewDetailsOpen} onClose={() => setViewDetailsOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Receipt color="primary" />
+            Transaction Details
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {detailsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <Stack alignItems="center" spacing={2}>
+                <Typography variant="body2" color="text.secondary">
+                  Loading transaction details...
+                </Typography>
+              </Stack>
+            </Box>
+          ) : detailsError ? (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {detailsError}
+            </Alert>
+          ) : detailedTransaction ? (
+            <Box sx={{ mt: 2 }}>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Description
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {detailedTransaction.description}
+                  </Typography>
+                </Box>
+                
+                <Divider />
+                
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Amount
+                  </Typography>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: detailedTransaction.type === 'income' ? 'success.main' : 'error.main'
+                    }}
+                  >
+                    EGP {detailedTransaction.amount?.toLocaleString()}
+                  </Typography>
+                </Box>
+                
+                <Divider />
+                
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Type
+                  </Typography>
+                  <Chip
+                    label={detailedTransaction.type}
+                    color={detailedTransaction.type === 'income' ? 'success' : 'error'}
+                    size="medium"
+                  />
+                </Box>
+                
+                <Divider />
+                
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Payment Method
+                  </Typography>
+                  <Chip
+                    label={detailedTransaction.method}
+                    variant="outlined"
+                    size="medium"
+                  />
+                </Box>
+                
+                <Divider />
+                
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Date
+                  </Typography>
+                  <Typography variant="body1">
+                    {detailedTransaction.date ? new Date(detailedTransaction.date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) : 'N/A'}
+                  </Typography>
+                </Box>
+
+                {detailedTransaction.createdAt && (
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Created At
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {new Date(detailedTransaction.createdAt).toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+              </Stack>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDetailsOpen(false)}>Close</Button>
+          <Button 
+            variant="contained"
+            startIcon={<Print />}
+            onClick={() => {
+              handlePrintTransaction();
+              setViewDetailsOpen(false);
+            }}
+            disabled={!detailedTransaction}
+          >
+            Print
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

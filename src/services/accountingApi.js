@@ -530,6 +530,280 @@ export const accountingApi = {
     } catch (error) {
       return 0;
     }
+  },
+
+  // Transaction Management APIs
+
+  // Add new transaction
+  addTransaction: async (transactionData) => {
+    try {
+       ('📝 Adding new transaction:', transactionData);
+      const response = await api.post('/accounting/add_transaction', transactionData);
+       ('✅ Transaction added successfully:', response.data);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Transaction created successfully'
+      };
+    } catch (error) {
+       ('❌ Raw error from addTransaction:', error);
+       ('❌ Error response:', error.response);
+       ('❌ Error response data:', error.response?.data);
+      
+      const errorResult = handleApiError(error, 'Failed to create transaction');
+       ('❌ Processed error result:', errorResult);
+      
+      return {
+        success: false,
+        error: errorResult.message,
+        fieldErrors: errorResult.fieldErrors,
+        data: null
+      };
+    }
+  },
+
+  // Update existing transaction
+  updateTransaction: async (transactionId, updateData) => {
+    try {
+       (`📝 Updating transaction ${transactionId}:`, updateData);
+      const response = await api.put(`/accounting/update_transaction/${transactionId}`, updateData);
+       ('✅ Transaction updated successfully:', response.data);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Transaction updated successfully'
+      };
+    } catch (error) {
+      const errorResult = handleApiError(error, 'Failed to update transaction');
+       ('❌ Error updating transaction:', errorResult);
+      return {
+        success: false,
+        error: errorResult.message,
+        fieldErrors: errorResult.fieldErrors,
+        data: null
+      };
+    }
+  },
+
+  // Get all transactions with pagination
+  getAllTransactions: async (page = 1, limit = 10) => {
+    try {
+        ('📄 Fetching transactions with pagination:', { page, limit });
+      const response = await api.get('/accounting/get_transactions', {
+        params: { page, limit }
+      });
+        ('✅ Raw API response:', response);
+        ('✅ Response data:', response.data);
+      
+      // Handle different response formats
+      let transactionsData = [];
+      let totalCount = 0;
+      let currentPageNum = page;
+      
+      if (Array.isArray(response.data)) {
+        transactionsData = response.data;
+        totalCount = response.data.length;
+          ('📦 Transactions array directly:', transactionsData.length, 'transactions');
+      } else if (response.data && Array.isArray(response.data.data)) {
+        transactionsData = response.data.data;
+        totalCount = response.data.total || response.data.totalCount || response.data.count || response.data.data.length;
+        currentPageNum = response.data.page || page;
+          ('📦 Transactions from data.data:', transactionsData.length, 'transactions, total:', totalCount);
+      } else if (response.data && Array.isArray(response.data.transactions)) {
+        transactionsData = response.data.transactions;
+        totalCount = response.data.total || response.data.totalCount || response.data.count || response.data.transactions.length;
+        currentPageNum = response.data.page || page;
+          ('📦 Transactions from data.transactions:', transactionsData.length, 'transactions, total:', totalCount);
+      } else {
+        console.warn('⚠️ Unknown response format:', response.data);
+      }
+      
+      // If we couldn't get the total count from the response, try to fetch it separately
+      if (totalCount === transactionsData.length && transactionsData.length === limit) {
+        try {
+            ('⚠️ Total count might be incomplete, fetching all transactions...');
+          // Try to get total count by requesting a large page or a count endpoint
+          const countResponse = await api.get('/accounting/get_transactions', {
+            params: { page: 1, limit: 1000 } // Request a large number to get total
+          });
+          
+          if (Array.isArray(countResponse.data)) {
+            totalCount = countResponse.data.length;
+              ('📊 Got accurate total from large request (array):', totalCount);
+          } else if (countResponse.data && Array.isArray(countResponse.data.data)) {
+            totalCount = countResponse.data.data.length;
+              ('📊 Got accurate total from large request (data.data):', totalCount);
+          } else if (countResponse.data && countResponse.data.total) {
+            totalCount = countResponse.data.total;
+              ('📊 Got accurate total from large request (total):', totalCount);
+          }
+        } catch (countError) {
+          console.warn('⚠️ Could not fetch accurate total count:', countError);
+          // Keep the original total count
+        }
+      }
+      
+        ('🎯 Final transactions data:', transactionsData);
+        ('📊 Final total count:', totalCount);
+        ('📄 Total pages:', Math.ceil(totalCount / limit));
+      
+      return {
+        success: true,
+        data: transactionsData,
+        total: totalCount,
+        page: currentPageNum,
+        limit: limit,
+        totalPages: Math.ceil(totalCount / limit),
+        message: 'Transactions fetched successfully'
+      };
+    } catch (error) {
+       ('❌ Raw error from getAllTransactions:', error);
+       ('❌ Error response:', error.response);
+       ('❌ Error response data:', error.response?.data);
+      
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+         ('🔒 403 Forbidden - returning empty data');
+        return {
+          success: true,
+          data: [],
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          message: 'Transactions fetched successfully'
+        };
+      }
+      
+      const errorResult = handleApiError(error, 'Failed to fetch transactions');
+       ('❌ Processed error result:', errorResult);
+      return {
+        success: false,
+        error: errorResult.message,
+        fieldErrors: errorResult.fieldErrors,
+        data: null
+      };
+    }
+  },
+
+  // Get single transaction by ID
+  getTransaction: async (transactionId) => {
+    try {
+       (`📄 Fetching transaction ${transactionId}...`);
+      const response = await api.get(`/accounting/get_transaction/${transactionId}`);
+       ('✅ Transaction fetched successfully:', response.data);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Transaction fetched successfully'
+      };
+    } catch (error) {
+       ('❌ Raw error from getTransaction:', error);
+       ('❌ Error response:', error.response);
+       ('❌ Error response data:', error.response?.data);
+      
+      const errorResult = handleApiError(error, 'Failed to fetch transaction');
+       ('❌ Processed error result:', errorResult);
+      
+      return {
+        success: false,
+        error: errorResult.message,
+        fieldErrors: errorResult.fieldErrors,
+        data: null
+      };
+    }
+  },
+
+  // Delete transaction
+  deleteTransaction: async (transactionId) => {
+    try {
+       (`🗑️ Deleting transaction ${transactionId}...`);
+      const response = await api.delete(`/accounting/delete_transaction/${transactionId}`);
+       ('✅ Transaction deleted successfully:', response.data);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Transaction deleted successfully'
+      };
+    } catch (error) {
+      const errorResult = handleApiError(error, 'Failed to delete transaction');
+       ('❌ Error deleting transaction:', errorResult);
+      return {
+        success: false,
+        error: errorResult.message,
+        fieldErrors: errorResult.fieldErrors,
+        data: null
+      };
+    }
+  },
+
+  // Get accurate total count of transactions
+  getTransactionTotalCount: async () => {
+    try {
+      const response = await api.get('/accounting/get_transactions', {
+        params: { page: 1, limit: 1000 } // Request all transactions to get accurate count
+      });
+      
+      let totalCount = 0;
+      if (Array.isArray(response.data)) {
+        totalCount = response.data.length;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        totalCount = response.data.data.length;
+      } else if (response.data && response.data.total) {
+        totalCount = response.data.total;
+      }
+      
+        ('📊 Transaction total count:', totalCount);
+      return totalCount;
+    } catch (error) {
+      console.error('❌ Error getting transaction count:', error);
+      return 0;
+    }
+  },
+
+  // Get accounting summary
+  getSummary: async () => {
+    try {
+        ('📊 Fetching accounting summary...');
+      const response = await api.get('/accounting/summary');
+        ('✅ Raw summary response:', response);
+        ('✅ Summary data:', response.data);
+        ('📊 Total Revenue:', response.data.total_revenue);
+        ('📊 Total Expenses:', response.data.total_expenses);
+        ('📊 Net Profit:', response.data.net_profit);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Summary fetched successfully'
+      };
+    } catch (error) {
+       ('❌ Raw error from getSummary:', error);
+       ('❌ Error response:', error.response);
+       ('❌ Error response data:', error.response?.data);
+      
+      // Silently handle 403 errors without throwing
+      if (error.response?.status === 403) {
+         ('🔒 403 Forbidden - returning empty data');
+        return {
+          success: true,
+          data: {
+            total_revenue: 0,
+            total_expenses: 0,
+            net_profit: 0
+          },
+          message: 'Summary fetched successfully'
+        };
+      }
+      
+      const errorResult = handleApiError(error, 'Failed to fetch summary');
+       ('❌ Processed error result:', errorResult);
+      return {
+        success: false,
+        error: errorResult.message,
+        fieldErrors: errorResult.fieldErrors,
+        data: null
+      };
+    }
   }
 };
 

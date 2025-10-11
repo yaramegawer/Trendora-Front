@@ -7,6 +7,7 @@ export const API_CONFIG = {
       LOGIN: '/user/log_in',
       FORGET_PASSWORD: '/user/forgetPassword',
       RESET_PASSWORD: '/user/resetPassword',
+      GET_PROFILE: '/user/get_profile',
     },
     HR: {
       EMPLOYEES: '/hr/employees',

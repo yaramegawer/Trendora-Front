@@ -86,7 +86,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     description: '',
     amount: '',
     due_date: '',
-    status: 'unpaid'
+    status: 'unpaid',
+    method: 'cash'
   });
   const [formFieldErrors, setFormFieldErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -149,7 +150,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
         description: invoice.description || '',
         amount: invoice.amount || '',
         due_date: invoice.due_date || '',
-        status: invoice.status || 'unpaid'
+        status: invoice.status || 'unpaid',
+        method: invoice.method || 'cash'
       });
     } else {
       setEditingInvoice(null);
@@ -159,7 +161,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
         description: '',
         amount: '',
         due_date: '',
-        status: 'unpaid'
+        status: 'unpaid',
+        method: 'cash'
       });
     }
     setFormFieldErrors({});
@@ -177,7 +180,8 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
       description: '',
       amount: '',
       due_date: '',
-      status: 'unpaid'
+      status: 'unpaid',
+      method: 'cash'
     });
     setFormFieldErrors({});
     setSubmitError('');
@@ -359,6 +363,10 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               <span class="info-label">Status:</span>
               <span class="status-badge status-${invoice.status || 'unpaid'}">${(invoice.status || 'unpaid').toUpperCase()}</span>
             </div>
+            <div class="info-row">
+              <span class="info-label">Payment Method:</span>
+              <span>${(invoice.method || 'cash').toUpperCase()}</span>
+            </div>
           </div>
           
           <div class="client-details">
@@ -539,6 +547,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                     <TableCell>Client Name</TableCell>
                     <TableCell>Amount</TableCell>
                     <TableCell>Status</TableCell>
+                    <TableCell>Method</TableCell>
                     <TableCell>Due Date</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
@@ -546,7 +555,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                 <TableBody>
                   {filteredInvoices.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
+                      <TableCell colSpan={7} align="center">
                         <Typography variant="body2" color="text.secondary">
                           {invoices.length === 0 
                             ? 'No invoices found. Create your first invoice to get started.'
@@ -581,6 +590,13 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                             label={invoice.status || 'unpaid'}
                             color={getStatusColor(invoice.status)}
                             size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={invoice.method || 'cash'}
+                            size="small"
+                            variant="outlined"
                           />
                         </TableCell>
                         <TableCell>
@@ -726,18 +742,6 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               Invoice Settings
             </Typography>
 
-            <TextField
-              fullWidth
-              label="Due Date"
-              type="date"
-              value={formData.due_date}
-              onChange={handleInputChange('due_date')}
-              InputLabelProps={{ shrink: true }}
-              required
-              error={!!formFieldErrors.due_date}
-              helperText={formFieldErrors.due_date || "Payment due date for this invoice"}
-            />
-
             <FormControl fullWidth error={!!formFieldErrors.status}>
               <InputLabel>Status</InputLabel>
               <Select
@@ -750,11 +754,41 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                 <MenuItem value="overdue">Overdue</MenuItem>
               </Select>
               {formFieldErrors.status && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'block' }}>
                   {formFieldErrors.status}
                 </Typography>
               )}
             </FormControl>
+
+            <FormControl fullWidth required error={!!formFieldErrors.method}>
+              <InputLabel>Payment Method</InputLabel>
+              <Select
+                value={formData.method}
+                onChange={handleInputChange('method')}
+                label="Payment Method"
+              >
+                <MenuItem value="visa">Visa</MenuItem>
+                <MenuItem value="wallet">Wallet</MenuItem>
+                <MenuItem value="cash">Cash</MenuItem>
+              </Select>
+              {formFieldErrors.method && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, display: 'block' }}>
+                  {formFieldErrors.method}
+                </Typography>
+              )}
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Due Date"
+              type="date"
+              value={formData.due_date}
+              onChange={handleInputChange('due_date')}
+              InputLabelProps={{ shrink: true }}
+              required
+              error={!!formFieldErrors.due_date}
+              helperText={formFieldErrors.due_date || "Payment due date for this invoice"}
+            />
 
             <Divider />
 
@@ -881,6 +915,14 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                       label={detailedInvoice.status || 'unpaid'}
                       color={getStatusColor(detailedInvoice.status)}
                       size="small"
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary">Payment Method</Typography>
+                    <Chip
+                      label={detailedInvoice.method || 'cash'}
+                      size="small"
+                      variant="outlined"
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>

@@ -231,6 +231,57 @@ export const userApiService = {
       }
     }
   },
+
+  // Get user profile
+  getUserProfile: async () => {
+    try {
+('Fetching user profile...');
+      
+      // Add token to request headers
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers.token = `Trendora ${token}`;
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
+      const response = await userApi.get(API_CONFIG.ENDPOINTS.USER.GET_PROFILE, { headers });
+      
+('User profile response:', response.data);
+      
+      // Check if the response indicates an error
+      if (response.data && response.data.success === false) {
+        const errorMessage = response.data.message || 'Failed to fetch user profile';
+        throw new Error(errorMessage);
+      }
+      
+      // Backend returns: { success: true, find_user: {...}, department: "Department Name" }
+      // Transform to a more convenient format
+      if (response.data && response.data.find_user) {
+        return {
+          ...response.data.find_user,
+          department: response.data.department, // Override with department name from backend
+        };
+      }
+      
+      return response.data;
+    } catch (error) {
+('Get user profile error:', error.response?.data || error.message);
+      
+      if (error.response?.status === 401) {
+        throw new Error('Authentication required. Please log in again.');
+      } else if (error.response?.status === 404) {
+        throw new Error('User profile not found');
+      } else if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error('Failed to fetch user profile. Please try again.');
+      }
+    }
+  },
 };
 
 export default userApiService;

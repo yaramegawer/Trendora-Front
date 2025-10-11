@@ -232,7 +232,8 @@ export const employeeApi = {
         status: employeeData.status || 'active',
         phone: employeeData.phone || employeeData.phone_number || '',
         role: employeeData.role || employeeData.user_role || 'Employee',
-        hireDate: employeeData.hireDate || employeeData.hire_date || employeeData.created_at || ''
+        hireDate: employeeData.hireDate || employeeData.hire_date || employeeData.created_at || '',
+        address: employeeData.address || ''
       };
       
       // Only include documents if they exist and are not empty

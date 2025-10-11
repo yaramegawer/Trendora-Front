@@ -18,7 +18,7 @@ const EmployeeStatus = {
   INACTIVE: 'inactive',
 };
 
-const Roles = ['Admin', 'Manager', 'Accountant', 'IT Staff', 'Employee', 'HR'];
+const Roles = [ 'Manager', 'Accountant', 'IT Staff', 'Employee', 'HR'];
 
 const DocumentTypes = [
   'ID Copy',
@@ -228,9 +228,8 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         hireDate: formData.hireDate,
         phone: formData.phone,
         status: formData.status,
-        role: formData.role
-        // address field removed as it's not allowed by backend validation
-        // submittedDocuments and pendingDocuments will be handled by the API service
+        role: formData.role,
+        address: formData.address
       };
       
       // Only include documents if they exist and are not empty

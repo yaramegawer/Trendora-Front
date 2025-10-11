@@ -1,10 +1,11 @@
 import React, { memo, useState, useEffect } from 'react';
 import { Box, Typography, Card, CardContent, CircularProgress, Alert, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Grid, Avatar, Stack } from '@mui/material';
-import { Dashboard, EventNote } from '@mui/icons-material';
+import { Dashboard, EventNote, EmailOutlined, PhoneOutlined, BusinessOutlined, WorkOutlineOutlined, CalendarTodayOutlined } from '@mui/icons-material';
 // Removed unused hooks for simplified dashboard
 import { useAuth } from '../../contexts/AuthContext';
 import SimplePagination from '../common/SimplePagination';
 import api from '../../api/axios';
+import { userApiService } from '../../services/userApi';
 
 
 const OverviewDashboard = memo(() => {
@@ -24,7 +25,51 @@ const OverviewDashboard = memo(() => {
       rejected: 0
     });
     
+    // User profile state
+    const [userProfile, setUserProfile] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [profileError, setProfileError] = useState('');
+    
     // Removed unused data hooks for simplified dashboard
+
+    // Fetch user profile
+    const fetchUserProfile = async () => {
+      setProfileLoading(true);
+      setProfileError('');
+      try {
+        const profile = await userApiService.getUserProfile();
+        setUserProfile(profile);
+      } catch (err) {
+        setProfileError(err.message || 'Failed to fetch user profile');
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    // Helper function to get full name
+    const getFullName = () => {
+      if (profileLoading) return 'Loading...';
+      
+      const profile = userProfile || user;
+      if (!profile) return 'USER';
+      
+      // Try to get first and last name
+      if (profile.firstName && profile.lastName) {
+        return `${profile.firstName} ${profile.lastName}`.toUpperCase();
+      }
+      
+      // If name exists, return it as is
+      if (profile.name) {
+        return profile.name.toUpperCase();
+      }
+      
+      // Fallback to email prefix
+      if (profile.email) {
+        return profile.email.split('@')[0].toUpperCase();
+      }
+      
+      return 'USER';
+    };
 
     // Fetch user leaves with pagination (deferred for better LCP)
     const fetchUserLeaves = async (page = userLeavesCurrentPage, limit = userLeavesPageSize) => {
@@ -137,6 +182,11 @@ const OverviewDashboard = memo(() => {
       fetchUserLeaves(newPage, userLeavesPageSize);
     };
 
+    // Fetch user profile on component mount
+    useEffect(() => {
+      fetchUserProfile();
+    }, []);
+
     // Fetch leaves when component mounts or when leaves tab is selected
     useEffect(() => {
       if (activeTab === 1) { // Leaves tab
@@ -175,7 +225,7 @@ const OverviewDashboard = memo(() => {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1.75rem' }}>
-          Welcome back, {user?.name ? user.name.split('.')[0].split(' ')[0] : 'User'}!
+          Welcome back, {getFullName()}!
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Your comprehensive business management dashboard
@@ -213,20 +263,157 @@ const OverviewDashboard = memo(() => {
       {/* Tab Content */}
       {activeTab === 0 && (
         <Box id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
-          {/* Welcome Section */}
-          <Card sx={{ mb: 4 }}>
-            <CardContent sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                Welcome to Trendora Dashboard
-              </Typography>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                Hello, {user?.name ? user.name.split('.')[0].split(' ')[0] : 'User'}!
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Your comprehensive business management platform is ready to help you stay organized and productive.
-              </Typography>
-            </CardContent>
-          </Card>
+          {profileError && (
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              {profileError}
+            </Alert>
+          )}
+
+          {/* User Profile Summary Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {/* Name and Contact Card */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ 
+                height: '100%',
+                background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+                borderRadius: 3,
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 12px 40px rgba(30, 60, 114, 0.4)'
+                }
+              }}>
+                <CardContent sx={{ p: 4 }}>
+                  <Stack direction="row" spacing={3} alignItems="center">
+                    <Avatar
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        fontSize: '2.5rem',
+                        bgcolor: 'white',
+                        color: '#1e3c72',
+                        border: '4px solid rgba(255, 255, 255, 0.3)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 
+                       userProfile?.firstName ? userProfile.firstName.charAt(0).toUpperCase() :
+                       user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 1.5, letterSpacing: 0.5 }}>
+                        {getFullName()}
+                      </Typography>
+                      <Stack spacing={1}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <EmailOutlined sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '1.1rem' }} />
+                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '0.95rem' }}>
+                            {userProfile?.email || user?.email || 'N/A'}
+                          </Typography>
+                        </Box>
+                        {userProfile?.phone && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PhoneOutlined sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '1.1rem' }} />
+                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '0.95rem' }}>
+                              {userProfile.phone}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Department Card */}
+            {userProfile?.department && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ 
+                  height: '100%',
+                  background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+                  borderRadius: 3,
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 12px 40px rgba(15, 32, 39, 0.4)'
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <BusinessOutlined sx={{ color: 'white', fontSize: '2.5rem' }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 1, fontWeight: 600 }}>
+                      Department
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
+                      {typeof userProfile.department === 'string' 
+                        ? userProfile.department 
+                        : userProfile.department?.name || 'N/A'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* Position Card */}
+            {userProfile?.position && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ 
+                  height: '100%',
+                  background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+                  borderRadius: 3,
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 12px 40px rgba(15, 32, 39, 0.4)'
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <WorkOutlineOutlined sx={{ color: 'white', fontSize: '2.5rem' }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 1, fontWeight: 600 }}>
+                      Position
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
+                      {userProfile.position}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* Hire Date Card */}
+            {(userProfile?.joinDate || userProfile?.hireDate || userProfile?.createdAt) && (
+              <Grid item xs={12} sm={6} md={userProfile?.position ? 12 : 3}>
+                <Card sx={{ 
+                  height: '100%',
+                  background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+                  borderRadius: 3,
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 12px 40px rgba(15, 32, 39, 0.4)'
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <CalendarTodayOutlined sx={{ color: 'white', fontSize: '2.5rem' }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 1, fontWeight: 600 }}>
+                      Hire Date
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
+                      {userProfile?.joinDate ? new Date(userProfile.joinDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) :
+                       userProfile?.hireDate ? new Date(userProfile.hireDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) :
+                       userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+          </Grid>
 
 
 

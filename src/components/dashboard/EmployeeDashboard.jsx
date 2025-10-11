@@ -5,18 +5,10 @@ import {
   Card,
   CardContent,
   Button,
-  Stack,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   CircularProgress,
   Grid,
-  Avatar,
   Divider,
-  MenuItem,
   Tabs,
   Tab,
   Chip,
@@ -26,18 +18,22 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Avatar,
+  Stack
 } from '@mui/material';
 import {
-  EventNoteOutlined,
-  SupportAgentOutlined,
-  SendOutlined,
-  CloseOutlined
+  EmailOutlined,
+  PhoneOutlined,
+  BusinessOutlined,
+  WorkOutlineOutlined,
+  CalendarTodayOutlined
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
 import { API_CONFIG } from '../../config/api';
 import SimplePagination from '../common/SimplePagination';
+import { userApiService } from '../../services/userApi';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -57,6 +53,9 @@ const EmployeeDashboard = () => {
   const [ticketsTotal, setTicketsTotal] = useState(0);
   const [leavesPage, setLeavesPage] = useState(1);
   const [leavesTotal, setLeavesTotal] = useState(0);
+  const [userProfile, setUserProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
 
 
   // Leave form state
@@ -245,6 +244,45 @@ const EmployeeDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch user profile
+  const fetchUserProfile = async () => {
+    setProfileLoading(true);
+    setProfileError('');
+    try {
+      const profile = await userApiService.getUserProfile();
+      setUserProfile(profile);
+    } catch (err) {
+      setProfileError(err.message || 'Failed to fetch user profile');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Helper function to get full name
+  const getFullName = () => {
+    if (profileLoading) return 'Loading...';
+    
+    const profile = userProfile || user;
+    if (!profile) return 'EMPLOYEE';
+    
+    // Try to get first and last name
+    if (profile.firstName && profile.lastName) {
+      return `${profile.firstName} ${profile.lastName}`.toUpperCase();
+    }
+    
+    // If name exists, return it as is
+    if (profile.name) {
+      return profile.name.toUpperCase();
+    }
+    
+    // Fallback to email prefix
+    if (profile.email) {
+      return profile.email.split('@')[0].toUpperCase();
+    }
+    
+    return 'EMPLOYEE';
   };
 
   const handleTicketSubmit = async () => {
@@ -570,6 +608,11 @@ const EmployeeDashboard = () => {
     fetchLeaves(newPage);
   };
 
+  // Fetch user profile on component mount
+  React.useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
   // Fetch leaves when component mounts or when leaves tab is selected
   React.useEffect(() => {
     if (activeTab === 1) { // Leaves tab
@@ -632,15 +675,157 @@ const EmployeeDashboard = () => {
       backgroundColor: 'grey.50', 
       minHeight: '100vh'
     }}>
-      {/* Header */}
-      <Box sx={{ mb: 6, textAlign: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-          Welcome back, {user?.name ? user.name.split('.')[0].split(' ')[0] : 'Employee'}!
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Submit your leave requests and support tickets, and view your submitted requests here.
-        </Typography>
-      </Box>
+      {profileError && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {profileError}
+        </Alert>
+      )}
+
+      {/* User Profile Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Name and Contact Card */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ 
+            height: '100%',
+            background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+            borderRadius: 3,
+            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+            '&:hover': {
+              transform: 'translateY(-8px)',
+              boxShadow: '0 12px 40px rgba(30, 60, 114, 0.4)'
+            }
+          }}>
+            <CardContent sx={{ p: 4 }}>
+              <Stack direction="row" spacing={3} alignItems="center">
+                <Avatar
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    fontSize: '2.5rem',
+                    bgcolor: 'white',
+                    color: '#1e3c72',
+                    border: '4px solid rgba(255, 255, 255, 0.3)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 
+                   userProfile?.firstName ? userProfile.firstName.charAt(0).toUpperCase() :
+                   user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 1.5, letterSpacing: 0.5 }}>
+                    {getFullName()}
+                  </Typography>
+                  <Stack spacing={1}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <EmailOutlined sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '1.1rem' }} />
+                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '0.95rem' }}>
+                        {userProfile?.email || user?.email || 'N/A'}
+                      </Typography>
+                    </Box>
+                    {userProfile?.phone && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PhoneOutlined sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '1.1rem' }} />
+                        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontSize: '0.95rem' }}>
+                          {userProfile.phone}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Department Card */}
+        {userProfile?.department && (
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+              borderRadius: 3,
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 40px rgba(15, 32, 39, 0.4)'
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <BusinessOutlined sx={{ color: 'white', fontSize: '2.5rem' }} />
+                </Box>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 1, fontWeight: 600 }}>
+                  Department
+                </Typography>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
+                  {typeof userProfile.department === 'string' 
+                    ? userProfile.department 
+                    : userProfile.department?.name || 'N/A'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Position Card */}
+        {userProfile?.position && (
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+              borderRadius: 3,
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 40px rgba(15, 32, 39, 0.4)'
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <WorkOutlineOutlined sx={{ color: 'white', fontSize: '2.5rem' }} />
+                </Box>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 1, fontWeight: 600 }}>
+                  Position
+                </Typography>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
+                  {userProfile.position}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Hire Date Card */}
+        {(userProfile?.joinDate || userProfile?.hireDate || userProfile?.createdAt) && (
+          <Grid item xs={12} sm={6} md={userProfile?.position ? 12 : 3}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #0f2027 0%, #203a43 100%)',
+              borderRadius: 3,
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 40px rgba(15, 32, 39, 0.4)'
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <CalendarTodayOutlined sx={{ color: 'white', fontSize: '2.5rem' }} />
+                </Box>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 1, fontWeight: 600 }}>
+                  Hire Date
+                </Typography>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
+                  {userProfile?.joinDate ? new Date(userProfile.joinDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) :
+                   userProfile?.hireDate ? new Date(userProfile.hireDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) :
+                   userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
 
       {/* Success/Error Messages */}
       {success && (
@@ -689,19 +874,14 @@ const EmployeeDashboard = () => {
                   justifyContent: 'space-between'
                 }}>
                   <Box>
-                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
-                        <EventNoteOutlined sx={{ fontSize: 28 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                          Submit Leave Request
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Request time off for vacation, sick leave, or personal matters
-                        </Typography>
-                      </Box>
-                    </Stack>
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 1 }}>
+                        Submit Leave Request
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Request time off for vacation, sick leave, or personal matters
+                      </Typography>
+                    </Box>
                     
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                       Submit a leave request with your preferred dates and reason. Your manager will review and approve your request.
@@ -712,7 +892,6 @@ const EmployeeDashboard = () => {
                     variant="contained"
                     fullWidth
                     size="large"
-                    startIcon={<SendOutlined />}
                     onClick={() => setLeaveDialogOpen(true)}
                     sx={{
                       py: 1.5,
@@ -744,19 +923,14 @@ const EmployeeDashboard = () => {
                   justifyContent: 'space-between'
                 }}>
                   <Box>
-                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-                      <Avatar sx={{ bgcolor: 'info.main', width: 56, height: 56 }}>
-                        <SupportAgentOutlined sx={{ fontSize: 28 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                          Submit Support Ticket
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Get help with technical issues or general inquiries
-                        </Typography>
-                      </Box>
-                    </Stack>
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 1 }}>
+                        Submit Support Ticket
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Get help with technical issues or general inquiries
+                      </Typography>
+                    </Box>
                     
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                       Submit a support ticket for any technical issues, questions, or assistance you need. Our support team will respond promptly.
@@ -767,7 +941,6 @@ const EmployeeDashboard = () => {
                     variant="contained"
                     fullWidth
                     size="large"
-                    startIcon={<SendOutlined />}
                     onClick={() => setTicketDialogOpen(true)}
                     color="info"
                     sx={{
