@@ -26,8 +26,7 @@ import {
   Globe,
   Camera,
   PenTool,
-  Palette,
-  RefreshCw
+  Palette
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -48,6 +47,20 @@ const DigitalMarketingDepartment = () => {
     error: employeesError
   } = marketingEmployeesHook;
   const updateRating = marketingEmployeesHook.updateRating;
+  
+  // Debug logging for employees
+  useEffect(() => {
+     ('🔍 Marketing Employees Data:', {
+      count: employees.length,
+      loading: employeesLoading,
+      error: employeesError,
+      employees: employees
+    });
+    
+    if (employees.length === 0 && !employeesLoading) {
+      console.warn('⚠️ No employees found for Digital Marketing department');
+    }
+  }, [employees, employeesLoading, employeesError]);
   
   // Filter state for projects (used for filtering customer list)
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
@@ -514,9 +527,17 @@ const DigitalMarketingDepartment = () => {
       return;
     }
     
+    // Validate notes minimum length if not empty (backend: joi.string().min(5).max(200).allow("").optional())
+    if (newProject.notes) {
+      const trimmedProjectNotes = newProject.notes.trim();
+      if (trimmedProjectNotes.length > 0 && trimmedProjectNotes.length < 5) {
+        showWarning('Notes must be at least 5 characters or left empty');
+        return;
+      }
+    }
+    
     try {
       // Use real API to create project
-      // Try with customerName field first, fallback to notes if backend doesn't support it yet
       const projectData = {
         name: newProject.name,
         description: newProject.description,
@@ -524,10 +545,10 @@ const DigitalMarketingDepartment = () => {
         endDate: newProject.endDate,
         status: newProject.status,
         members: newProject.members, // Send the IDs directly, not the full objects
-        notes: newProject.customerName ? `Customer: ${newProject.customerName}${newProject.notes ? '\n\n' + newProject.notes : ''}` : newProject.notes
+        notes: newProject.notes || '' // Send notes as-is (allow empty string)
       };
       
-      // Try to add customerName field if backend supports it
+      // Add customerName field separately (don't mix it into notes)
       if (newProject.customerName) {
         projectData.customerName = newProject.customerName;
       }
@@ -567,11 +588,11 @@ const DigitalMarketingDepartment = () => {
             endDate: newProject.endDate,
             status: newProject.status,
             members: newProject.members,
-            notes: newProject.customerName ? `Customer: ${newProject.customerName}${newProject.notes ? '\n\n' + newProject.notes : ''}` : newProject.notes
+            notes: newProject.notes || '' // Send notes as-is, don't mix with customer name
           };
           
           await createProject(fallbackProjectData);
-          showSuccess('Project created successfully! (Customer name stored in notes)');
+          showSuccess('Project created successfully! (Note: Customer name field not supported by backend)');
           setNewProject({
             name: '',
             description: '',
@@ -763,15 +784,14 @@ const DigitalMarketingDepartment = () => {
       }
       
       // Filter out fields that are not allowed in update requests
-      const allowedFields = ['id', 'name', 'description', 'customerName', 'status', 'members', 'notes', 'startDate', 'endDate'];
+      const allowedFields = ['name', 'description', 'customerName', 'status', 'members', 'notes', 'startDate', 'endDate'];
       const updateData = {};
       
-      // Include the ID in the request body (required by backend schema)
-      updateData.id = projectId;
+      // Don't include ID in the request body - it's already in the URL
       
-      // Include other allowed fields in the update data
+      // Include allowed fields in the update data
       allowedFields.forEach(field => {
-        if (field !== 'id' && editingProject.hasOwnProperty(field)) {
+        if (editingProject.hasOwnProperty(field)) {
           if (field === 'members') {
             // Handle members specially - extract IDs from objects if needed
             if (editingProject.members && editingProject.members.length > 0) {
@@ -792,19 +812,17 @@ const DigitalMarketingDepartment = () => {
               updateData[field] = editingProject[field];
             }
           } else if (field === 'notes') {
-            // Handle notes field specially to include customer name if customerName field is not supported
-            const customerName = editingProject.customerName || '';
+            // Handle notes field specially - allow clearing notes completely
             const originalNotes = editingProject.notes || '';
             
-            // Remove existing customer prefix if it exists
+            // Remove existing customer prefix if it exists to get the actual notes content
             const cleanNotes = originalNotes.replace(/^Customer:\s*.*?(?:\n|$)/, '').trim();
             
-            // Add customer name prefix if it exists
-            if (customerName) {
-              updateData[field] = `Customer: ${customerName}${cleanNotes ? '\n\n' + cleanNotes : ''}`;
-            } else {
-              updateData[field] = cleanNotes;
-            }
+            // Always use the clean notes (allow empty string to clear the field)
+            updateData[field] = cleanNotes;
+          } else if (field === 'description' || field === 'name' || field === 'status' || field === 'startDate' || field === 'endDate') {
+            // Always include these fields
+            updateData[field] = editingProject[field];
           } else {
             updateData[field] = editingProject[field];
           }
@@ -816,12 +834,36 @@ const DigitalMarketingDepartment = () => {
         throw new Error('Project name must be at least 3 characters');
       }
       
+      // Validate notes minimum length if not empty (backend: joi.string().min(5).max(200).allow("").optional())
+      // Notes are already trimmed in the forEach loop above
+      if (updateData.notes !== undefined) {
+        if (updateData.notes.length > 0 && updateData.notes.length < 5) {
+          throw new Error('Notes must be at least 5 characters or left empty');
+        }
+      }
+      
+      // Debug: Log what we're sending
+       ('📤 Updating project ID:', projectId);
+       ('📤 Update data being sent:', JSON.stringify(updateData, null, 2));
+       ('📤 Notes value:', updateData.notes);
+       ('📤 Notes length:', updateData.notes?.length || 0);
+      
       // Try the update
       await updateProject(projectId, updateData);
       showSuccess('Project updated successfully!');
       setShowEditProject(false);
       setEditingProject(null);
       setIsEditNewCustomer(false);
+      
+      // Auto-refresh data after update with correct pagination
+      await fetchProjects(1, 1000); // Reload all projects
+      await fetchCustomers();
+      
+      // If viewing a specific customer, refresh their projects too
+      if (showCustomerSections && selectedCustomer) {
+        const customerName = selectedCustomer?.name || selectedCustomer;
+        await fetchCustomerProjects(customerName, customerProjectsCurrentPage, customerProjectsPageSize);
+      }
       
     } catch (error) {
         console.error('Error updating project:', error);
@@ -835,21 +877,37 @@ const DigitalMarketingDepartment = () => {
           const fallbackUpdateData = { ...updateData };
           delete fallbackUpdateData.customerName;
           
-          // Ensure customer name is in notes if it exists
-          const customerName = editingProject.customerName || '';
-          if (customerName) {
-            const originalNotes = editingProject.notes || '';
-            // Remove existing customer prefix if it exists
-            const cleanNotes = originalNotes.replace(/^Customer:\s*.*?(?:\n|$)/, '').trim();
-            // Add customer name prefix
-            fallbackUpdateData.notes = `Customer: ${customerName}${cleanNotes ? '\n\n' + cleanNotes : ''}`;
+          // Handle notes - allow clearing completely
+          const originalNotes = editingProject.notes || '';
+          const cleanNotes = originalNotes.replace(/^Customer:\s*.*?(?:\n|$)/, '').trim();
+          
+          // Always use clean notes (allow empty string to clear the field)
+          fallbackUpdateData.notes = cleanNotes;
+          
+          // Validate notes in fallback too (already trimmed above)
+          if (fallbackUpdateData.notes !== undefined) {
+            if (fallbackUpdateData.notes.length > 0 && fallbackUpdateData.notes.length < 5) {
+              throw new Error('Notes must be at least 5 characters or left empty');
+            }
           }
+          
+           ('📤 Fallback update data:', JSON.stringify(fallbackUpdateData, null, 2));
           
           await updateProject(projectId, fallbackUpdateData);
           showSuccess('Project updated successfully! (Customer name stored in notes)');
           setShowEditProject(false);
           setEditingProject(null);
           setIsEditNewCustomer(false);
+          
+          // Auto-refresh data after fallback update with correct pagination
+          await fetchProjects(1, 1000); // Reload all projects
+          await fetchCustomers();
+          
+          // If viewing a specific customer, refresh their projects too
+          if (showCustomerSections && selectedCustomer) {
+            const customerName = selectedCustomer?.name || selectedCustomer;
+            await fetchCustomerProjects(customerName, customerProjectsCurrentPage, customerProjectsPageSize);
+          }
           return;
         } catch (fallbackError) {
           console.error('Error updating project (fallback):', fallbackError);
@@ -875,6 +933,16 @@ const DigitalMarketingDepartment = () => {
       // Use real API to delete project
       await deleteProject(projectId);
       showSuccess('Project deleted successfully!');
+      
+      // Auto-refresh data after delete with correct pagination
+      await fetchProjects(1, 1000); // Reload all projects
+      await fetchCustomers();
+      
+      // If viewing a specific customer, refresh their projects too
+      if (showCustomerSections && selectedCustomer) {
+        const customerName = selectedCustomer?.name || selectedCustomer;
+        await fetchCustomerProjects(customerName, customerProjectsCurrentPage, customerProjectsPageSize);
+      }
     } catch (error) {
       console.error('Error deleting project:', error);
       showError('Failed to delete project: ' + error.message);
@@ -1467,39 +1535,7 @@ const DigitalMarketingDepartment = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>Marketing Projects</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '8px 12px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontWeight: '500',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onClick={() => {
-                  fetchProjects(1, 1000); // Refresh all projects
-                  fetchCustomers(); // Also refresh customers list
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#e5e7eb';
-                  e.target.style.borderColor = '#9ca3af';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = '#f3f4f6';
-                  e.target.style.borderColor = '#d1d5db';
-                }}
-                disabled={projectsLoading}
-                >
-                  <RefreshCw size={16} className={projectsLoading ? 'animate-spin' : ''} />
-                  {projectsLoading ? 'Refreshing...' : 'Refresh'}
-                </button>
-                <button style={{
+              <button style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
@@ -1520,7 +1556,6 @@ const DigitalMarketingDepartment = () => {
                   <Plus size={16} />
                   New Project
                 </button>
-              </div>
             </div>
 
             {/* Search and Filter Section */}
@@ -1738,38 +1773,6 @@ const DigitalMarketingDepartment = () => {
                       Projects for {selectedCustomer?.name || selectedCustomer}
                     </h3>
                   </div>
-                  <button
-                    onClick={() => {
-                      const customerName = selectedCustomer?.name || selectedCustomer;
-                      fetchCustomerProjects(customerName, customerProjectsCurrentPage, customerProjectsPageSize);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '8px 12px',
-                      backgroundColor: '#f3f4f6',
-                      color: '#374151',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontWeight: '500',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.backgroundColor = '#e5e7eb';
-                      e.target.style.borderColor = '#9ca3af';
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.backgroundColor = '#f3f4f6';
-                      e.target.style.borderColor = '#d1d5db';
-                    }}
-                    disabled={customerProjectsLoading}
-                  >
-                    <RefreshCw size={16} className={customerProjectsLoading ? 'animate-spin' : ''} />
-                    {customerProjectsLoading ? 'Refreshing...' : 'Refresh'}
-                  </button>
                 </div>
                 
                 {customerProjectsLoading ? (
@@ -2169,33 +2172,60 @@ const DigitalMarketingDepartment = () => {
                 <div style={{ marginBottom: '16px' }}>
                   <label htmlFor="project-members" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Team Members                  </label>
-                  <select
-                    id="project-members"
-                    multiple
-                    value={newProject.members}
-                    onChange={(e) => {
-                      const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-                      setNewProject(prev => ({ ...prev, members: selectedOptions }));
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
+                  {employees.length === 0 && !employeesLoading ? (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#fef2f2',
+                      border: '1px solid #fecaca',
                       borderRadius: '4px',
                       fontSize: '14px',
-                      minHeight: '100px'
-                    }}
-                    required
-                  >
-                    {employees.map(employee => (
-                      <option key={employee.id || employee._id} value={employee.id || employee._id}>
-                        {employee.firstName} {employee.lastName}
-                      </option>
-                    ))}
-                  </select>
-                  <small style={{ color: '#6b7280', fontSize: '12px' }}>
-                    Hold Ctrl/Cmd to select multiple members
-                  </small>
+                      color: '#dc2626'
+                    }}>
+                      <strong>⚠️ No team members available</strong>
+                      <p style={{ marginTop: '4px', fontSize: '12px', color: '#991b1b' }}>
+                        {employeesError 
+                          ? `Error: ${employeesError}. Please check the browser console for details.`
+                          : 'No employees found in the Digital Marketing department. Please ensure employees are assigned to this department in the backend.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        id="project-members"
+                        multiple
+                        value={newProject.members}
+                        onChange={(e) => {
+                          const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                          setNewProject(prev => ({ ...prev, members: selectedOptions }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minHeight: '100px'
+                        }}
+                        required
+                        disabled={employeesLoading}
+                      >
+                        {employeesLoading ? (
+                          <option disabled>Loading team members...</option>
+                        ) : employees.length === 0 ? (
+                          <option disabled>No team members available</option>
+                        ) : (
+                          employees.map(employee => (
+                            <option key={employee.id || employee._id} value={employee.id || employee._id}>
+                              {employee.firstName} {employee.lastName}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                        Hold Ctrl/Cmd to select multiple members
+                      </small>
+                    </>
+                  )}
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
@@ -2482,32 +2512,59 @@ const DigitalMarketingDepartment = () => {
                 <div style={{ marginBottom: '16px' }}>
                   <label htmlFor="edit-project-members" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Team Members                  </label>
-                  <select
-                    id="edit-project-members"
-                    multiple
-                    value={editingProject.members || []}
-                    onChange={(e) => {
-                      const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
-                      setEditingProject(prev => ({ ...prev, members: selectedIds }));
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
+                  {employees.length === 0 && !employeesLoading ? (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#fef2f2',
+                      border: '1px solid #fecaca',
                       borderRadius: '4px',
                       fontSize: '14px',
-                      minHeight: '80px'
-                    }}
-                  >
-                    {employees.map(employee => (
-                      <option key={employee.id || employee._id} value={employee.id || employee._id}>
-                        {employee.name || employee.firstName} {employee.lastName || ''}
-                      </option>
-                    ))}
-                  </select>
-                  <small style={{ color: '#6b7280', fontSize: '12px' }}>
-                    Hold Ctrl/Cmd to select multiple members
-                  </small>
+                      color: '#dc2626'
+                    }}>
+                      <strong>⚠️ No team members available</strong>
+                      <p style={{ marginTop: '4px', fontSize: '12px', color: '#991b1b' }}>
+                        {employeesError 
+                          ? `Error: ${employeesError}. Please check the browser console for details.`
+                          : 'No employees found in the Digital Marketing department. Please ensure employees are assigned to this department in the backend.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        id="edit-project-members"
+                        multiple
+                        value={editingProject.members || []}
+                        onChange={(e) => {
+                          const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
+                          setEditingProject(prev => ({ ...prev, members: selectedIds }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minHeight: '80px'
+                        }}
+                        disabled={employeesLoading}
+                      >
+                        {employeesLoading ? (
+                          <option disabled>Loading team members...</option>
+                        ) : employees.length === 0 ? (
+                          <option disabled>No team members available</option>
+                        ) : (
+                          employees.map(employee => (
+                            <option key={employee.id || employee._id} value={employee.id || employee._id}>
+                              {employee.name || employee.firstName} {employee.lastName || ''}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                        Hold Ctrl/Cmd to select multiple members
+                      </small>
+                    </>
+                  )}
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>

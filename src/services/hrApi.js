@@ -240,9 +240,12 @@ export const employeeApi = {
         hireDate: employeeData.hireDate || employeeData.hire_date || employeeData.created_at || ''
       };
       
-      // Only include address if it has actual content (min 5 chars per backend validation)
-      if (employeeData.address && employeeData.address.trim().length >= 5) {
-        cleanedData.address = employeeData.address.trim();
+      // Handle address field (backend allows empty string to clear the field)
+      // Backend validation: joi.string().min(5).max(200).allow("").optional()
+      if (employeeData.address !== undefined) {
+        const trimmedAddress = employeeData.address.trim();
+        // Always include address if it's provided (empty string or valid content)
+        cleanedData.address = trimmedAddress;
       }
       
       // Only include documents if they exist and are not empty

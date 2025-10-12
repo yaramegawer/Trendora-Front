@@ -44,10 +44,10 @@ const Toast = ({ open, message, type = 'info', duration = 4000, onClose }) => {
       anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       TransitionComponent={SlideTransition}
       sx={{
-        marginTop: '64px', // Below the app bar
+        marginTop: '16px', // Higher position on the page
         marginRight: '16px', // Space from right edge
         '& .MuiSnackbar-root': {
-          top: '80px',
+          top: '16px',
         }
       }}
     >

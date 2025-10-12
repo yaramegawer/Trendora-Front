@@ -40,7 +40,14 @@ const apiCall = async (endpoint, options = {}) => {
 export const marketingEmployeeApi = {
   // Get all Marketing employees
   getAllEmployees: async () => {
-    return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.EMPLOYEES);
+    try {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.MARKETING.EMPLOYEES);
+       ('✅ Marketing Employees API Response:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Marketing Employees API Error:', error);
+      throw error; // Don't silently catch - let the hook handle it
+    }
   },
 
   // Update employee rating

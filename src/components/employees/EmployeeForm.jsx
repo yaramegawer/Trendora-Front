@@ -237,13 +237,15 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         role: formData.role
       };
       
-      // Only include address if it has actual content (address is optional)
-      // Never send empty strings or whitespace-only values
+      // Handle address field (backend: joi.string().min(5).max(200).allow("").optional())
+      // Always include address field to allow clearing it with empty string
       const trimmedAddress = formData.address ? formData.address.trim() : '';
-      if (trimmedAddress && trimmedAddress.length > 0) {
-        dataToSend.address = trimmedAddress;
+      if (trimmedAddress.length > 0 && trimmedAddress.length < 5) {
+        // If address has content, validate minimum length
+        throw new Error('Address must be at least 5 characters or left empty');
       }
-      // If address is empty, completely omit it from the request
+      // Always send address (empty string or valid content)
+      dataToSend.address = trimmedAddress;
       
       // Only include documents if they exist and are not empty
       if (formData.submittedDocuments && formData.submittedDocuments.length > 0) {

@@ -24,41 +24,41 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  console.log('AuthProvider: Component starting to render');
+   ('AuthProvider: Component starting to render');
   
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  console.log('AuthProvider: Initial state:', { user, isAuthenticated, loading });
+   ('AuthProvider: Initial state:', { user, isAuthenticated, loading });
 
   useEffect(() => {
-    console.log('AuthProvider: useEffect running');
+     ('AuthProvider: useEffect running');
     
     // Check if user is already logged in (from localStorage)
     const checkAuth = () => {
       try {
-        console.log('AuthProvider: Checking authentication from localStorage');
+         ('AuthProvider: Checking authentication from localStorage');
         
         const storedUser = localStorage.getItem('user');
         const storedAuth = localStorage.getItem('isAuthenticated');
         
-        console.log('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
+         ('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
         
         if (storedUser && storedAuth === 'true') {
-          console.log('AuthProvider: User found in localStorage, setting authenticated state');
+           ('AuthProvider: User found in localStorage, setting authenticated state');
           setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
         } else {
-          console.log('AuthProvider: No valid user data in localStorage');
+           ('AuthProvider: No valid user data in localStorage');
         }
       } catch (error) {
-        console.log('AuthProvider: Error checking authentication:', error);
+         ('AuthProvider: Error checking authentication:', error);
         // Clear invalid data
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
       } finally {
-        console.log('AuthProvider: Setting loading to false');
+         ('AuthProvider: Setting loading to false');
         setLoading(false);
       }
     };
@@ -75,10 +75,37 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Email and password are required');
       }
       
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        throw new Error('Please enter a valid email address');
+      // Trim email to remove whitespace
+      const trimmedEmail = email.trim();
+      
+      // Enhanced Email validation
+      // Check for basic format first
+      if (!trimmedEmail || trimmedEmail.length === 0) {
+        throw new Error('Email address is required');
+      }
+      
+      // Check if email starts with @ (no local part)
+      if (trimmedEmail.startsWith('@')) {
+        throw new Error('Invalid email format. Email cannot start with @');
+      }
+      
+      // More comprehensive email validation
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      
+      if (!emailRegex.test(trimmedEmail)) {
+        throw new Error('Invalid email format. Please enter a valid email address (e.g., user@example.com).');
+      }
+      
+      // Additional validation: Check if email has proper structure (local@domain.tld)
+      const emailParts = trimmedEmail.split('@');
+      if (emailParts.length !== 2 || !emailParts[0] || !emailParts[1]) {
+        throw new Error('Invalid email format. Please enter a valid email address (e.g., user@example.com).');
+      }
+      
+      // Check if domain has at least one dot and valid TLD
+      const domainParts = emailParts[1].split('.');
+      if (domainParts.length < 2 || !domainParts[domainParts.length - 1] || domainParts[domainParts.length - 1].length < 2) {
+        throw new Error('Invalid email domain. Please use a valid domain (e.g., gmail.com, company.com).');
       }
       
       // Password validation (minimum length check)
@@ -97,13 +124,13 @@ export const AuthProvider = ({ children }) => {
       const data = response.data;
       
       // Debug logging
-      console.log('Login response data:', data);
-      console.log('Response success field:', data.success);
-      console.log('Response message:', data.message);
-      console.log('Data keys:', Object.keys(data));
-      console.log('Data.user:', data.user);
-      console.log('Data.id:', data.id);
-      console.log('Data.token:', data.token);
+       ('Login response data:', data);
+       ('Response success field:', data.success);
+       ('Response message:', data.message);
+       ('Data keys:', Object.keys(data));
+       ('Data.user:', data.user);
+       ('Data.id:', data.id);
+       ('Data.token:', data.token);
       
       // Validate that we have a valid response
       if (!data) {
@@ -112,7 +139,7 @@ export const AuthProvider = ({ children }) => {
       
       // Check if the response indicates authentication failure (backend returns success: false)
       if (data.success === false) {
-        console.log('Login failed - success is false');
+         ('Login failed - success is false');
         const errorMessage = data.message || 'Invalid credentials';
         // Provide more helpful error message for invalid credentials
         if (errorMessage.includes('invalid credentials')) {
@@ -129,13 +156,13 @@ export const AuthProvider = ({ children }) => {
       // Check if we have a token in the response
       const token = data.token || data.accessToken || data.access_token || data.jwt;
       if (!token) {
-        console.log('No token found in response. Available fields:', Object.keys(data));
+         ('No token found in response. Available fields:', Object.keys(data));
         throw new Error('No authentication token received from server. Please check your credentials.');
       }
       
       // Debug: Log the token to see its structure
-      console.log('🔍 Token received:', token.substring(0, 50) + '...');
-      console.log('🔍 Full response data:', data);
+       ('🔍 Token received:', token.substring(0, 50) + '...');
+       ('🔍 Full response data:', data);
       
       // Try to decode token immediately to see its structure
       try {
@@ -143,14 +170,14 @@ export const AuthProvider = ({ children }) => {
         if (tokenParts.length === 3) {
           const header = JSON.parse(atob(tokenParts[0]));
           const payload = JSON.parse(atob(tokenParts[1]));
-          console.log('🔍 Token header:', header);
-          console.log('🔍 Token payload (raw):', payload);
-          console.log('🔍 Token payload keys:', Object.keys(payload));
+           ('🔍 Token header:', header);
+           ('🔍 Token payload (raw):', payload);
+           ('🔍 Token payload keys:', Object.keys(payload));
         } else {
-          console.log('❌ Token is not a valid JWT format');
+           ('❌ Token is not a valid JWT format');
         }
       } catch (e) {
-        console.log('❌ Could not decode token for debugging:', e);
+         ('❌ Could not decode token for debugging:', e);
       }
       
       // Check if user data exists and is valid
@@ -343,19 +370,19 @@ export const AuthProvider = ({ children }) => {
       // Store token (already extracted above)
       localStorage.setItem('token', token);
       
-      console.log('Login successful. Token stored:', token?.substring(0, 20) + '...');
-      console.log('Token verification - stored token:', localStorage.getItem('token')?.substring(0, 20) + '...');
-      console.log('Final user data with role:', userData);
+       ('Login successful. Token stored:', token?.substring(0, 20) + '...');
+       ('Token verification - stored token:', localStorage.getItem('token')?.substring(0, 20) + '...');
+       ('Final user data with role:', userData);
       
       return data;
     } catch (error) {
-      console.log('=== Login Error Details ===');
-      console.log('Full error object:', error);
-      console.log('Error response:', error.response);
-      console.log('Error response data:', error.response?.data);
-      console.log('Error response status:', error.response?.status);
-      console.log('Error message:', error.message);
-      console.log('=========================');
+       ('=== Login Error Details ===');
+       ('Full error object:', error);
+       ('Error response:', error.response);
+       ('Error response data:', error.response?.data);
+       ('Error response status:', error.response?.status);
+       ('Error message:', error.message);
+       ('=========================');
       
       // Handle different types of errors
       let errorMessage = 'Login failed. Please try again.';
@@ -373,7 +400,7 @@ export const AuthProvider = ({ children }) => {
         for (const field of possibleMessageFields) {
           if (responseData[field] && typeof responseData[field] === 'string') {
             errorMessage = responseData[field];
-            console.log(`Found error message in field '${field}':`, errorMessage);
+             (`Found error message in field '${field}':`, errorMessage);
             break;
           }
         }
@@ -386,17 +413,31 @@ export const AuthProvider = ({ children }) => {
         'Internal Server Error',
         'INTERNAL_SERVER_ERROR',
         'server error',
-        'Server error'
+        'Server error',
+        '500'
       ];
       
       if (genericErrors.some(msg => errorMessage.toLowerCase().includes(msg.toLowerCase()))) {
-        console.log('Replacing generic backend error with user-friendly message');
-        // For 400 status with generic error, it's likely invalid credentials
+         ('Replacing generic backend error with user-friendly message');
+        // For 400 status with generic error, it's likely validation issue (bad email format)
         if (error.response?.status === 400) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else {
+          errorMessage = 'Invalid email format. Please enter a valid email address (e.g., user@example.com).';
+        } 
+        // For 500 status, could be server error or validation issue
+        else if (error.response?.status === 500) {
+          // Check if it might be a validation error that the backend didn't handle properly
+          errorMessage = 'Invalid email format. Please use a valid email address (e.g., user@example.com) and try again.';
+        } 
+        else {
           errorMessage = 'Server error. Please try again later or contact support.';
         }
+      }
+      
+      // Additional check: if error mentions email validation or format
+      const emailValidationKeywords = ['email', 'format', 'valid', 'invalid', '@', 'domain'];
+      if (emailValidationKeywords.some(keyword => errorMessage.toLowerCase().includes(keyword)) && 
+          (error.response?.status === 400 || error.response?.status === 500)) {
+        errorMessage = 'Please enter a valid email address in the format: example@domain.com';
       }
       
       // If no message found in response, handle by status code

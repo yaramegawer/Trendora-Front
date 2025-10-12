@@ -11,6 +11,7 @@ export const useMarketingEmployees = () => {
     setLoading(true);
     setError(null);
     try {
+       ('🔄 Fetching Marketing employees from:', '/digitalMarketing/employees/digitalMarketing');
       const response = await marketingEmployeeApi.getAllEmployees();
       
       // Handle different response formats
@@ -24,11 +25,20 @@ export const useMarketingEmployees = () => {
         employeesData = response;
       }
       
+       ('✅ Marketing Employees loaded:', employeesData.length, 'employees');
       setEmployees(employeesData);
     } catch (err) {
-('Marketing Employees API Error:', err);
-      setError(err.message);
+      console.error('❌ Marketing Employees API Error:', err);
+      const errorMessage = err.message || 'Failed to load employees';
+      setError(errorMessage);
       setEmployees([]);
+      
+      // Provide helpful error message
+      if (err.message && err.message.includes('403')) {
+        console.error('⚠️ Access Denied: You may not have permission to view Digital Marketing employees');
+      } else if (err.message && err.message.includes('404')) {
+        console.error('⚠️ Endpoint Not Found: The backend may not have the Digital Marketing employees endpoint configured');
+      }
     } finally {
       setLoading(false);
     }

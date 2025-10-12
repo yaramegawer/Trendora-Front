@@ -323,7 +323,7 @@ const ITDepartment = () => {
     // Skip the debounce on initial mount (when search is empty and hasn't been touched)
     // Only debounce after user starts typing
     const debounceTimeout = setTimeout(() => {
-      console.log('🔍 Search term changed to:', projectSearchTerm);
+       ('🔍 Search term changed to:', projectSearchTerm);
       projectChangeSearchTerm(projectSearchTerm); // This will update the hook state and trigger refetch via useEffect
     }, 500); // Wait 500ms after last keystroke
 

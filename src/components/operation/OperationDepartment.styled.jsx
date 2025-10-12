@@ -195,16 +195,23 @@ const OperationDepartment = () => {
       const currentNote = employeeNotes[employeeId] || '';
       
       // Send all ratings and note to backend
+      const trimmedNote = currentNote ? currentNote.trim() : '';
+      
+      // Validate note minimum length if not empty (backend: joi.string().min(5).max(500).allow("").optional())
+      if (trimmedNote.length > 0 && trimmedNote.length < 5) {
+        showWarning('Note must be at least 5 characters or left empty');
+        return;
+      }
+      
+      // Use auto-generated note if user didn't provide one
       const autoNote = `Rating updated for employee - Performance: ${currentRatings.performance || 1}, Efficiency: ${currentRatings.efficiency || 1}, Teamwork: ${currentRatings.teamwork || 1}. This is an auto-generated note to meet minimum length requirements.`;
-      const finalNote = currentNote && currentNote.trim().length > 0 ? currentNote.trim() : autoNote;
+      const finalNote = trimmedNote.length > 0 ? trimmedNote : autoNote;
       
 ('Note length check:');
 ('- User note:', currentNote);
-('- Auto note:', autoNote);
+('- Trimmed note:', trimmedNote);
 ('- Final note:', finalNote);
 ('- Final note length:', finalNote.length);
-      
-      // Final validation removed - backend will handle validation
       
       const ratingData = {
         efficiency: currentRatings.efficiency || 1,
@@ -225,8 +232,6 @@ const OperationDepartment = () => {
         showWarning('Rating values must be between 1 and 5.');
         return;
       }
-      
-      // Note validation removed - backend will handle validation
       
 ('Submitting rating for employee:', employeeId);
 ('Rating data:', ratingData);
@@ -317,6 +322,13 @@ const OperationDepartment = () => {
       return;
     }
 
+    // Validate notes minimum length if not empty (backend: joi.string().min(5).max(500).allow("").optional())
+    const trimmedNotes = newCampaign.notes ? newCampaign.notes.trim() : '';
+    if (trimmedNotes.length > 0 && trimmedNotes.length < 5) {
+      showWarning('Notes must be at least 5 characters or left empty');
+      return;
+    }
+
     // Validate date range
     if (new Date(newCampaign.startDate) >= new Date(newCampaign.endDate)) {
       showWarning('End date must be after start date');
@@ -337,8 +349,10 @@ const OperationDepartment = () => {
       if (newCampaign.description && newCampaign.description.trim()) {
         campaignData.description = newCampaign.description.trim();
       }
-      if (newCampaign.notes && newCampaign.notes.trim()) {
-        campaignData.notes = newCampaign.notes.trim();
+      
+      // Handle notes field - allow empty string or non-empty trimmed value
+      if (newCampaign.notes !== undefined) {
+        campaignData.notes = trimmedNotes; // Will be empty string or trimmed value
       }
 
       const result = await createCampaign(campaignData);
@@ -396,6 +410,13 @@ const OperationDepartment = () => {
       return;
     }
 
+    // Validate notes minimum length if not empty (backend: joi.string().min(5).max(500).allow("").optional())
+    const trimmedEditNotes = editingCampaign.notes ? editingCampaign.notes.trim() : '';
+    if (trimmedEditNotes.length > 0 && trimmedEditNotes.length < 5) {
+      showWarning('Notes must be at least 5 characters or left empty');
+      return;
+    }
+
     // Validate date range only if both dates are provided
     if (editingCampaign.startDate && editingCampaign.endDate && 
         new Date(editingCampaign.startDate) >= new Date(editingCampaign.endDate)) {
@@ -426,8 +447,10 @@ const OperationDepartment = () => {
       if (editingCampaign.status) {
         campaignData.status = editingCampaign.status;
       }
-      if (editingCampaign.notes && editingCampaign.notes.trim()) {
-        campaignData.notes = editingCampaign.notes.trim();
+      
+      // Handle notes field - allow empty string or non-empty trimmed value
+      if (editingCampaign.notes !== undefined) {
+        campaignData.notes = trimmedEditNotes; // Will be empty string or trimmed value
       }
 
       // Check if at least one field is being updated

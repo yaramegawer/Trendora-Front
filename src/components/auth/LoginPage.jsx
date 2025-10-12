@@ -34,6 +34,7 @@ const LoginPage = () => {
   const [success, setSuccess] = useState(false);
   const [currentView, setCurrentView] = useState('login'); // 'login', 'forget', 'reset'
   const [resetEmail, setResetEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   
   // Check for errors in localStorage on component mount (fallback for component re-mounts)
   React.useEffect(() => {
@@ -49,6 +50,42 @@ const LoginPage = () => {
 
   // Error display is working - no test needed
 
+  // Email validation function
+  const validateEmail = (email) => {
+    const trimmedEmail = email.trim();
+    
+    // Check if empty
+    if (!trimmedEmail) {
+      return '';
+    }
+    
+    // Check if email starts with @
+    if (trimmedEmail.startsWith('@')) {
+      return 'Invalid email format. Email cannot start with @';
+    }
+    
+    // Check basic format
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    
+    if (!emailRegex.test(trimmedEmail)) {
+      return 'Invalid email format. Please enter a valid email (e.g., user@example.com)';
+    }
+    
+    // Check if email has @ symbol and proper structure
+    const emailParts = trimmedEmail.split('@');
+    if (emailParts.length !== 2 || !emailParts[0] || !emailParts[1]) {
+      return 'Invalid email format. Please enter a valid email (e.g., user@example.com)';
+    }
+    
+    // Check if domain has at least one dot and valid TLD
+    const domainParts = emailParts[1].split('.');
+    if (domainParts.length < 2 || !domainParts[domainParts.length - 1] || domainParts[domainParts.length - 1].length < 2) {
+      return 'Invalid email domain. Please use a valid domain (e.g., gmail.com, company.com)';
+    }
+    
+    return '';
+  };
+
   const handleInputChange = (field) => (event) => {
     const newValue = event.target.value;
     
@@ -56,6 +93,11 @@ const LoginPage = () => {
       ...prev,
       [field]: newValue
     }));
+    
+    // Clear email-specific error when typing in email field
+    if (field === 'email' && emailError) {
+      setEmailError('');
+    }
     
     // Only clear error if user completely clears the field
     if (error && !loading && newValue.length === 0) {
@@ -69,24 +111,40 @@ const LoginPage = () => {
     }
   };
 
+  // Handle email blur (when user leaves the email field)
+  const handleEmailBlur = () => {
+    const validationError = validateEmail(formData.email);
+    setEmailError(validationError);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-      setLoading(true);
-      setError('');
-      setSuccess(false);
+    
+    // Validate email before submitting
+    const validationError = validateEmail(formData.email);
+    if (validationError) {
+      setEmailError(validationError);
+      setError(validationError);
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    setEmailError('');
+    setSuccess(false);
 
-      try {
-        // Call the login function from context (validation is handled in AuthContext)
-        await login({
-          email: formData.email,
-          password: formData.password
-        });
+    try {
+      // Call the login function from context (validation is handled in AuthContext)
+      await login({
+        email: formData.email,
+        password: formData.password
+      });
       
       // If we get here, login was successful
       setSuccess(true);
       
     } catch (err) {
-      console.log('Login error:', err);
+       ('Login error:', err);
       
       // Create more user-friendly error messages
       let errorMessage = err.message || 'Login failed. Please try again.';
@@ -107,7 +165,7 @@ const LoginPage = () => {
       } else if (errorMessage.includes('Access denied') || errorMessage.includes('permission')) {
         errorMessage = 'Access denied. Your account may be disabled or you do not have permission to access this system.';
       } else if (errorMessage.includes('Invalid input') || errorMessage.includes('format')) {
-        errorMessage = 'Please check your email format and password requirements.';
+        errorMessage = 'Invalid email format. Please use a valid email address (e.g., user@example.com).';
       } else if (errorMessage.includes('Invalid response from server')) {
         errorMessage = 'Server error. Please try again later or contact support.';
       } else if (errorMessage.includes('Login failed')) {
@@ -269,11 +327,13 @@ const LoginPage = () => {
                type="email"
                value={formData.email}
                onChange={handleInputChange('email')}
+               onBlur={handleEmailBlur}
                margin="normal"
                required
                autoComplete="email"
                autoFocus
-               error={!!(error && (error.includes('email') || error.includes('credentials') || error.includes('registered')))}
+               error={!!(emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain'))))}
+               helperText={emailError}
                InputProps={{
                  startAdornment: (
                    <InputAdornment position="start">
@@ -284,23 +344,23 @@ const LoginPage = () => {
                sx={{
                  '& .MuiOutlinedInput-root': {
                    borderRadius: 2,
-                   backgroundColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#fef2f2' : '#e8f0fe',
+                   backgroundColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#fef2f2' : '#e8f0fe',
                    '& fieldset': {
-                     borderColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#dc2626' : '#1c242e',
+                     borderColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#dc2626' : '#1c242e',
                      borderWidth: 2,
                    },
                    '&:hover': {
-                     backgroundColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#fef2f2' : '#e8f0fe',
+                     backgroundColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#fef2f2' : '#e8f0fe',
                    },
                    '&:hover fieldset': {
-                     borderColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#dc2626' : '#334155',
+                     borderColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#dc2626' : '#334155',
                      borderWidth: 2,
                    },
                    '&.Mui-focused': {
-                     backgroundColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#fef2f2' : '#e8f0fe',
+                     backgroundColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#fef2f2' : '#e8f0fe',
                    },
                    '&.Mui-focused fieldset': {
-                     borderColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#dc2626' : '#1c242e',
+                     borderColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#dc2626' : '#1c242e',
                      borderWidth: 2,
                    },
                  },
@@ -316,22 +376,27 @@ const LoginPage = () => {
                    },
                  },
                  '& .MuiInputAdornment-root': {
-                   backgroundColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#fef2f2 !important' : '#e8f0fe !important',
+                   backgroundColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#fef2f2 !important' : '#e8f0fe !important',
                  },
                  '&:hover .MuiInputAdornment-root': {
-                   backgroundColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#fef2f2 !important' : '#e8f0fe !important',
+                   backgroundColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#fef2f2 !important' : '#e8f0fe !important',
                  },
                  '&.Mui-focused .MuiInputAdornment-root': {
-                   backgroundColor: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#fef2f2 !important' : '#e8f0fe !important',
+                   backgroundColor: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#fef2f2 !important' : '#e8f0fe !important',
                  },
                  '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-                   color: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#dc2626' : '#64748b',
+                   color: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#dc2626' : '#64748b',
                  },
                  '& .MuiInputLabel-root': {
-                   color: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#dc2626' : '#1c242e',
+                   color: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#dc2626' : '#1c242e',
                  },
                  '& .MuiInputLabel-root.Mui-focused': {
-                   color: error && (error.includes('email') || error.includes('credentials') || error.includes('registered')) ? '#dc2626' : '#1c242e',
+                   color: (emailError || (error && (error.includes('email') || error.includes('credentials') || error.includes('registered') || error.includes('format') || error.includes('domain')))) ? '#dc2626' : '#1c242e',
+                 },
+                 '& .MuiFormHelperText-root': {
+                   color: '#dc2626',
+                   fontWeight: 500,
+                   marginLeft: 0,
                  },
                }}
              />
