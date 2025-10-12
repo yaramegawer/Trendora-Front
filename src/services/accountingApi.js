@@ -12,9 +12,9 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
     const status = error.response.status;
     const data = error.response.data;
     
-     ('📡 API Error Response:', { status, data });
-     ('📡 Full error.response:', error.response);
-     ('📡 Full error.response.data:', JSON.stringify(error.response.data, null, 2));
+    console.log('📡 API Error Response:', { status, data });
+    console.log('📡 Full error.response:', error.response);
+    console.log('📡 Full error.response.data:', JSON.stringify(error.response.data, null, 2));
     
     // First, try to extract validation errors regardless of status code
     const extractValidationErrors = (responseData) => {
@@ -22,11 +22,11 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
       
       // Check if responseData exists and is an object
       if (!responseData || typeof responseData !== 'object') {
-         ('⚠️ No valid responseData to extract errors from');
+        console.log('⚠️ No valid responseData to extract errors from');
         return errors;
       }
       
-       ('🔍 Extracting validation errors from:', responseData);
+      console.log('🔍 Extracting validation errors from:', responseData);
       
       // Check for different validation error formats
       if (responseData.errors && Array.isArray(responseData.errors)) {
@@ -40,13 +40,13 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
       
       // Check for validationErrors object
       if (responseData.validationErrors && typeof responseData.validationErrors === 'object') {
-         ('📋 Found validationErrors object:', responseData.validationErrors);
+        console.log('📋 Found validationErrors object:', responseData.validationErrors);
         Object.assign(errors, responseData.validationErrors);
       }
       
       // Check for field-specific errors in the main data object
       if (responseData.fieldErrors && typeof responseData.fieldErrors === 'object') {
-         ('📋 Found fieldErrors object:', responseData.fieldErrors);
+        console.log('📋 Found fieldErrors object:', responseData.fieldErrors);
         Object.assign(errors, responseData.fieldErrors);
       }
       
@@ -67,9 +67,9 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
               
               if (fieldName && fieldName.trim() !== '' && !isGenericError) {
                 errors[fieldName] = errorMessage;
-                 (`✅ Added extracted field error: ${fieldName} = ${errors[fieldName]}`);
+                console.log(`✅ Added extracted field error: ${fieldName} = ${errors[fieldName]}`);
               } else {
-                 (`⚠️ Skipping field error - key: ${key}, fieldName: "${fieldName}", isGenericError: ${isGenericError}, value: ${errorMessage}`);
+                console.log(`⚠️ Skipping field error - key: ${key}, fieldName: "${fieldName}", isGenericError: ${isGenericError}, value: ${errorMessage}`);
               }
             }
           }
@@ -82,31 +82,40 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
             if (errorMessage.includes('"due_date" must be a valid date')) {
               // Show due_date validation error on the form field
               errors.due_date = 'Due date must be a valid date';
-               (`✅ Added due_date validation error to form field: ${errors.due_date}`);
+              console.log(`✅ Added due_date validation error to form field: ${errors.due_date}`);
             } else if (errorMessage.includes('"client_name"')) {
               // Only add the snake_case version since that's what the form uses
               errors.client_name = errorMessage;
-               (`✅ Added client_name validation error: ${errors.client_name}`);
+              console.log(`✅ Added client_name validation error: ${errors.client_name}`);
             } else if (errorMessage.includes('"amount"')) {
-              errors.amount = errorMessage;
-               (`✅ Added amount validation error: ${errors.amount}`);
+              // Replace "safe number" with user-friendly message
+              let friendlyMessage = errorMessage;
+              if (errorMessage.includes('safe number')) {
+                friendlyMessage = errorMessage.replace('safe number', 'valid number');
+                // Or provide a completely custom message
+                friendlyMessage = 'Please enter a valid positive number (e.g., 100.50)';
+              }
+              errors.amount = friendlyMessage;
+              console.log(`✅ Added amount validation error: ${errors.amount}`);
             } else if (errorMessage.includes('"status"')) {
               errors.status = errorMessage;
-               (`✅ Added status validation error: ${errors.status}`);
+              console.log(`✅ Added status validation error: ${errors.status}`);
             } else if (errorMessage.includes('must be a valid') || errorMessage.includes('is required')) {
               // Generic field validation error - extract field name from message
               const fieldMatch = errorMessage.match(/"([^"]+)"/);
               if (fieldMatch) {
                 const fieldName = fieldMatch[1];
+                // Replace "safe number" with user-friendly message
+                let friendlyMessage = errorMessage.replace('safe number', 'valid number');
                 // Only add the original field name as it appears in the backend
-                errors[fieldName] = errorMessage;
-                 (`✅ Added extracted validation error: ${fieldName} = ${errorMessage}`);
+                errors[fieldName] = friendlyMessage;
+                console.log(`✅ Added extracted validation error: ${fieldName} = ${friendlyMessage}`);
               }
           }
         }
       });
       } catch (err) {
-         ('⚠️ Error processing responseData keys:', err);
+        console.log('⚠️ Error processing responseData keys:', err);
       }
       
       // Check for common field validation patterns
@@ -114,26 +123,26 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
       commonFields.forEach(field => {
         if (responseData[field + '_error']) {
           errors[field] = responseData[field + '_error'];
-           (`✅ Found ${field}_error:`, errors[field]);
+          console.log(`✅ Found ${field}_error:`, errors[field]);
         }
         if (responseData[field + 'Error']) {
           errors[field] = responseData[field + 'Error'];
-           (`✅ Found ${field}Error:`, errors[field]);
+          console.log(`✅ Found ${field}Error:`, errors[field]);
         }
       });
       
       // If we still don't have field errors but have a message, try to parse it
       if (Object.keys(errors).length === 0 && data.message) {
-         ('🔍 No field errors found, checking message for validation clues:', data.message);
+        console.log('🔍 No field errors found, checking message for validation clues:', data.message);
         
         // Common validation error patterns
         if (data.message.includes('required') || data.message.includes('validation') || data.message.includes('invalid')) {
           // If it's a general validation message, we'll show it as a general error
-           ('📋 Found general validation message');
+          console.log('📋 Found general validation message');
         }
       }
       
-       ('🎯 Final extracted errors:', errors);
+      console.log('🎯 Final extracted errors:', errors);
       return errors;
     };
     
@@ -141,7 +150,7 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
     try {
     fieldErrors = extractValidationErrors(data);
     } catch (err) {
-       ('⚠️ Error extracting validation errors:', err);
+      console.log('⚠️ Error extracting validation errors:', err);
       fieldErrors = {};
     }
     
@@ -182,21 +191,21 @@ const handleApiError = (error, defaultMessage = 'An error occurred') => {
       errorMessage = 'Please correct the validation errors below.';
     } else if (Object.keys(fieldErrors).length === 0 && data.message) {
       // If we have no field errors but have a message, show the backend message
-       ('📋 Showing backend message as error:', data.message);
+      console.log('📋 Showing backend message as error:', data.message);
       errorMessage = data.message;
     }
     
   } else if (error.request) {
     // Request was made but no response received
     errorMessage = 'Network error. Please check your internet connection.';
-     ('Network Error:', error.request);
+    console.log('Network Error:', error.request);
   } else {
     // Something else happened
-     ('Unexpected Error:', error.message);
+    console.log('Unexpected Error:', error.message);
     errorMessage = error.message || defaultMessage;
   }
 
-   ('Final error result:', { errorMessage, fieldErrors });
+  console.log('Final error result:', { errorMessage, fieldErrors });
 
   return {
     message: errorMessage,
@@ -266,7 +275,7 @@ export const accountingApi = {
         params.status = status;
       }
       
-      ('📄 Fetching invoices with params:', params);
+      console.log('📄 Fetching invoices with params:', params);
       
       const requestConfig = {
         params
@@ -274,7 +283,7 @@ export const accountingApi = {
       
       const response = await api.get('/accounting/get_all', requestConfig);
       
-      ('✅ Raw API response:', response.data);
+      console.log('✅ Raw API response:', response.data);
       
       // Handle different response formats
       let invoicesData = [];
@@ -285,7 +294,7 @@ export const accountingApi = {
       if (response.data && Array.isArray(response.data.find_invoice)) {
         invoicesData = response.data.find_invoice;
         totalCount = response.data.totalInvoices || response.data.find_invoice.length;
-        ('📦 Using find_invoice format - invoices:', invoicesData.length, 'total:', totalCount);
+        console.log('📦 Using find_invoice format - invoices:', invoicesData.length, 'total:', totalCount);
       }
       // If response is directly an array
       else if (Array.isArray(response.data)) {

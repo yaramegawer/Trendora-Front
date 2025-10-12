@@ -207,9 +207,20 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
       setSubmitError('');
       setFormFieldErrors({});
 
+      // Validate amount is a valid number
+      const amount = parseFloat(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        setFormFieldErrors(prev => ({
+          ...prev,
+          amount: 'Please enter a valid number greater than 0'
+        }));
+        setSubmitError('Please correct the errors before submitting');
+        return;
+      }
+
       const invoiceData = {
         ...formData,
-        amount: parseFloat(formData.amount)
+        amount: amount
       };
 
       let result;
@@ -231,7 +242,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
         }
       }
     } catch (err) {
-('Error submitting invoice:', err);
+      console.error('Error submitting invoice:', err);
       setSubmitError('An unexpected error occurred. Please try again.');
     }
   };
@@ -504,28 +515,6 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
         </CardContent>
       </Card>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3 }}
-          action={
-            <Button 
-              color="inherit" 
-              size="small" 
-              onClick={() => {
-                clearError();
-                fetchInvoices();
-              }}
-            >
-              Retry
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
-      )}
-
       {/* Invoices Table */}
       <Card>
         <CardContent>
@@ -714,8 +703,17 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               onChange={handleInputChange('amount')}
               required
               error={!!formFieldErrors.amount}
-              helperText={formFieldErrors.amount || "Invoice amount in Egyptian Pounds (EGP)"}
-              inputProps={{ min: 0, step: 0.01 }}
+              helperText={formFieldErrors.amount || "Please enter a valid positive number (e.g., 100.50)"}
+              inputProps={{ 
+                min: 0, 
+                step: 0.01,
+                onInvalid: (e) => {
+                  e.target.setCustomValidity('Please enter a valid number greater than 0');
+                },
+                onInput: (e) => {
+                  e.target.setCustomValidity('');
+                }
+              }}
             />
 
             <Divider />

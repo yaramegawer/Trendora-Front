@@ -57,7 +57,6 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const PayrollStatus = {
   PENDING: 'Pending',
-  PROCESSED: 'Processed',
   PAID: 'Paid'
 };
 
@@ -862,8 +861,6 @@ const PayrollManagement = () => {
     switch (statusLower) {
       case 'paid':
         return 'success';
-      case 'processed':
-        return 'info';
       case 'pending':
         return 'warning';
       default:
@@ -1244,7 +1241,7 @@ const PayrollManagement = () => {
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value={PayrollStatus.PENDING}>Pending</MenuItem>
-                  <MenuItem value={PayrollStatus.PROCESSED}>Processed</MenuItem>
+                  
                   <MenuItem value={PayrollStatus.PAID}>Paid</MenuItem>
                 </Select>
               </FormControl>
