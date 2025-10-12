@@ -57,5 +57,8 @@ export const getRoleName = (user) => {
 
 export const showPermissionError = (action, user) => {
   const userRole = getRoleName(user);
-  alert(`Access Denied: Only Admin or HR can ${action}. Your role: ${userRole}`);
+  const message = `Access Denied: Only Admin or HR can ${action}. Your role: ${userRole}`;
+  console.warn(message);
+  // Note: Components should handle displaying this error message using their notification system
+  return message;
 };

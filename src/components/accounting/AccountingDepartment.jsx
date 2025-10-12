@@ -51,10 +51,12 @@ import {
 import InvoiceManagement from './InvoiceManagement';
 import { useAccountingData } from '../../hooks/useAccountingData';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import SimplePagination from '../common/SimplePagination';
 
 const AccountingDepartment = () => {
   const { user } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   
   // Check if user has access to Accounting department
   // Since department info is not available in the user object, allow access
@@ -305,7 +307,7 @@ const AccountingDepartment = () => {
       setTransactionSubmitError('');
       
         // Show success message
-        alert(`Transaction ${editingTransaction ? 'updated' : 'created'} successfully!`);
+        showSuccess(`Transaction ${editingTransaction ? 'updated' : 'created'} successfully!`);
       } else {
         // Handle backend validation errors
           ('Backend validation errors:', result.fieldErrors);
@@ -397,9 +399,9 @@ const AccountingDepartment = () => {
     if (selectedTransaction && window.confirm('Are you sure you want to delete this transaction?')) {
       const result = await deleteTransaction(selectedTransaction._id);
       if (result.success) {
-        alert('Transaction deleted successfully!');
+        showSuccess('Transaction deleted successfully!');
       } else {
-        alert('Failed to delete transaction: ' + result.error);
+        showError('Failed to delete transaction: ' + result.error);
       }
     }
     handleMenuClose();

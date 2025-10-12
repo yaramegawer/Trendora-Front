@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import MainLayout from './components/layout/MainLayout.fixed';
 import LoginPage from './components/auth/LoginPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -78,9 +79,11 @@ const App = () => {
     <ErrorBoundary>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </NotificationProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

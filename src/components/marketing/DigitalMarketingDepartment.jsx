@@ -30,6 +30,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { useMarketingEmployees, useMarketingProjects, useMarketingTickets, useMarketingLeaves } from '../../hooks/useMarketingData';
 import { marketingCustomerApi } from '../../services/marketingApi';
 import SimplePagination from '../common/SimplePagination';
@@ -37,6 +38,7 @@ import SimplePagination from '../common/SimplePagination';
 const DigitalMarketingDepartment = () => {
   // Get user from auth context
   const { user } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   
   // Use real API data hooks - MUST be called before any conditional returns
   const marketingEmployeesHook = useMarketingEmployees();
@@ -102,6 +104,10 @@ const DigitalMarketingDepartment = () => {
     endDate: '',
     customerName: ''
   });
+  
+  // State for customer selection mode
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [isEditNewCustomer, setIsEditNewCustomer] = useState(false);
 
   // State for employee ratings
   const [employeeRatings, setEmployeeRatings] = useState({});
@@ -380,7 +386,7 @@ const DigitalMarketingDepartment = () => {
     
     if (typeof updateRating !== 'function') {
       console.error('❌ updateRating is not a function!', updateRating);
-      alert('Error: Rating function not available. Please refresh the page.');
+      showError('Error: Rating function not available. Please refresh the page.');
       return;
     }
     
@@ -460,27 +466,27 @@ const DigitalMarketingDepartment = () => {
   const handleCreateProject = async () => {
     // Validate required fields
     if (!newProject.name.trim()) {
-      alert('Project name is required');
+      showWarning('Project name is required');
       return;
     }
     if (!newProject.description.trim()) {
-      alert('Project description is required');
+      showWarning('Project description is required');
       return;
     }
     if (!newProject.customerName.trim()) {
-      alert('Customer name is required');
+      showWarning('Customer name is required');
       return;
     }
     if (!newProject.startDate) {
-      alert('Start date is required');
+      showWarning('Start date is required');
       return;
     }
     if (!newProject.endDate) {
-      alert('End date is required');
+      showWarning('End date is required');
       return;
     }
     if (newProject.members.length === 0) {
-      alert('At least one team member must be selected');
+      showWarning('At least one team member must be selected');
       return;
     }
     
@@ -489,22 +495,22 @@ const DigitalMarketingDepartment = () => {
     const endDate = new Date(newProject.endDate);
     
     if (isNaN(startDate.getTime())) {
-      alert('Please enter a valid start date');
+      showWarning('Please enter a valid start date');
       return;
     }
     if (isNaN(endDate.getTime())) {
-      alert('Please enter a valid end date');
+      showWarning('Please enter a valid end date');
       return;
     }
     if (startDate >= endDate) {
-      alert('End date must be after start date');
+      showWarning('End date must be after start date');
       return;
     }
     
     // Validate status
     const validStatuses = ['planned', 'in_progress', 'on_hold', 'completed'];
     if (!validStatuses.includes(newProject.status)) {
-      alert('Please select a valid project status');
+      showWarning('Please select a valid project status');
       return;
     }
     
@@ -531,8 +537,8 @@ const DigitalMarketingDepartment = () => {
        ('📤 Members length:', newProject.members.length);
       
       try {
-        await createProject(projectData);
-        alert('Project created successfully!');
+      await createProject(projectData);
+      showSuccess('Project created successfully!');
         setNewProject({
           name: '',
           description: '',
@@ -544,6 +550,7 @@ const DigitalMarketingDepartment = () => {
           customerName: ''
         });
         setShowCreateProject(false);
+        setIsNewCustomer(false);
         
         // Refresh projects data
         await fetchProjects();
@@ -564,7 +571,7 @@ const DigitalMarketingDepartment = () => {
           };
           
           await createProject(fallbackProjectData);
-          alert('Project created successfully! (Customer name stored in notes)');
+          showSuccess('Project created successfully! (Customer name stored in notes)');
           setNewProject({
             name: '',
             description: '',
@@ -576,6 +583,7 @@ const DigitalMarketingDepartment = () => {
             customerName: ''
           });
           setShowCreateProject(false);
+          setIsNewCustomer(false);
           
           // Refresh projects data
           await fetchProjects();
@@ -587,24 +595,24 @@ const DigitalMarketingDepartment = () => {
       }
     } catch (error) {
         console.error('Error creating project:', error);
-      alert('Failed to create project: ' + error.message);
+      showError('Failed to create project: ' + error.message);
     }
   };
 
   const handleSubmitTicket = async () => {
     // Validate required fields
     if (!newTicket.title.trim()) {
-      alert('Please select an issue type');
+      showWarning('Please select an issue type');
       return;
     }
     
     if (!newTicket.description.trim()) {
-      alert('Please provide a description');
+      showWarning('Please provide a description');
       return;
     }
     
     if (newTicket.description.trim().length < 10) {
-      alert('Description must be at least 10 characters long');
+      showWarning('Description must be at least 10 characters long');
       return;
     }
     
@@ -618,7 +626,7 @@ const DigitalMarketingDepartment = () => {
       
        ('📤 Creating ticket:', ticketData);
       await createTicket(ticketData);
-      alert('Ticket submitted successfully!');
+      showSuccess('Ticket submitted successfully!');
       setNewTicket({
         title: '',
         description: '',
@@ -627,22 +635,22 @@ const DigitalMarketingDepartment = () => {
       setShowSubmitTicket(false);
     } catch (error) {
       console.error('Error creating ticket:', error);
-      alert('Failed to submit ticket: ' + error.message);
+      showError('Failed to submit ticket: ' + error.message);
     }
   };
 
   const handleSubmitLeave = async () => {
     // Validate required fields
     if (!newLeave.type) {
-      alert('Please select a leave type');
+      showWarning('Please select a leave type');
       return;
     }
     if (!newLeave.startDate) {
-      alert('Start date is required');
+      showWarning('Start date is required');
       return;
     }
     if (!newLeave.endDate) {
-      alert('End date is required');
+      showWarning('End date is required');
       return;
     }
     
@@ -651,7 +659,7 @@ const DigitalMarketingDepartment = () => {
     const endDate = new Date(newLeave.endDate);
     
     if (startDate >= endDate) {
-      alert('End date must be after start date');
+      showWarning('End date must be after start date');
       return;
     }
     
@@ -666,7 +674,7 @@ const DigitalMarketingDepartment = () => {
       
        ('📤 Submitting leave data:', leaveData);
       await submitLeave(leaveData);
-      alert('Leave request submitted successfully!');
+      showSuccess('Leave request submitted successfully!');
       setNewLeave({
         type: '',
         startDate: '',
@@ -675,7 +683,7 @@ const DigitalMarketingDepartment = () => {
       setShowLeaveForm(false);
     } catch (error) {
       console.error('Error submitting leave:', error);
-      alert('Failed to submit leave: ' + error.message);
+      showError('Failed to submit leave: ' + error.message);
     }
   };
 
@@ -703,6 +711,16 @@ const DigitalMarketingDepartment = () => {
       ...project,
       customerName: customerName
     };
+    
+    // Check if the customer name exists in the customers list
+    const customerExists = customers.some(customer => {
+      const existingCustomerName = typeof customer === 'string' ? customer : (customer.name || customer.customerName || customer.title || '');
+      return existingCustomerName === customerName;
+    });
+    
+    // If customer doesn't exist in list and has a value, show as new customer input
+    setIsEditNewCustomer(!customerExists && customerName !== '');
+    
     setEditingProject(projectWithCustomer);
     setShowEditProject(true);
   };
@@ -800,9 +818,10 @@ const DigitalMarketingDepartment = () => {
       
       // Try the update
       await updateProject(projectId, updateData);
-      alert('Project updated successfully!');
+      showSuccess('Project updated successfully!');
       setShowEditProject(false);
       setEditingProject(null);
+      setIsEditNewCustomer(false);
       
     } catch (error) {
         console.error('Error updating project:', error);
@@ -827,23 +846,24 @@ const DigitalMarketingDepartment = () => {
           }
           
           await updateProject(projectId, fallbackUpdateData);
-          alert('Project updated successfully! (Customer name stored in notes)');
+          showSuccess('Project updated successfully! (Customer name stored in notes)');
           setShowEditProject(false);
           setEditingProject(null);
+          setIsEditNewCustomer(false);
           return;
         } catch (fallbackError) {
           console.error('Error updating project (fallback):', fallbackError);
-          alert('Failed to update project: ' + fallbackError.message);
+          showError('Failed to update project: ' + fallbackError.message);
         }
       } else {
-        alert('Failed to update project: ' + error.message);
+        showError('Failed to update project: ' + error.message);
       }
     }
   };
 
   const handleDeleteProject = async (projectId) => {
     if (!projectId) {
-      alert('Project ID is missing. Cannot delete project.');
+      showError('Project ID is missing. Cannot delete project.');
       return;
     }
     
@@ -854,10 +874,10 @@ const DigitalMarketingDepartment = () => {
     try {
       // Use real API to delete project
       await deleteProject(projectId);
-      alert('Project deleted successfully!');
+      showSuccess('Project deleted successfully!');
     } catch (error) {
       console.error('Error deleting project:', error);
-      alert('Failed to delete project: ' + error.message);
+      showError('Failed to delete project: ' + error.message);
     }
   };
 
@@ -1398,14 +1418,14 @@ const DigitalMarketingDepartment = () => {
                           
                           // Validate rating values
                           if (!efficiency || !performance || !teamwork) {
-                            alert('Please provide all rating values before submitting.');
+                            showWarning('Please provide all rating values before submitting.');
                             return;
                           }
-                          
+
                           if (efficiency < 1 || efficiency > 5 || 
                               performance < 1 || performance > 5 || 
                               teamwork < 1 || teamwork > 5) {
-                            alert('Rating values must be between 1 and 5.');
+                            showWarning('Rating values must be between 1 and 5.');
                             return;
                           }
                           
@@ -1419,10 +1439,10 @@ const DigitalMarketingDepartment = () => {
                             [noteKey]: ''
                           }));
                           
-                          alert('Rating submitted successfully!');
+                          showSuccess('Rating submitted successfully!');
                         } catch (error) {
           console.error('Failed to submit rating:', error);
-                          alert('Failed to submit rating: ' + error.message);
+                          showError('Failed to submit rating: ' + error.message);
                         }
                       }}
                       >
@@ -1563,119 +1583,121 @@ const DigitalMarketingDepartment = () => {
                     </div>
                   </div>
 
-                  {/* Status Filter */}
-                  <div style={{ flex: 1, minWidth: '200px' }}>
-                    <div style={{ 
-                      position: 'relative',
-                      display: 'inline-block',
-                      width: '100%'
-                    }}>
+                  {/* Status Filter - Only show when viewing customer projects */}
+                  {showCustomerSections && (
+                    <div style={{ flex: 1, minWidth: '200px' }}>
                       <div style={{ 
-                        position: 'absolute',
-                        top: '-8px',
-                        left: '12px',
-                        backgroundColor: '#ffffff',
-                        padding: '0 4px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        color: '#374151',
-                        zIndex: 1
+                        position: 'relative',
+                        display: 'inline-block',
+                        width: '100%'
                       }}>
-                        Status Filter
-                      </div>
-                      <div className="project-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
-                        <div
-                          onClick={() => setShowProjectStatusDropdown(!showProjectStatusDropdown)}
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            borderRadius: '12px',
-                            border: '1px solid #d1d5db',
-                            backgroundColor: '#ffffff',
-                            color: '#374151',
-                            fontSize: '14px',
-                            fontWeight: '400',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            transition: 'all 0.2s ease',
-                            boxShadow: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                            backgroundPosition: 'right 12px center',
-                            backgroundRepeat: 'no-repeat',
-                            backgroundSize: '16px 16px',
-                            paddingRight: '40px'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#f9fafb';
-                            e.target.style.borderColor = '#9ca3af';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#ffffff';
-                            e.target.style.borderColor = '#d1d5db';
-                          }}
-                        >
-                          {projectStatusFilter === 'all' ? 'All Projects' : 
-                           projectStatusFilter === 'planned' ? 'Planned' :
-                           projectStatusFilter === 'in_progress' ? 'In Progress' :
-                           projectStatusFilter === 'completed' ? 'Completed' :
-                           projectStatusFilter === 'on_hold' ? 'On Hold' : 'All Projects'}
+                        <div style={{ 
+                          position: 'absolute',
+                          top: '-8px',
+                          left: '12px',
+                          backgroundColor: '#ffffff',
+                          padding: '0 4px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#374151',
+                          zIndex: 1
+                        }}>
+                          Status Filter
                         </div>
-                        
-                        {showProjectStatusDropdown && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: 0,
-                            right: 0,
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '12px',
-                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                            zIndex: 1000,
-                            marginTop: '4px',
-                            overflow: 'hidden'
-                          }}>
-                            {[
-                              { value: 'all', label: 'All Projects' },
-                              { value: 'planned', label: 'Planned' },
-                              { value: 'in_progress', label: 'In Progress' },
-                              { value: 'completed', label: 'Completed' },
-                              { value: 'on_hold', label: 'On Hold' }
-                            ].map((option) => (
-                              <div
-                                key={option.value}
-                                onClick={() => {
-                                  handleProjectStatusFilterChange(option.value);
-                                  setShowProjectStatusDropdown(false);
-                                }}
-                                style={{
-                                  padding: '12px 16px',
-                                  cursor: 'pointer',
-                                  color: '#374151',
-                                  fontSize: '14px',
-                                  fontWeight: '400',
-                                  backgroundColor: projectStatusFilter === option.value ? '#f9fafb' : '#ffffff',
-                                  transition: 'background-color 0.2s ease',
-                                  borderBottom: '1px solid #f3f4f6'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = '#f9fafb';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = projectStatusFilter === option.value ? '#f9fafb' : '#ffffff';
-                                }}
-                              >
-                                {option.label}
-                              </div>
-                            ))}
+                        <div className="project-status-dropdown-container" style={{ position: 'relative', width: '100%' }}>
+                          <div
+                            onClick={() => setShowProjectStatusDropdown(!showProjectStatusDropdown)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              borderRadius: '12px',
+                              border: '1px solid #d1d5db',
+                              backgroundColor: '#ffffff',
+                              color: '#374151',
+                              fontSize: '14px',
+                              fontWeight: '400',
+                              cursor: 'pointer',
+                              outline: 'none',
+                              transition: 'all 0.2s ease',
+                              boxShadow: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                              backgroundPosition: 'right 12px center',
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: '16px 16px',
+                              paddingRight: '40px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#f9fafb';
+                              e.target.style.borderColor = '#9ca3af';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = '#ffffff';
+                              e.target.style.borderColor = '#d1d5db';
+                            }}
+                          >
+                            {projectStatusFilter === 'all' ? 'All Projects' : 
+                             projectStatusFilter === 'planned' ? 'Planned' :
+                             projectStatusFilter === 'in_progress' ? 'In Progress' :
+                             projectStatusFilter === 'completed' ? 'Completed' :
+                             projectStatusFilter === 'on_hold' ? 'On Hold' : 'All Projects'}
                           </div>
-                        )}
+                          
+                          {showProjectStatusDropdown && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              right: 0,
+                              backgroundColor: '#ffffff',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '12px',
+                              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                              zIndex: 1000,
+                              marginTop: '4px',
+                              overflow: 'hidden'
+                            }}>
+                              {[
+                                { value: 'all', label: 'All Projects' },
+                                { value: 'planned', label: 'Planned' },
+                                { value: 'in_progress', label: 'In Progress' },
+                                { value: 'completed', label: 'Completed' },
+                                { value: 'on_hold', label: 'On Hold' }
+                              ].map((option) => (
+                                <div
+                                  key={option.value}
+                                  onClick={() => {
+                                    handleProjectStatusFilterChange(option.value);
+                                    setShowProjectStatusDropdown(false);
+                                  }}
+                                  style={{
+                                    padding: '12px 16px',
+                                    cursor: 'pointer',
+                                    color: '#374151',
+                                    fontSize: '14px',
+                                    fontWeight: '400',
+                                    backgroundColor: projectStatusFilter === option.value ? '#f9fafb' : '#ffffff',
+                                    transition: 'background-color 0.2s ease',
+                                    borderBottom: '1px solid #f3f4f6'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#f9fafb';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = projectStatusFilter === option.value ? '#f9fafb' : '#ffffff';
+                                  }}
+                                >
+                                  {option.label}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                 </div>
               </div>
@@ -2047,21 +2069,78 @@ const DigitalMarketingDepartment = () => {
                   <label htmlFor="project-customer-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Customer Name *
                   </label>
-                  <input
-                    id="project-customer-name"
-                    type="text"
-                    value={newProject.customerName}
-                    onChange={(e) => setNewProject(prev => ({ ...prev, customerName: e.target.value }))}
-                    placeholder="Enter customer name"
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
-                    required
-                  />
+                  {!isNewCustomer ? (
+                    <select
+                      id="project-customer-name"
+                      value={newProject.customerName}
+                      onChange={(e) => {
+                        if (e.target.value === '__new_customer__') {
+                          setIsNewCustomer(true);
+                          setNewProject(prev => ({ ...prev, customerName: '' }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, customerName: e.target.value }));
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        fontSize: '14px'
+                      }}
+                      required
+                    >
+                      <option value="">Select a customer</option>
+                      {customers.map((customer, index) => {
+                        const customerName = typeof customer === 'string' ? customer : (customer.name || customer.customerName || customer.title || '');
+                        return (
+                          <option key={index} value={customerName}>
+                            {customerName}
+                          </option>
+                        );
+                      })}
+                      <option value="__new_customer__" style={{ fontStyle: 'italic', borderTop: '1px solid #d1d5db' }}>
+                        + Add New Customer
+                      </option>
+                    </select>
+                  ) : (
+                    <div>
+                      <input
+                        id="project-customer-name"
+                        type="text"
+                        value={newProject.customerName}
+                        onChange={(e) => setNewProject(prev => ({ ...prev, customerName: e.target.value }))}
+                        placeholder="Enter new customer name"
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          marginBottom: '8px'
+                        }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsNewCustomer(false);
+                          setNewProject(prev => ({ ...prev, customerName: '' }));
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#f3f4f6',
+                          color: '#6b7280',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ← Back to customer list
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
@@ -2187,6 +2266,7 @@ const DigitalMarketingDepartment = () => {
                     type="button"
                     onClick={() => {
                       setShowCreateProject(false);
+                      setIsNewCustomer(false);
                       setNewProject({
                         name: '',
                         description: '',
@@ -2305,20 +2385,76 @@ const DigitalMarketingDepartment = () => {
                   <label htmlFor="edit-project-customer-name" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                     Customer Name
                   </label>
-                  <input
-                    id="edit-project-customer-name"
-                    type="text"
-                    value={editingProject.customerName || ''}
-                    onChange={(e) => setEditingProject(prev => ({ ...prev, customerName: e.target.value }))}
-                    placeholder="Enter customer name"
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
-                  />
+                  {!isEditNewCustomer ? (
+                    <select
+                      id="edit-project-customer-name"
+                      value={editingProject.customerName || ''}
+                      onChange={(e) => {
+                        if (e.target.value === '__new_customer__') {
+                          setIsEditNewCustomer(true);
+                          setEditingProject(prev => ({ ...prev, customerName: '' }));
+                        } else {
+                          setEditingProject(prev => ({ ...prev, customerName: e.target.value }));
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="">Select a customer</option>
+                      {customers.map((customer, index) => {
+                        const customerName = typeof customer === 'string' ? customer : (customer.name || customer.customerName || customer.title || '');
+                        return (
+                          <option key={index} value={customerName}>
+                            {customerName}
+                          </option>
+                        );
+                      })}
+                      <option value="__new_customer__" style={{ fontStyle: 'italic', borderTop: '1px solid #d1d5db' }}>
+                        + Add New Customer
+                      </option>
+                    </select>
+                  ) : (
+                    <div>
+                      <input
+                        id="edit-project-customer-name"
+                        type="text"
+                        value={editingProject.customerName || ''}
+                        onChange={(e) => setEditingProject(prev => ({ ...prev, customerName: e.target.value }))}
+                        placeholder="Enter new customer name"
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          marginBottom: '8px'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditNewCustomer(false);
+                          setEditingProject(prev => ({ ...prev, customerName: '' }));
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#f3f4f6',
+                          color: '#6b7280',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ← Back to customer list
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
@@ -2441,6 +2577,7 @@ const DigitalMarketingDepartment = () => {
                     onClick={() => {
                       setShowEditProject(false);
                       setEditingProject(null);
+                      setIsEditNewCustomer(false);
                     }}
                     style={{
                       padding: '8px 16px',
@@ -2753,11 +2890,11 @@ const DigitalMarketingDepartment = () => {
                   onClick={async () => {
                     try {
                       await handleUpdateTicket(editingTicket.id || editingTicket._id, { status: editingTicket.status });
-                      alert('Campaign status updated successfully!');
+                      showSuccess('Campaign status updated successfully!');
                       setShowEditTicket(false);
                       setEditingTicket(null);
                     } catch (error) {
-                      alert('Failed to update campaign status: ' + error.message);
+                      showError('Failed to update campaign status: ' + error.message);
                     }
                   }}
                   style={{

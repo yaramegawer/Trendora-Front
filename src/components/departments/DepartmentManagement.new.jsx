@@ -44,12 +44,14 @@ import {
 } from '@mui/icons-material';
 import { useDepartments, useEmployees } from '../../hooks/useHRData';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { canAdd, canEdit, canDelete, showPermissionError } from '../../utils/permissions';
 
 const DepartmentManagement = () => {
   const { departments, loading, error, addDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const { employees } = useEmployees();
   const { user } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState(null);
@@ -73,7 +75,8 @@ const DepartmentManagement = () => {
 
   const handleAddDepartment = async () => {
     if (!canAdd(user)) {
-      showPermissionError('add departments', user);
+      const errorMsg = showPermissionError('add departments', user);
+      showError(errorMsg);
       return;
     }
     
@@ -91,7 +94,7 @@ const DepartmentManagement = () => {
         setIsAddDialogOpen(false);
         resetForm();
         // Show success message (you can add a snackbar here)
-        alert('Department added successfully!');
+        showSuccess('Department added successfully!');
       }
     } catch (error) {
 ('Error adding department:', error);

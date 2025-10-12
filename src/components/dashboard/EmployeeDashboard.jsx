@@ -30,6 +30,7 @@ import {
   CalendarTodayOutlined
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import api from '../../api/axios';
 import { API_CONFIG } from '../../config/api';
 import SimplePagination from '../common/SimplePagination';
@@ -37,6 +38,7 @@ import { userApiService } from '../../services/userApi';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -152,28 +154,28 @@ const EmployeeDashboard = () => {
 
     // Validation
     if (!leaveForm.startDate) {
-      alert('Please select a start date.');
+      showWarning('Please select a start date.');
       setError('Please select a start date.');
       setLoading(false);
       return;
     }
 
     if (!leaveForm.endDate) {
-      alert('Please select an end date.');
+      showWarning('Please select an end date.');
       setError('Please select an end date.');
       setLoading(false);
       return;
     }
 
     if (!leaveForm.leaveType) {
-      alert('Please select a leave type.');
+      showWarning('Please select a leave type.');
       setError('Please select a leave type.');
       setLoading(false);
       return;
     }
 
     if (new Date(leaveForm.startDate) > new Date(leaveForm.endDate)) {
-      alert('End date must be after start date.');
+      showWarning('End date must be after start date.');
       setLoading(false);
       return;
     }
@@ -223,7 +225,7 @@ const EmployeeDashboard = () => {
         throw new Error(response.data.message || 'Failed to submit leave request');
       }
       
-      alert('Leave request submitted successfully!');
+      showSuccess('Leave request submitted successfully!');
       setSuccess('Leave request submitted successfully!');
       setLeaveDialogOpen(false);
       setLeaveForm({
@@ -239,7 +241,7 @@ const EmployeeDashboard = () => {
     } catch (err) {
        ('Leave submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit leave request. Please try again.';
-      alert(errorMessage);
+      showError(errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -292,7 +294,7 @@ const EmployeeDashboard = () => {
 
     // Basic authentication check only
     if (!user) {
-      alert('You must be logged in to submit a support ticket.');
+      showError('You must be logged in to submit a support ticket.');
       setError('You must be logged in to submit a support ticket.');
       setLoading(false);
       return;
@@ -300,35 +302,35 @@ const EmployeeDashboard = () => {
 
     // Validation
     if (!ticketForm.title) {
-      alert('Please select a ticket type.');
+      showWarning('Please select a ticket type.');
       setError('Please select a ticket type.');
       setLoading(false);
       return;
     }
 
     if (!ticketForm.description) {
-      alert('Please enter a description.');
+      showWarning('Please enter a description.');
       setError('Please enter a description.');
       setLoading(false);
       return;
     }
 
     if (ticketForm.description.length < 10) {
-      alert('Description must be at least 10 characters long.');
+      showWarning('Description must be at least 10 characters long.');
       setError('Description must be at least 10 characters long.');
       setLoading(false);
       return;
     }
 
     if (ticketForm.description.length > 500) {
-      alert('Description must be 500 characters or less.');
+      showWarning('Description must be 500 characters or less.');
       setError('Description must be 500 characters or less.');
       setLoading(false);
       return;
     }
 
     if (!ticketForm.priority) {
-      alert('Please select a priority level.');
+      showWarning('Please select a priority level.');
       setError('Please select a priority level.');
       setLoading(false);
       return;
@@ -359,7 +361,7 @@ const EmployeeDashboard = () => {
         throw new Error(response.data.message || 'Failed to submit support ticket');
       }
       
-      alert('Support ticket submitted successfully!');
+      showSuccess('Support ticket submitted successfully!');
       setSuccess('Support ticket submitted successfully!');
       setTicketDialogOpen(false);
       setTicketForm({
@@ -375,7 +377,7 @@ const EmployeeDashboard = () => {
     } catch (err) {
        ('Ticket submission error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to submit support ticket. Please try again.';
-      alert(errorMessage);
+      showError(errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);

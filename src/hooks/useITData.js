@@ -58,9 +58,10 @@ export const useITEmployees = () => {
   };
 };
 
-// Custom hook for IT project data management with backend pagination
+// Custom hook for IT project data management with backend pagination and client-side search
 export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilter = 'all') => {
-  const [projects, setProjects] = useState([]); // Current page projects
+  const [allProjects, setAllProjects] = useState([]); // All projects from backend (for search)
+  const [projects, setProjects] = useState([]); // Filtered and paginated projects
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalProjects, setTotalProjects] = useState(0);
@@ -74,39 +75,27 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
     setLoading(true);
     setError(null);
     try {
-        ('🔄 Fetching IT projects from backend:', { pageNum, pageLimit, status });
+        ('🔄 Fetching IT projects from backend:', { status });
       
-      // Fetch data from backend with pagination and status filter
-      // Backend handles all filtering - no client-side filtering
-      const response = await itProjectApi.getAllProjects(pageNum, pageLimit, status);
+      // Fetch ALL data from backend with status filter only
+      // Backend handles status filtering, we handle search and pagination on frontend
+      const response = await itProjectApi.getAllProjects(1, 10000, status, null); // Get all with large limit
       
         ('📦 IT Projects API response:', response);
       
       // Handle response format
       let projectsData = [];
-      let totalCount = 0;
-      let currentPageNum = pageNum;
-      let totalPagesNum = 1;
       
       if (response && response.data && Array.isArray(response.data)) {
         projectsData = response.data;
-        totalCount = response.total || response.data.length;
-        currentPageNum = response.page || pageNum;
-        totalPagesNum = response.totalPages || Math.ceil(totalCount / pageLimit);
       } else if (Array.isArray(response)) {
         projectsData = response;
-        totalCount = response.length;
       }
       
-        ('✅ Processed IT projects:', { count: projectsData.length, total: totalCount, pages: totalPagesNum });
+        ('✅ Fetched IT projects from backend:', { count: projectsData.length });
       
-      setProjects(projectsData);
-      setTotalProjects(totalCount);
-      setCurrentPage(currentPageNum);
-      setPageSize(pageLimit);
-      setCurrentSearchTerm(search);
-      setCurrentStatusFilter(status);
-      setTotalPages(totalPagesNum);
+      // Store all projects - filtering will be applied by applyFiltersAndPagination
+      setAllProjects(projectsData);
     } catch (err) {
       console.error('❌ Error fetching IT projects:', err);
       console.error('❌ Error type:', err.constructor.name);
@@ -122,6 +111,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
         setError(err.message);
       }
       
+      setAllProjects([]);
       setProjects([]);
       setTotalProjects(0);
       setTotalPages(0);
@@ -135,7 +125,9 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
 // Creating project
       const newProject = await itProjectApi.createProject(projectData);
 // Project created successfully
-      await fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter); // Refresh the current page
+      // Refetch to get updated list from backend
+      await fetchProjects(1, pageSize, currentSearchTerm, currentStatusFilter);
+      setCurrentPage(1); // Reset to first page to see the new project
 // Projects refreshed after creation
       return newProject;
     } catch (err) {
@@ -147,7 +139,8 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
   const updateProject = async (id, projectData) => {
     try {
       const updatedProject = await itProjectApi.updateProject(id, projectData);
-      await fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter); // Refresh the current page
+      // Refetch to get updated list from backend
+      await fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter);
       return updatedProject;
     } catch (err) {
 // Error updating project
@@ -158,17 +151,55 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
   const deleteProject = async (id) => {
     try {
       await itProjectApi.deleteProject(id);
-      await fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter); // Refresh the current page
+      // Refetch to get updated list from backend
+      await fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter);
     } catch (err) {
 // Error deleting project
       throw err;
     }
   };
 
+  // Client-side filtering and pagination (no backend call)
+  const applyFiltersAndPagination = () => {
+    let filteredProjects = allProjects;
+    
+    // Apply client-side search filtering
+    if (currentSearchTerm && currentSearchTerm.trim() !== '') {
+      const searchLower = currentSearchTerm.toLowerCase().trim();
+      filteredProjects = allProjects.filter(project => {
+        const nameMatch = project.name?.toLowerCase().includes(searchLower);
+        const descMatch = project.description?.toLowerCase().includes(searchLower);
+        const notesMatch = project.notes?.toLowerCase().includes(searchLower);
+        return nameMatch || descMatch || notesMatch;
+      });
+        ('🔍 Filtered projects by search:', { search: currentSearchTerm, resultCount: filteredProjects.length });
+    }
+    
+    // Calculate pagination
+    const totalCount = filteredProjects.length;
+    const totalPagesNum = Math.ceil(totalCount / pageSize);
+    const actualPage = Math.min(currentPage, totalPagesNum || 1);
+    
+    // Apply client-side pagination
+    const startIndex = (actualPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedProjects = filteredProjects.slice(startIndex, endIndex);
+    
+      ('✅ Applied filters and pagination:', { total: totalCount, page: actualPage, pages: totalPagesNum, showing: paginatedProjects.length });
+    
+    setProjects(paginatedProjects);
+    setTotalProjects(totalCount);
+    setTotalPages(totalPagesNum || 1);
+    if (actualPage !== currentPage) {
+      setCurrentPage(actualPage);
+    }
+  };
+
   // Method to change the search term filter
   const changeSearchTerm = (newSearchTerm) => {
     setCurrentSearchTerm(newSearchTerm);
-    fetchProjects(1, pageSize, newSearchTerm, currentStatusFilter); // Reset to first page when filter changes
+    setCurrentPage(1); // Reset to first page when search changes
+    // Don't call fetchProjects - search is client-side only
   };
 
   // Method to change the status filter
@@ -182,26 +213,36 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
   const changeFilters = (newSearchTerm, newStatusFilter) => {
     setCurrentSearchTerm(newSearchTerm);
     setCurrentStatusFilter(newStatusFilter);
-    fetchProjects(1, pageSize, newSearchTerm, newStatusFilter); // Reset to first page when filters change
+    setCurrentPage(1);
+    // Status change will trigger useEffect to re-fetch
   };
 
-  // Re-fetch when page, pageSize, or statusFilter changes
+  // Re-fetch from backend ONLY when statusFilter changes (initial mount or status change)
   useEffect(() => {
-      ('🔄 useITProjects useEffect triggered:', { currentPage, pageSize, currentStatusFilter });
+      ('🔄 useITProjects useEffect triggered (backend fetch):', { currentStatusFilter });
     fetchProjects(currentPage, pageSize, currentSearchTerm, currentStatusFilter);
-  }, [currentPage, pageSize, currentStatusFilter]);
+  }, [currentStatusFilter]);
+  
+  // Re-apply client-side filters when search term or page changes (no backend call)
+  useEffect(() => {
+    if (allProjects.length > 0) {
+        ('🔄 useITProjects applying client-side filters:', { currentPage, currentSearchTerm });
+      applyFiltersAndPagination();
+    }
+  }, [currentPage, currentSearchTerm, pageSize, allProjects]);
 
-  // Pagination functions
+  // Pagination functions (client-side only, no backend call)
   const goToPage = (pageNum) => {
     // Always allow page changes if totalProjects is 0 (initial state) or if page is in valid range
     if (totalProjects === 0 || (pageNum >= 1 && pageNum <= totalPages)) {
-      fetchProjects(pageNum, pageSize, currentSearchTerm, currentStatusFilter);
+      setCurrentPage(pageNum); // This will trigger applyFiltersAndPagination useEffect
     }
   };
 
   const changePageSize = (newPageSize) => {
     setPageSize(newPageSize);
-    fetchProjects(1, newPageSize, currentSearchTerm, currentStatusFilter); // Reset to first page when changing page size
+    setCurrentPage(1); // Reset to first page when changing page size
+    // This will trigger applyFiltersAndPagination useEffect
   };
 
   const nextPage = () => {

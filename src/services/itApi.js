@@ -110,15 +110,18 @@ export const itEmployeeApi = {
 
 // Project API functions
 export const itProjectApi = {
-  // Get all IT projects with backend pagination and status filter
-  getAllProjects: async (page = 1, limit = 10, status = null) => {
+  // Get all IT projects with backend pagination, search, and status filter
+  getAllProjects: async (page = 1, limit = 10, status = null, search = null) => {
     try {
-        ('📁 Getting IT projects:', { page, limit, status });
+        ('📁 Getting IT projects:', { page, limit, status, search });
       
       // Create request params
       const params = { page, limit };
       if (status && status !== 'all') {
         params.status = status;
+      }
+      if (search && search.trim() !== '') {
+        params.search = search.trim();
       }
       
         ('📁 Calling API with params:', params);

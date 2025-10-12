@@ -25,12 +25,14 @@ import {
 } from 'lucide-react';
 import { useITEmployees, useITProjects, useITTickets, useITLeaves } from '../../hooks/useITData';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { itLeaveApi } from '../../services/itApi';
 import SimplePagination from '../common/SimplePagination';
 
 const ITDepartment = () => {
   // Get user from auth context
   const { user } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   
   // Check if user has access to IT department
   // Since department info is not available in the user object, allow access
@@ -300,8 +302,7 @@ const ITDepartment = () => {
 
   const handleProjectSearchChange = (searchTerm) => {
     setProjectSearchTerm(searchTerm);
-    setProjectsCurrentPage(1); // Reset to first page when search changes
-    projectChangeSearchTerm(searchTerm); // Use the hook's filter method to filter across all pages
+    // Don't call API here - let useEffect handle it with debouncing
   };
 
   const handleProjectStatusFilterChange = (status) => {
@@ -309,6 +310,25 @@ const ITDepartment = () => {
     setProjectsCurrentPage(1); // Reset to first page when filter changes
     projectChangeStatusFilter(status); // Use the hook's filter method to filter across all pages
   };
+
+  // Sync component page state with hook page state
+  useEffect(() => {
+    if (projectsPage !== projectsCurrentPage) {
+      setProjectsCurrentPage(projectsPage);
+    }
+  }, [projectsPage]);
+
+  // Debounce search functionality - wait 500ms after user stops typing
+  useEffect(() => {
+    // Skip the debounce on initial mount (when search is empty and hasn't been touched)
+    // Only debounce after user starts typing
+    const debounceTimeout = setTimeout(() => {
+      console.log('🔍 Search term changed to:', projectSearchTerm);
+      projectChangeSearchTerm(projectSearchTerm); // This will update the hook state and trigger refetch via useEffect
+    }, 500); // Wait 500ms after last keystroke
+
+    return () => clearTimeout(debounceTimeout); // Clean up timeout on unmount or when searchTerm changes
+  }, [projectSearchTerm]); // Only trigger when projectSearchTerm changes
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -488,11 +508,11 @@ const ITDepartment = () => {
     
     // Validate required fields
     if (!newProject.name.trim()) {
-      alert('Project name is required');
+      showWarning('Project name is required');
       return;
     }
     if (!newProject.description.trim()) {
-      alert('Project description is required');
+      showWarning('Project description is required');
       return;
     }
     
@@ -531,7 +551,7 @@ const ITDepartment = () => {
       const result = await createProject(createData);
 ('✅ Project creation result:', result);
       
-      alert('Project created successfully!');
+      showSuccess('Project created successfully!');
       setNewProject({
         name: '',
         description: '',
@@ -563,7 +583,7 @@ const ITDepartment = () => {
         errorMessage = 'Bad request. Please check your data format.';
       }
       
-      alert(errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -609,17 +629,17 @@ const ITDepartment = () => {
     // Get and validate project ID
     const projectId = editingProject.id || editingProject._id;
     if (!projectId) {
-      alert('Project ID is missing. Cannot update project.');
+      showError('Project ID is missing. Cannot update project.');
       return;
     }
 
     // Validate required fields
     if (!editingProject.name.trim()) {
-      alert('Project name is required');
+      showWarning('Project name is required');
       return;
     }
     if (!editingProject.description.trim()) {
-      alert('Project description is required');
+      showWarning('Project description is required');
       return;
     }
 
@@ -654,18 +674,18 @@ const ITDepartment = () => {
 ('Updating project with ID:', projectId);
 ('Updating project with filtered data:', updateData);
       await updateProject(projectId, updateData);
-      alert('Project updated successfully!');
+      showSuccess('Project updated successfully!');
       setShowEditProject(false);
       setEditingProject(null);
     } catch (error) {
 ('Error updating project:', error);
-      alert('Failed to update project: ' + error.message);
+      showError('Failed to update project: ' + error.message);
     }
   };
 
   const handleDeleteProject = async (projectId) => {
     if (!projectId) {
-      alert('Project ID is missing. Cannot delete project.');
+      showError('Project ID is missing. Cannot delete project.');
       return;
     }
     
@@ -676,10 +696,10 @@ const ITDepartment = () => {
     try {
 ('Deleting project with ID:', projectId);
       await deleteProject(projectId);
-      alert('Project deleted successfully!');
+      showSuccess('Project deleted successfully!');
     } catch (error) {
 ('Error deleting project:', error);
-      alert('Failed to delete project: ' + error.message);
+      showError('Failed to delete project: ' + error.message);
     }
   };
 
@@ -709,7 +729,7 @@ const ITDepartment = () => {
 ('IT Department: Submitting leave request with data:', newLeave);
       
       if (!newLeave.type || !newLeave.startDate || !newLeave.endDate) {
-        alert('Please fill in all required fields');
+        showWarning('Please fill in all required fields');
         return;
       }
 
@@ -718,7 +738,7 @@ const ITDepartment = () => {
       const endDate = new Date(newLeave.endDate);
       
       if (startDate >= endDate) {
-        alert('End date must be after start date');
+        showWarning('End date must be after start date');
         return;
       }
 
@@ -734,7 +754,7 @@ const ITDepartment = () => {
 ('IT Department: Leave submission result:', result);
       
       // The API returns data directly on success, or throws error on failure
-      alert('Leave request submitted successfully!');
+      showSuccess('Leave request submitted successfully!');
       setNewLeave({
         type: '',
         startDate: '',
@@ -749,7 +769,7 @@ const ITDepartment = () => {
         status: error.response?.status
       });
       const errorMessage = error.message || error.response?.data?.message || 'Unknown error occurred';
-      alert('Failed to submit leave request: ' + errorMessage);
+      showError('Failed to submit leave request: ' + errorMessage);
     }
   };
 
@@ -1539,14 +1559,14 @@ const ITDepartment = () => {
                             
                             // Validate rating values
                             if (!efficiency || !performance || !teamwork) {
-                              alert('Please provide all rating values before submitting.');
+                              showWarning('Please provide all rating values before submitting.');
                               return;
                             }
-                            
+
                             if (efficiency < 1 || efficiency > 5 || 
                                 performance < 1 || performance > 5 || 
                                 teamwork < 1 || teamwork > 5) {
-                              alert('Rating values must be between 1 and 5.');
+                              showWarning('Rating values must be between 1 and 5.');
                               return;
                             }
                             
@@ -1580,7 +1600,7 @@ const ITDepartment = () => {
                               [noteKey]: ''
                             }));
                             
-                            alert('Rating submitted successfully!');
+                            showSuccess('Rating submitted successfully!');
                             
                             // Note: The employee data will be refreshed on next page load
                             // The note will appear after page refresh
@@ -1598,7 +1618,7 @@ const ITDepartment = () => {
                             } else if (error.message) {
                               errorMessage = `Failed to submit rating: ${error.message}`;
                             }
-                            alert(errorMessage);
+                            showError(errorMessage);
                           }
                         }}
                         >
@@ -2929,11 +2949,11 @@ const ITDepartment = () => {
                 onClick={async () => {
                   try {
                     await handleUpdateTicket(editingTicket.id || editingTicket._id, { status: editingTicket.status });
-                    alert('Ticket status updated successfully!');
+                    showSuccess('Ticket status updated successfully!');
                     setShowEditTicket(false);
                     setEditingTicket(null);
                   } catch (error) {
-                    alert('Failed to update ticket status: ' + error.message);
+                    showError('Failed to update ticket status: ' + error.message);
                   }
                 }}
                 style={{

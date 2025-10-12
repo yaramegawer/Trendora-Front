@@ -31,12 +31,14 @@ import {
 import { useOperationEmployees, useOperationCampaigns, useOperationLeaves, useOperationRecentActivities } from '../../hooks/useOperationData';
 import { operationTicketApi } from '../../services/operationApi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { canSubmitLeave } from '../../utils/permissions';
 import SimplePagination from '../common/SimplePagination';
 
 const OperationDepartment = () => {
   // Get user from auth context
   const { user } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   
   // Check if user has access to Operation department
   // Since department info is not available in the user object, allow access
@@ -213,14 +215,14 @@ const OperationDepartment = () => {
       
       // Validate rating values
       if (!ratingData.efficiency || !ratingData.performance || !ratingData.teamwork) {
-        alert('Please provide all rating values before submitting.');
+        showWarning('Please provide all rating values before submitting.');
         return;
       }
       
       if (ratingData.efficiency < 1 || ratingData.efficiency > 5 || 
           ratingData.performance < 1 || ratingData.performance > 5 || 
           ratingData.teamwork < 1 || ratingData.teamwork > 5) {
-        alert('Rating values must be between 1 and 5.');
+        showWarning('Rating values must be between 1 and 5.');
         return;
       }
       
@@ -234,7 +236,7 @@ const OperationDepartment = () => {
       
       // Check if the result indicates success (either result.success or result.message contains success)
       if (result.success || (result.message && result.message.toLowerCase().includes('success'))) {
-        alert('Rating submitted successfully!');
+        showSuccess('Rating submitted successfully!');
         
         // Clear local state after successful submission
         setEmployeeRatings(prev => {
@@ -253,7 +255,7 @@ const OperationDepartment = () => {
           fetchEmployees();
         }, 500);
       } else {
-        alert('Failed to submit rating: ' + (result.message || 'Unknown error'));
+        showError('Failed to submit rating: ' + (result.message || 'Unknown error'));
       }
     } catch (error) {
 ('Error updating rating:', error);
@@ -268,7 +270,7 @@ const OperationDepartment = () => {
       } else if (error.message) {
         errorMessage = `Failed to submit rating: ${error.message}`;
       }
-      alert(errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -287,37 +289,37 @@ const OperationDepartment = () => {
 
     // Validate required fields
     if (!newCampaign.name || !newCampaign.customerName || !newCampaign.startDate || !newCampaign.endDate) {
-      alert('Please fill in all required fields (Name, Customer Name, Start Date, End Date)');
+      showWarning('Please fill in all required fields (Name, Customer Name, Start Date, End Date)');
       return;
     }
 
     // Validate name length
     if (newCampaign.name.length < 3 || newCampaign.name.length > 50) {
-      alert('Campaign name must be between 3 and 50 characters');
+      showWarning('Campaign name must be between 3 and 50 characters');
       return;
     }
 
     // Validate customer name length
     if (newCampaign.customerName.length < 3 || newCampaign.customerName.length > 100) {
-      alert('Customer name must be between 3 and 100 characters');
+      showWarning('Customer name must be between 3 and 100 characters');
       return;
     }
 
     // Validate description length
     if (newCampaign.description && newCampaign.description.length > 500) {
-      alert('Description must be 500 characters or less');
+      showWarning('Description must be 500 characters or less');
       return;
     }
 
     // Validate notes length
     if (newCampaign.notes && newCampaign.notes.length > 500) {
-      alert('Notes must be 500 characters or less');
+      showWarning('Notes must be 500 characters or less');
       return;
     }
 
     // Validate date range
     if (new Date(newCampaign.startDate) >= new Date(newCampaign.endDate)) {
-      alert('End date must be after start date');
+      showWarning('End date must be after start date');
       return;
     }
     
@@ -342,7 +344,7 @@ const OperationDepartment = () => {
       const result = await createCampaign(campaignData);
       
       if (result.success) {
-        alert('Campaign created successfully!');
+        showSuccess('Campaign created successfully!');
       setNewCampaign({
         name: '',
         description: '',
@@ -354,11 +356,11 @@ const OperationDepartment = () => {
       });
       setShowCreateCampaign(false);
       } else {
-        alert('Failed to create campaign: ' + result.message);
+        showError('Failed to create campaign: ' + result.message);
       }
     } catch (error) {
 ('Error creating campaign:', error);
-      alert('Failed to create campaign: ' + error.message);
+      showError('Failed to create campaign: ' + error.message);
     }
   };
 
@@ -372,32 +374,32 @@ const OperationDepartment = () => {
 
     // Validate name length only if name is provided
     if (editingCampaign.name && (editingCampaign.name.length < 3 || editingCampaign.name.length > 50)) {
-      alert('Campaign name must be between 3 and 50 characters');
+      showWarning('Campaign name must be between 3 and 50 characters');
       return;
     }
 
     // Validate customer name length only if customer name is provided
     if (editingCampaign.customerName && (editingCampaign.customerName.length < 3 || editingCampaign.customerName.length > 100)) {
-      alert('Customer name must be between 3 and 100 characters');
+      showWarning('Customer name must be between 3 and 100 characters');
       return;
     }
 
     // Validate description length only if description is provided
     if (editingCampaign.description && editingCampaign.description.length > 500) {
-      alert('Description must be 500 characters or less');
+      showWarning('Description must be 500 characters or less');
       return;
     }
 
     // Validate notes length only if notes are provided
     if (editingCampaign.notes && editingCampaign.notes.length > 500) {
-      alert('Notes must be 500 characters or less');
+      showWarning('Notes must be 500 characters or less');
       return;
     }
 
     // Validate date range only if both dates are provided
     if (editingCampaign.startDate && editingCampaign.endDate && 
         new Date(editingCampaign.startDate) >= new Date(editingCampaign.endDate)) {
-      alert('End date must be after start date');
+      showWarning('End date must be after start date');
       return;
     }
 
@@ -430,22 +432,22 @@ const OperationDepartment = () => {
 
       // Check if at least one field is being updated
       if (Object.keys(campaignData).length === 0) {
-        alert('Please update at least one field');
+        showWarning('Please update at least one field');
         return;
       }
 
       const result = await updateCampaign(editingCampaign.id || editingCampaign._id, campaignData);
       
       if (result.success) {
-        alert('Campaign updated successfully!');
+        showSuccess('Campaign updated successfully!');
         setShowEditCampaign(false);
         setEditingCampaign(null);
       } else {
-        alert('Failed to update campaign: ' + result.message);
+        showError('Failed to update campaign: ' + result.message);
       }
     } catch (error) {
 ('Error updating campaign:', error);
-      alert('Failed to update campaign: ' + error.message);
+      showError('Failed to update campaign: ' + error.message);
     }
   };
 
@@ -454,10 +456,10 @@ const OperationDepartment = () => {
     if (window.confirm('Are you sure you want to delete this campaign?')) {
       try {
         await deleteCampaign(campaignId);
-        alert('Campaign deleted successfully!');
+        showSuccess('Campaign deleted successfully!');
       } catch (error) {
 ('Error deleting campaign:', error);
-        alert('Failed to delete campaign: ' + error.message);
+        showError('Failed to delete campaign: ' + error.message);
       }
     }
   };
@@ -470,11 +472,11 @@ const OperationDepartment = () => {
         // Status will be updated automatically due to fetchCampaigns() in the hook
 ('Campaign status updated successfully');
       } else {
-        alert('Failed to update campaign status: ' + result.message);
+        showError('Failed to update campaign status: ' + result.message);
       }
     } catch (error) {
 ('Error updating campaign status:', error);
-      alert('Failed to update campaign status: ' + error.message);
+      showError('Failed to update campaign status: ' + error.message);
     }
   };
 
@@ -485,25 +487,25 @@ const OperationDepartment = () => {
 
       // Validate required fields
       if (!newTicket.title || !newTicket.description) {
-        alert('Please fill in all required fields (Issue Type and Description)');
+        showWarning('Please fill in all required fields (Issue Type and Description)');
         return;
       }
 
       // Validate that a valid issue type is selected
       if (newTicket.title === '') {
-        alert('Please select an issue type');
+        showWarning('Please select an issue type');
         return;
       }
 
       // Validate user ID exists
       if (!user || !user.id) {
-        alert('User authentication error. Please log in again.');
+        showError('User authentication error. Please log in again.');
         return;
       }
 
       // Validate description length
       if (newTicket.description.length < 10 || newTicket.description.length > 500) {
-        alert('Description must be between 10 and 500 characters');
+        showWarning('Description must be between 10 and 500 characters');
         return;
       }
 
@@ -517,7 +519,7 @@ const OperationDepartment = () => {
       const result = await operationTicketApi.addTicket(ticketData);
       
       if (result.success) {
-        alert('Ticket created successfully!');
+        showSuccess('Ticket created successfully!');
         setNewTicket({
           title: '',
           description: '',
@@ -525,10 +527,10 @@ const OperationDepartment = () => {
         });
         setShowCreateTicket(false);
       } else {
-        alert('Failed to create ticket: ' + result.message);
+        showError('Failed to create ticket: ' + result.message);
       }
     } catch (error) {
-      alert('Failed to create ticket: ' + error.message);
+      showError('Failed to create ticket: ' + error.message);
     }
   };
 
@@ -576,7 +578,7 @@ const OperationDepartment = () => {
     try {
       const result = await addLeave(leaveFormData);
       if (result.success) {
-        alert('Leave request submitted successfully!');
+        showSuccess('Leave request submitted successfully!');
         setLeaveFormData({
           type: '',
           startDate: '',
@@ -584,11 +586,11 @@ const OperationDepartment = () => {
         });
         setShowCreateOperationLeave(false);
       } else {
-        alert('Failed to submit leave request: ' + result.message);
+        showError('Failed to submit leave request: ' + result.message);
       }
     } catch (error) {
 ('Error submitting leave request:', error);
-      alert('Failed to submit leave request: ' + error.message);
+      showError('Failed to submit leave request: ' + error.message);
     } finally {
       setLeaveFormLoading(false);
     }

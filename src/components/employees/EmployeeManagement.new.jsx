@@ -48,6 +48,7 @@ import {
   Visibility
 } from '@mui/icons-material';
 import { useEmployees, useDepartments } from '../../hooks/useHRData';
+import { useNotification } from '../../contexts/NotificationContext';
 import SimplePagination from '../common/SimplePagination';
 import EmployeeForm from './EmployeeForm';
 import { useAuth } from '../../contexts/AuthContext';
@@ -70,6 +71,7 @@ const EmployeeManagement = () => {
   } = useEmployees();
   const { departments } = useDepartments();
   const { user, isAuthenticated } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -86,7 +88,7 @@ const EmployeeManagement = () => {
     
     // Check if user is authenticated first
     if (!user || !isAuthenticated) {
-      alert('Authentication Error: Please log in first to add employees.');
+      showError('Authentication Error: Please log in first to add employees.');
       setShowAddDialog(false);
       return;
     }
@@ -136,14 +138,14 @@ const EmployeeManagement = () => {
       
       // Check for authentication errors
       if (errorMsg.includes('Authentication required') || errorMsg.includes('sign_in') || errorMsg.includes('token')) {
-        alert('Authentication Error: Please log in first to add employees.');
+        showError('Authentication Error: Please log in first to add employees.');
         setShowAddDialog(false);
         return;
       }
       
       // Check for permission errors
       if (errorMsg.includes('permission') || errorMsg.includes('access') || errorMsg.includes('admin')) {
-        alert(`Permission Error: ${errorMsg}`);
+        showError(`Permission Error: ${errorMsg}`);
         setShowAddDialog(false);
         return;
       }
@@ -170,12 +172,12 @@ const EmployeeManagement = () => {
       
       // Handle 500 status errors (but only as last resort)
       if (error.response?.status === 500 || errorMsg.includes('internal server error')) {
-        alert('Server Error: Unable to add employee. Please try again later or contact support if the problem persists.');
+        showError('Server Error: Unable to add employee. Please try again later or contact support if the problem persists.');
         return;
       }
       
       // For any other errors, show the error message
-      alert(`Error adding employee: ${errorMsg}`);
+      showError(`Error adding employee: ${errorMsg}`);
     }
   };
 
@@ -241,21 +243,21 @@ const EmployeeManagement = () => {
       
       // Check for Invalid ObjectId errors
       if (errorMsg.includes('Invalid objectId')) {
-        alert('Error: Invalid employee ID. Please refresh the page and try again.');
+        showError('Error: Invalid employee ID. Please refresh the page and try again.');
         setShowEditDialog(false);
         return;
       }
       
       // Check for authentication errors
       if (errorMsg.includes('Authentication required')) {
-        alert('Authentication Error: Please log in again.');
+        showError('Authentication Error: Please log in again.');
         setShowEditDialog(false);
         return;
       }
       
       // Check for permission errors
       if (errorMsg.includes('permission') || errorMsg.includes('access') || errorMsg.includes('admin')) {
-        alert(`Permission Error: ${errorMsg}`);
+        showError(`Permission Error: ${errorMsg}`);
         setShowEditDialog(false);
         return;
       }
@@ -283,12 +285,12 @@ const EmployeeManagement = () => {
       
       // Handle 500 status errors (but only as last resort)
       if (error.response?.status === 500 || errorMsg.includes('internal server error')) {
-        alert('Server Error: Unable to update employee. Please try again later or contact support if the problem persists.');
+        showError('Server Error: Unable to update employee. Please try again later or contact support if the problem persists.');
         return;
       }
       
       // For any other errors, show the error message
-      alert(`Error updating employee: ${errorMsg}`);
+      showError(`Error updating employee: ${errorMsg}`);
     }
   };
 
@@ -328,11 +330,11 @@ const EmployeeManagement = () => {
     } catch (error) {
       console.error('❌ Error submitting document:', error);
       if (error.message && error.message.includes('internal server error')) {
-        alert('Server Error: Unable to submit document. Please try again later or contact support if the problem persists.');
+        showError('Server Error: Unable to submit document. Please try again later or contact support if the problem persists.');
       } else if (error.response && error.response.status === 500) {
-        alert('Server Error: Unable to submit document. Please try again later or contact support if the problem persists.');
+        showError('Server Error: Unable to submit document. Please try again later or contact support if the problem persists.');
       } else {
-        alert(`Error submitting document: ${error.message}`);
+        showError(`Error submitting document: ${error.message}`);
       }
     }
   };
@@ -351,13 +353,13 @@ const EmployeeManagement = () => {
         console.error('❌ Error deleting employee:', error);
         // Check if error is permission-related
         if (error.message && (error.message.includes('permission') || error.message.includes('access') || error.message.includes('admin'))) {
-          alert(`Error: ${error.message}`);
+          showError(`Error: ${error.message}`);
         } else if (error.message && error.message.includes('internal server error')) {
-          alert('Server Error: Unable to delete employee. Please try again later or contact support if the problem persists.');
+          showError('Server Error: Unable to delete employee. Please try again later or contact support if the problem persists.');
         } else if (error.response && error.response.status === 500) {
-          alert('Server Error: Unable to delete employee. Please try again later or contact support if the problem persists.');
+          showError('Server Error: Unable to delete employee. Please try again later or contact support if the problem persists.');
         } else {
-          alert(`Error deleting employee: ${error.message}`);
+          showError(`Error deleting employee: ${error.message}`);
         }
       }
     }
