@@ -278,12 +278,15 @@ export const useDepartments = () => {
 // Custom hook for leave data
 export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
   const [leaves, setLeaves] = useState([]);
+  const [allLeaves, setAllLeaves] = useState([]); // Store all leaves for search
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalLeaves, setTotalLeaves] = useState(0);
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
   const [currentStatusFilter, setCurrentStatusFilter] = useState(statusFilter);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const fetchLeaves = async (pageNum = currentPage, pageLimit = pageSize, status = currentStatusFilter) => {
     try {
@@ -334,13 +337,55 @@ export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
     }
   };
 
+  const fetchAllLeaves = async (status = currentStatusFilter) => {
+    try {
+      setLoading(true);
+      setError(null);
+      setIsSearching(true);
+('🔍 useLeaves: Fetching ALL leaves for search');
+      
+      // Get all leaves from backend
+      const data = await leaveApi.getAllLeavesNoPagination(status);
+      
+      // Handle response structure
+      let leavesData = [];
+      
+      if (data && typeof data === 'object') {
+        if (data.data && Array.isArray(data.data)) {
+          leavesData = data.data;
+        } else if (Array.isArray(data)) {
+          leavesData = data;
+        }
+      }
+      
+('🔍 useLeaves: All leaves fetched:', leavesData.length);
+      setAllLeaves(leavesData);
+      setCurrentStatusFilter(status);
+    } catch (err) {
+('Error fetching all leaves:', err);
+      if (err.message && err.message.includes('No leaves found')) {
+        setAllLeaves([]);
+        setError(null);
+      } else {
+        setError(err.message || 'Failed to fetch leaves');
+        setAllLeaves([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addLeave = async (leaveData) => {
     try {
 ('Hook: Adding leave with data:', leaveData);
       const newLeave = await leaveApi.addLeave(leaveData);
 ('Hook: Add successful, refreshing leaves data...');
-      // Refresh the entire leave list to ensure we have the latest data
-      await fetchLeaves();
+      // Refresh the data based on current mode
+      if (isSearching) {
+        await fetchAllLeaves();
+      } else {
+        await fetchLeaves();
+      }
 ('Hook: Leave data refresh completed');
       return newLeave;
     } catch (err) {
@@ -355,8 +400,12 @@ export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
 ('Hook: Updating leave status with ID:', id);
       const updatedLeave = await leaveApi.updateLeaveStatus(id, leaveData);
 ('Hook: Update successful, refreshing leaves data...');
-      // Refresh the entire leave list to ensure we have the latest data
-      await fetchLeaves();
+      // Refresh the data based on current mode
+      if (isSearching) {
+        await fetchAllLeaves();
+      } else {
+        await fetchLeaves();
+      }
 ('Hook: Leave data refresh completed');
       return updatedLeave;
     } catch (err) {
@@ -374,8 +423,12 @@ export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
 ('Hook: Deleting leave with ID:', id);
       await leaveApi.deleteLeave(id);
 ('Hook: Delete successful, refreshing leaves data...');
-      // Refresh the entire leave list to ensure we have the latest data
-      await fetchLeaves();
+      // Refresh the data based on current mode
+      if (isSearching) {
+        await fetchAllLeaves();
+      } else {
+        await fetchLeaves();
+      }
 ('Hook: Leave data refresh completed');
     } catch (err) {
 ('Hook: Delete leave error:', err);
@@ -388,35 +441,62 @@ export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
     fetchLeaves();
   }, []);
 
+  // Search function
+  const performSearch = async (search) => {
+('🔍 performSearch called with:', search);
+    setSearchTerm(search);
+    setCurrentPage(1);
+    
+    if (search && search.trim() !== '') {
+      // When searching, fetch all leaves
+      await fetchAllLeaves(currentStatusFilter);
+    } else {
+      // When not searching, use normal pagination
+      setIsSearching(false);
+      await fetchLeaves(1, pageSize, currentStatusFilter);
+    }
+  };
+
   // Pagination functions
   const goToPage = (pageNum) => {
-    const maxPages = Math.ceil(totalLeaves / pageSize) || 1; // At least 1 page
 ('🔍 goToPage called with:', pageNum);
-('🔍 Max pages:', maxPages, 'Total leaves:', totalLeaves, 'Page size:', pageSize);
+    setCurrentPage(pageNum);
     
-    // Ensure pageNum is valid
-    if (totalLeaves === 0) {
-      // No data, stay on page 1
-      fetchLeaves(1, pageSize, currentStatusFilter);
-    } else if (pageNum >= 1 && pageNum <= maxPages) {
-      fetchLeaves(pageNum, pageSize, currentStatusFilter);
-    } else {
-      // Invalid page number, go to closest valid page
-      const validPage = pageNum < 1 ? 1 : maxPages;
-      fetchLeaves(validPage, pageSize, currentStatusFilter);
+    // If we're not searching, fetch from backend
+    if (!isSearching) {
+      const maxPages = Math.ceil(totalLeaves / pageSize) || 1;
+      if (totalLeaves === 0) {
+        fetchLeaves(1, pageSize, currentStatusFilter);
+      } else if (pageNum >= 1 && pageNum <= maxPages) {
+        fetchLeaves(pageNum, pageSize, currentStatusFilter);
+      } else {
+        const validPage = pageNum < 1 ? 1 : maxPages;
+        fetchLeaves(validPage, pageSize, currentStatusFilter);
+      }
     }
+    // If we're searching, the component will handle client-side pagination
   };
 
   const changePageSize = (newPageSize) => {
 ('🔍 changePageSize called with:', newPageSize);
     setPageSize(newPageSize);
-    fetchLeaves(1, newPageSize, currentStatusFilter); // Reset to first page when changing page size
+    setCurrentPage(1);
+    
+    if (!isSearching) {
+      fetchLeaves(1, newPageSize, currentStatusFilter);
+    }
   };
 
   const changeStatusFilter = (newStatus) => {
 ('🔍 changeStatusFilter called with:', newStatus);
     setCurrentStatusFilter(newStatus);
-    fetchLeaves(1, pageSize, newStatus); // Reset to first page when changing filter
+    setCurrentPage(1);
+    
+    if (isSearching) {
+      fetchAllLeaves(newStatus);
+    } else {
+      fetchLeaves(1, pageSize, newStatus);
+    }
   };
 
   const nextPage = () => {
@@ -436,12 +516,15 @@ export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
 
   return {
     leaves,
+    allLeaves,
     loading,
     error,
     totalLeaves,
     currentPage,
     pageSize,
     totalPages: Math.ceil(totalLeaves / pageSize),
+    searchTerm,
+    isSearching,
     addLeave,
     updateLeaveStatus,
     deleteLeave,
@@ -449,6 +532,7 @@ export const useLeaves = (page = 1, limit = 10, statusFilter = 'all') => {
     goToPage,
     changePageSize,
     changeStatusFilter,
+    performSearch,
     nextPage,
     prevPage
   };

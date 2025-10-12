@@ -31,7 +31,7 @@ import {
 import {
   Edit,
   Delete,
-  Search,
+  Search as SearchIcon,
   Event,
   Person,
   CalendarToday
@@ -58,47 +58,48 @@ const LeaveType = {
 
 const LeaveManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
   
   const { 
     leaves, 
+    allLeaves,
     loading, 
     error, 
     totalLeaves,
     currentPage,
     pageSize,
     totalPages: hookTotalPages,
+    searchTerm,
+    isSearching,
     addLeave, 
     updateLeaveStatus, 
     deleteLeave,
     goToPage,
     changePageSize,
     changeStatusFilter,
+    performSearch,
     nextPage,
     prevPage
   } = useLeaves(1, 10, statusFilter);
   const { employees: hrEmployees } = useEmployees();
   const { employees: itEmployees } = useITEmployees();
-  const { user } = useAuth();
-
-  // Use leaves data from backend (backend handles pagination and status filtering)
-  const currentLeaves = leaves || [];
+  
   // Combine HR and IT employees for display
   const currentEmployees = [...(hrEmployees || []), ...(itEmployees || [])];
   
   // Debug logging
-('HR Leave Management - Leaves data from backend:', currentLeaves);
+('HR Leave Management - Leaves data from backend:', leaves);
   
-  // Debug when leaves data changes
+  // Debounced search - only triggers after user stops typing for 1 second
   React.useEffect(() => {
-('🔍 Leaves data changed:', {
-      leavesLength: leaves.length,
-      currentLeavesLength: currentLeaves.length,
-      currentPage,
-      totalLeaves,
-      hookTotalPages
-    });
-  }, [leaves, currentLeaves, currentPage, totalLeaves, hookTotalPages]);
+    const timer = setTimeout(() => {
+      if (localSearchTerm !== searchTerm) {
+        performSearch(localSearchTerm);
+      }
+    }, 1000); // 1 second delay after user stops typing
+    
+    return () => clearTimeout(timer);
+  }, [localSearchTerm, searchTerm, performSearch]);
   
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -267,27 +268,51 @@ const LeaveManagement = () => {
     return `Unknown Employee (ID: ${leave.employeeId || 'N/A'})`;
   };
 
-  // Client-side search filtering only (backend handles status and pagination)
-  const filteredLeaves = currentLeaves.filter(leave => {
-    const matchesSearch = searchTerm === '' || 
-      getEmployeeName(leave).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (leave.leaveType || leave.type || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesSearch;
-  });
+  // When searching, filter all leaves client-side
+  // When not searching, use backend-paginated leaves
+  const getFilteredAndPaginatedLeaves = () => {
+    if (isSearching && localSearchTerm.trim() !== '') {
+      // Client-side search on all leaves
+      const filtered = allLeaves.filter(leave => {
+        const matchesSearch = 
+          getEmployeeName(leave).toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+          (leave.leaveType || leave.type || '').toLowerCase().includes(localSearchTerm.toLowerCase());
+        return matchesSearch;
+      });
+      
+      // Client-side pagination
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginated = filtered.slice(startIndex, endIndex);
+      
+      return {
+        leaves: paginated,
+        total: filtered.length,
+        totalPages: Math.ceil(filtered.length / pageSize)
+      };
+    } else {
+      // Backend pagination
+      return {
+        leaves: leaves || [],
+        total: totalLeaves,
+        totalPages: hookTotalPages
+      };
+    }
+  };
 
-  // Use backend pagination data directly
-  const paginatedLeaves = filteredLeaves;
-  const displayTotalPages = hookTotalPages;
+  const { leaves: paginatedLeaves, total: displayTotal, totalPages: displayTotalPages } = getFilteredAndPaginatedLeaves();
 
   // Debug logging
 ('🔍 Pagination Debug:', {
     currentPage,
     displayTotalPages,
-    filteredLeavesLength: filteredLeaves.length,
-    totalLeaves,
+    paginatedLeavesLength: paginatedLeaves.length,
+    displayTotal,
+    isSearching,
+    localSearchTerm,
     pageSize,
-    leavesLength: leaves.length
+    leavesLength: leaves.length,
+    allLeavesLength: allLeaves.length
   });
   
   // Handle page change
@@ -301,13 +326,6 @@ const LeaveManagement = () => {
     setStatusFilter(newStatus);
     changeStatusFilter(newStatus);
   };
-
-  // Reset to page 1 when search changes (client-side only)
-  React.useEffect(() => {
-    if (currentPage !== 1 && searchTerm !== '') {
-      goToPage(1);
-    }
-  }, [searchTerm]);
 
   if (loading) {
     return (
@@ -348,12 +366,14 @@ const LeaveManagement = () => {
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
-                label="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                label="Search (searches all pages)"
+                value={localSearchTerm}
+                onChange={(e) => setLocalSearchTerm(e.target.value)}
+                placeholder="Search by employee name or leave type..."
                 InputProps={{
-                  startAdornment: <Search />
+                  startAdornment: <SearchIcon />
                 }}
+                helperText={isSearching ? "Searching across all pages..." : ""}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -447,11 +467,11 @@ const LeaveManagement = () => {
         )}
         
         {/* Pagination - Only show if there's data and more than 1 page */}
-        {totalLeaves > 0 && displayTotalPages > 1 && (
+        {displayTotal > 0 && displayTotalPages > 1 && (
           <SimplePagination
             currentPage={currentPage}
             totalPages={displayTotalPages}
-            totalItems={totalLeaves}
+            totalItems={displayTotal}
             pageSize={pageSize}
             onPageChange={handlePageChange}
           />

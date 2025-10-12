@@ -500,6 +500,38 @@ export const leaveApi = {
     }
   },
 
+  // Get all leaves without pagination (for search functionality)
+  getAllLeavesNoPagination: async (status = null) => {
+    try {
+      const params = { 
+        page: 1,
+        limit: 10000, // Large number to get all records
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      };
+      
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      
+      const response = await api.get(API_CONFIG.ENDPOINTS.HR.LEAVES, {
+        params
+      });
+      
+      // Check if response indicates an error
+      if (response.data && response.data.success === false) {
+        const errorMessage = response.data.message || 'Failed to fetch leaves';
+        throw new Error(errorMessage);
+      }
+      
+      // Return the full response structure
+      return response.data;
+    } catch (error) {
+      const errorMessage = handleApiError(error, 'Failed to fetch leaves');
+      throw new Error(errorMessage);
+    }
+  },
+
   // Update leave status
   updateLeaveStatus: async (id, leaveData) => {
     try {
