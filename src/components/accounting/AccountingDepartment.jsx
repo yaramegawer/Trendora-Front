@@ -30,7 +30,8 @@ import {
   IconButton,
   Menu,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  InputAdornment
 } from '@mui/material';
 import { 
   AccountBalance, 
@@ -46,7 +47,8 @@ import {
   Delete,
   Visibility,
   Print,
-  Refresh
+  Search,
+  Clear
 } from '@mui/icons-material';
 import InvoiceManagement from './InvoiceManagement';
 import { useAccountingData } from '../../hooks/useAccountingData';
@@ -121,6 +123,9 @@ const AccountingDepartment = () => {
   const [leaveSubmitError, setLeaveSubmitError] = useState('');
   const [ticketFieldErrors, setTicketFieldErrors] = useState({});
   const [ticketSubmitError, setTicketSubmitError] = useState('');
+  
+  // Transaction search state
+  const [transactionSearchTerm, setTransactionSearchTerm] = useState('');
 
   const { 
     addInvoice, 
@@ -140,7 +145,10 @@ const AccountingDepartment = () => {
     totalTransactions,
     transactionPageSize,
     goToTransactionPage,
-    changeTransactionPageSize
+    changeTransactionPageSize,
+    allTransactions,
+    isSearchingTransactions,
+    fetchAllTransactionsForSearch
   } = useAccountingData();
 
   // Add React useEffect for debugging - AFTER hook declaration
@@ -306,6 +314,9 @@ const AccountingDepartment = () => {
       setTransactionFieldErrors({});
       setTransactionSubmitError('');
       
+        // Clear search and refresh transactions
+        setTransactionSearchTerm('');
+        
         // Show success message
         showSuccess(`Transaction ${editingTransaction ? 'updated' : 'created'} successfully!`);
       } else {
@@ -399,6 +410,8 @@ const AccountingDepartment = () => {
     if (selectedTransaction && window.confirm('Are you sure you want to delete this transaction?')) {
       const result = await deleteTransaction(selectedTransaction._id);
       if (result.success) {
+        // Clear search and refresh transactions
+        setTransactionSearchTerm('');
         showSuccess('Transaction deleted successfully!');
       } else {
         showError('Failed to delete transaction: ' + result.error);
@@ -672,6 +685,55 @@ const AccountingDepartment = () => {
     setTicketSubmitError('');
   };
 
+  // Transaction search handlers
+  const handleTransactionSearchChange = (event) => {
+    const searchValue = event.target.value;
+    setTransactionSearchTerm(searchValue);
+
+    // If search term is empty, return to paginated view
+    if (!searchValue.trim()) {
+      fetchTransactions();
+      return;
+    }
+
+    // If we haven't fetched all transactions yet, fetch them
+    if (!isSearchingTransactions && allTransactions.length === 0) {
+      fetchAllTransactionsForSearch();
+    }
+  };
+
+  const handleClearTransactionSearch = () => {
+    setTransactionSearchTerm('');
+    fetchTransactions(); // Return to paginated view
+  };
+
+  // Filter transactions based on search term
+  const getFilteredTransactions = () => {
+    if (!transactionSearchTerm.trim()) {
+      return transactions;
+    }
+
+    // Search across all transactions if we have them
+    const transactionsToSearch = isSearchingTransactions && allTransactions.length > 0 
+      ? allTransactions 
+      : transactions;
+
+    const searchLower = transactionSearchTerm.toLowerCase();
+    
+    return transactionsToSearch.filter(transaction => {
+      return (
+        transaction.description?.toLowerCase().includes(searchLower) ||
+        transaction.type?.toLowerCase().includes(searchLower) ||
+        transaction.method?.toLowerCase().includes(searchLower) ||
+        transaction.amount?.toString().includes(searchLower) ||
+        new Date(transaction.date).toLocaleDateString().toLowerCase().includes(searchLower)
+      );
+    });
+  };
+
+  // Get the displayed transactions
+  const displayedTransactions = getFilteredTransactions();
+
   return (
     <Box sx={{ 
       minHeight: '100vh', 
@@ -910,33 +972,67 @@ const AccountingDepartment = () => {
       {activeTab === 'transactions' && (
         <Card>
           <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Recent Transactions
-              </Typography>
-              <Stack direction="row" spacing={2}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+              Recent Transactions
+            </Typography>
+
+            {/* Search Bar with New Transaction Button */}
+            <Box sx={{ mb: 3 }}>
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box sx={{ flex: 1 }}>
+                  <TextField
+                    fullWidth
+                    placeholder="Search transactions by description, type, method, amount, or date..."
+                    value={transactionSearchTerm}
+                    onChange={handleTransactionSearchChange}
+                    InputProps={{
+                      startAdornment: (
+                        <Search sx={{ color: 'text.secondary', mr: 1 }} />
+                      ),
+                      endAdornment: transactionSearchTerm && (
+                        <IconButton
+                          size="small"
+                          onClick={handleClearTransactionSearch}
+                          sx={{ mr: -1 }}
+                        >
+                          <Clear />
+                        </IconButton>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: 'white'
+                      }
+                    }}
+                  />
+                  {isSearchingTransactions && transactionSearchTerm && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Searching across all {totalTransactions} transactions...
+                    </Typography>
+                  )}
+                  {transactionSearchTerm && (
+                    <Typography variant="caption" color="primary" sx={{ mt: 1, display: 'block' }}>
+                      Found {displayedTransactions.length} result{displayedTransactions.length !== 1 ? 's' : ''}
+                    </Typography>
+                  )}
+                </Box>
                 <Button
-                  variant="outlined"
-                  startIcon={<Refresh />}
-                  onClick={() => {
-                      ('🔄 Manual refresh triggered');
-                    fetchTransactions();
-                  }}
-                  sx={{ borderRadius: 2 }}
-                >
-                  Refresh
-                </Button>
-              <Button
-                variant="contained"
-                startIcon={<AttachMoney />}
+                  variant="contained"
+                  startIcon={<AttachMoney />}
                   onClick={() => {
                     setEditingTransaction(null);
                     setShowTransactionDialog(true);
                   }}
-                sx={{ borderRadius: 2 }}
-              >
-                New Transaction
-              </Button>
+                  sx={{ 
+                    borderRadius: 2,
+                    minWidth: 'auto',
+                    whiteSpace: 'nowrap',
+                    px: 3
+                  }}
+                >
+                  New Transaction
+                </Button>
               </Stack>
             </Box>
             {loading ? (
@@ -945,10 +1041,12 @@ const AccountingDepartment = () => {
                   Loading transactions...
                     </Typography>
               </Box>
-            ) : transactions.length === 0 ? (
+            ) : displayedTransactions.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography variant="body2" color="text.secondary">
-                  No transactions found. Create your first transaction using the button above.
+                  {transactionSearchTerm 
+                    ? `No transactions found matching "${transactionSearchTerm}"`
+                    : 'No transactions found. Create your first transaction using the button above.'}
                     </Typography>
                   </Box>
             ) : (
@@ -966,7 +1064,7 @@ const AccountingDepartment = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {transactions.map((transaction) => (
+                      {displayedTransactions.map((transaction) => (
                         <TableRow 
                           key={transaction._id}
                           sx={{ '&:hover': { backgroundColor: 'action.hover' } }}
@@ -1013,24 +1111,26 @@ const AccountingDepartment = () => {
                   </Table>
                 </TableContainer>
 
-                {/* Pagination */}
-                <Box sx={{ 
-                  mt: 3, 
-                  display: 'flex', 
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}>
-                  <SimplePagination
-                    currentPage={transactionCurrentPage}
-                    totalPages={transactionTotalPages}
-                    totalItems={totalTransactions}
-                    pageSize={transactionPageSize}
-                    onPageChange={(page) => {
-                        ('📄 Page changed to:', page);
-                      goToTransactionPage(page);
-                    }}
-                  />
-                </Box>
+                {/* Pagination - Hide when searching */}
+                {!transactionSearchTerm && (
+                  <Box sx={{ 
+                    mt: 3, 
+                    display: 'flex', 
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}>
+                    <SimplePagination
+                      currentPage={transactionCurrentPage}
+                      totalPages={transactionTotalPages}
+                      totalItems={totalTransactions}
+                      pageSize={transactionPageSize}
+                      onPageChange={(page) => {
+                          ('📄 Page changed to:', page);
+                        goToTransactionPage(page);
+                      }}
+                    />
+                  </Box>
+                )}
               </>
             )}
           </CardContent>

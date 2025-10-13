@@ -77,6 +77,11 @@ const DigitalMarketingDepartment = () => {
   const [customerProjectsCurrentPage, setCustomerProjectsCurrentPage] = useState(1);
   const [customerProjectsPageSize, setCustomerProjectsPageSize] = useState(10);
   const [customerProjectsTotal, setCustomerProjectsTotal] = useState(0);
+  
+  // State for customer list pagination
+  const [customersCurrentPage, setCustomersCurrentPage] = useState(1);
+  const [customersPageSize, setCustomersPageSize] = useState(10);
+  const [customersTotal, setCustomersTotal] = useState(0);
 
   const { 
     projects, 
@@ -224,8 +229,8 @@ const DigitalMarketingDepartment = () => {
 
   // Fetch customers on component mount
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    fetchCustomers(customersCurrentPage, customersPageSize);
+  }, [customersCurrentPage, customersPageSize]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -241,30 +246,37 @@ const DigitalMarketingDepartment = () => {
     };
   }, [showProjectStatusDropdown]);
 
-  // Fetch all customers from API
-  const fetchCustomers = async () => {
+  // Fetch all customers from API with pagination
+  const fetchCustomers = async (page = 1, limit = 10) => {
     try {
       setCustomersLoading(true);
-       ('🔄 Fetching customers from API...');
-      const customersData = await marketingCustomerApi.getAllCustomers();
+       ('🔄 Fetching customers from API... Page:', page, 'Limit:', limit);
+      const customersData = await marketingCustomerApi.getAllCustomers(page, limit);
        ('📡 Customers API Response:', customersData);
       
-      // Handle different response structures
+      // Handle backend response format: { success: true, data: [...], total, page, limit, totalPages }
       let customersList = [];
+      let totalCustomers = 0;
+      
       if (Array.isArray(customersData)) {
         customersList = customersData;
+        totalCustomers = customersData.length;
       } else if (customersData && customersData.data && Array.isArray(customersData.data)) {
         customersList = customersData.data;
+        totalCustomers = customersData.total || customersData.totalPages * limit || customersData.data.length;
+         ('📊 Using backend pagination data:', { total: totalCustomers, page: customersData.page, totalPages: customersData.totalPages });
       } else if (customersData && customersData.success && Array.isArray(customersData.data)) {
         customersList = customersData.data;
+        totalCustomers = customersData.total || customersData.totalPages * limit || customersData.data.length;
       }
       
-       ('📊 Customers loaded:', customersList.length);
-       ('📊 Customers data:', customersList);
+       ('📊 Customers loaded:', customersList.length, 'Total:', totalCustomers);
       setCustomers(customersList);
+      setCustomersTotal(totalCustomers);
     } catch (error) {
       console.error('Error fetching customers:', error);
       setCustomers([]);
+      setCustomersTotal(0);
     } finally {
       setCustomersLoading(false);
     }
@@ -355,6 +367,11 @@ const DigitalMarketingDepartment = () => {
       const customerName = selectedCustomer.name || selectedCustomer.customerName || selectedCustomer.title;
       await fetchCustomerProjects(customerName, newPage, customerProjectsPageSize, projectStatusFilter);
     }
+  };
+
+  // Handle customers list pagination
+  const handleCustomersPageChange = (newPage) => {
+    setCustomersCurrentPage(newPage);
   };
 
   // Function to get rating for a specific employee and category
@@ -1982,6 +1999,19 @@ const DigitalMarketingDepartment = () => {
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                  
+                  {/* Customer List Pagination */}
+                  {!customersLoading && customers.length > 0 && !projectSearchTerm.trim() && (
+                    <div style={{ marginTop: '20px' }}>
+                      <SimplePagination
+                        currentPage={customersCurrentPage}
+                        totalPages={Math.max(1, Math.ceil(customersTotal / customersPageSize))}
+                        onPageChange={handleCustomersPageChange}
+                        totalItems={customersTotal}
+                        pageSize={customersPageSize}
+                      />
                     </div>
                   )}
                 </div>

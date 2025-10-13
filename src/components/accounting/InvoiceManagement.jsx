@@ -383,10 +383,6 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
           <div class="invoice-details">
             <h3>INVOICE DETAILS</h3>
             <div class="info-row">
-              <span class="info-label">Invoice ID:</span>
-              <span>${invoice._id ? invoice._id.substring(0, 12) + '...' : 'N/A'}</span>
-            </div>
-            <div class="info-row">
               <span class="info-label">Invoice Type:</span>
               <span>${invoice.invoice_type ? invoice.invoice_type.charAt(0).toUpperCase() + invoice.invoice_type.slice(1) : 'N/A'}</span>
             </div>
@@ -477,7 +473,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Search Input */}
             <TextField
-              placeholder="Search by client name, description, ID, type, amount, or status..."
+              placeholder="Search by client name, description, type, amount, or status..."
               value={searchTerm}
               onChange={handleSearchChange}
               InputProps={{
@@ -558,7 +554,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Invoice ID & Type</TableCell>
+                    <TableCell>Type</TableCell>
                     <TableCell>Client Name</TableCell>
                     <TableCell>Amount</TableCell>
                     <TableCell>Status</TableCell>
@@ -583,12 +579,11 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                     filteredInvoices.map((invoice) => (
                       <TableRow key={invoice._id} hover>
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {invoice._id ? invoice._id.substring(0, 8) + '...' : 'N/A'}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {invoice.invoice_type || 'N/A'}
-                          </Typography>
+                          <Chip
+                            label={invoice.invoice_type || 'N/A'}
+                            size="small"
+                            color="primary"
+                          />
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -940,16 +935,11 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
                 <Typography variant="h6" gutterBottom>Invoice Information</Typography>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary">Invoice ID</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {detailedInvoice._id ? detailedInvoice._id.substring(0, 12) + '...' : detailedInvoice.id ? detailedInvoice.id.substring(0, 12) + '...' : 'N/A'}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Invoice Type</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {detailedInvoice.invoice_type ? detailedInvoice.invoice_type.charAt(0).toUpperCase() + detailedInvoice.invoice_type.slice(1) : 'N/A'}
-                    </Typography>
+                    <Chip
+                      label={detailedInvoice.invoice_type ? detailedInvoice.invoice_type.charAt(0).toUpperCase() + detailedInvoice.invoice_type.slice(1) : 'N/A'}
+                      color="primary"
+                    />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2" color="text.secondary">Status</Typography>

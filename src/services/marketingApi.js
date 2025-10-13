@@ -203,13 +203,48 @@ export const marketingLeaveApi = {
 
 // Customer API functions
 export const marketingCustomerApi = {
-  // Get all customers
-  getAllCustomers: async () => {
+  // Get all customers with pagination
+  getAllCustomers: async (page = 1, limit = 10) => {
     try {
-      return await apiCall(API_CONFIG.ENDPOINTS.MARKETING.CUSTOMERS);
+      const response = await api({
+        url: API_CONFIG.ENDPOINTS.MARKETING.CUSTOMERS,
+        method: 'GET',
+        params: { page, limit }
+      });
+      
+       ('📡 Get All Customers API Response:', response.data);
+      
+      // Handle backend response format: { success: true, data: [...], total, page, limit, totalPages }
+      if (response.data && response.data.success === true) {
+         ('✅ Success response detected for customers, returning:', {
+          dataLength: response.data.data?.length || 0,
+          total: response.data.total,
+          page: response.data.page,
+          totalPages: response.data.totalPages
+        });
+        return {
+          data: response.data.data || [],
+          total: response.data.total || 0,
+          page: response.data.page || 1,
+          limit: response.data.limit || limit,
+          totalPages: response.data.totalPages || 0
+        };
+      } else if (response.data && Array.isArray(response.data)) {
+         ('⚠️ Array response detected for customers, returning:', response.data.length, 'items');
+        return {
+          data: response.data,
+          total: response.data.length,
+          page: 1,
+          limit: response.data.length,
+          totalPages: 1
+        };
+      }
+      
+      console.warn('⚠️ Unexpected customers response format, returning empty');
+      return { data: [], total: 0, page: 1, limit, totalPages: 0 };
     } catch (error) {
       console.error('Error fetching customers:', error);
-      return []; // Return empty array as fallback
+      return { data: [], total: 0, page: 1, limit, totalPages: 0 }; // Return empty array as fallback
     }
   },
 

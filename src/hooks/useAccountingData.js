@@ -29,6 +29,10 @@ export const useAccountingData = () => {
   const [transactionTotalPages, setTransactionTotalPages] = useState(1);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [transactionPageSize, setTransactionPageSize] = useState(10);
+  
+  // Search state for cross-page transaction search
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [isSearchingTransactions, setIsSearchingTransactions] = useState(false);
 
   // Fetch all invoices for search (no pagination)
   const fetchAllInvoicesForSearch = useCallback(async (status = currentStatusFilter) => {
@@ -328,11 +332,50 @@ export const useAccountingData = () => {
 
   // Transaction Management Functions
 
+  // Fetch all transactions for search (no pagination)
+  const fetchAllTransactionsForSearch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    setIsSearchingTransactions(true);
+    
+    try {
+      // Fetch all transactions with a large limit
+      const result = await accountingApi.getAllTransactions(1, 10000);
+      
+      if (result.success) {
+        setAllTransactions(result.data || []);
+        setTransactions(result.data || []); // Show all initially
+        setTotalTransactions(result.data?.length || 0);
+        setTransactionTotalPages(1); // Single page when searching
+        setTransactionCurrentPage(1);
+      } else {
+        setError(result.error || 'Failed to fetch transactions');
+        setFieldErrors(result.fieldErrors || {});
+        setAllTransactions([]);
+        setTransactions([]);
+        setTotalTransactions(0);
+        setTransactionTotalPages(0);
+      }
+    } catch (err) {
+      console.error('❌ Error fetching all transactions for search:', err);
+      setError('Network error: Unable to connect to the server. Please check your connection.');
+      setFieldErrors({});
+      setAllTransactions([]);
+      setTransactions([]);
+      setTotalTransactions(0);
+      setTransactionTotalPages(0);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Fetch all transactions with backend pagination
   const fetchTransactions = useCallback(async (page = transactionCurrentPage, limit = transactionPageSize) => {
     setLoading(true);
     setError(null);
     setFieldErrors({});
+    setIsSearchingTransactions(false);
     
     try {
         ('🔄 Fetching transactions - Page:', page, 'Limit:', limit);
@@ -345,6 +388,7 @@ export const useAccountingData = () => {
           ('📄 Total pages from API:', result.totalPages);
         
         setTransactions(result.data || []);
+        setAllTransactions([]); // Clear all transactions when not searching
         
         // Update pagination info from API response
         if (result.total !== undefined && result.total > result.data?.length) {
@@ -595,6 +639,10 @@ export const useAccountingData = () => {
     transactionPageSize,
     goToTransactionPage,
     changeTransactionPageSize,
+    // Transaction search functions
+    allTransactions,
+    isSearchingTransactions,
+    fetchAllTransactionsForSearch,
     clearError: () => {
       setError(null);
       setFieldErrors({});
