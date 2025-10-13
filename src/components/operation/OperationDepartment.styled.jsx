@@ -58,7 +58,6 @@ const OperationDepartment = () => {
   const [pageSize] = useState(10);
 
   // Filter state for campaigns
-  const [campaignSearchTerm, setCampaignSearchTerm] = useState('');
   const [campaignStatusFilter, setCampaignStatusFilter] = useState('all');
   const [showCampaignStatusDropdown, setShowCampaignStatusDropdown] = useState(false);
 
@@ -72,8 +71,10 @@ const OperationDepartment = () => {
     currentPage: campaignsPage,
     totalPages: campaignsTotalPages,
     status: campaignStatus,
+    searchTerm: campaignSearchTerm,
     goToPage: campaignsGoToPage,
     changeStatus: campaignsChangeStatus,
+    changeSearchTerm: campaignsChangeSearchTerm,
     createCampaign, 
     updateCampaign, 
     deleteCampaign 
@@ -99,19 +100,8 @@ const OperationDepartment = () => {
   const [leaveFormErrors, setLeaveFormErrors] = useState({});
   const [leaveFormLoading, setLeaveFormLoading] = useState(false);
 
-  // Filter campaigns by search term only (status filtering is done on backend)
-  const filteredCampaigns = Array.isArray(campaigns) ? campaigns.filter(campaign => {
-    // Client-side search filter only
-    const matchesSearch = campaignSearchTerm === '' || 
-      (campaign.name && campaign.name.toLowerCase().includes(campaignSearchTerm.toLowerCase())) ||
-      (campaign.description && campaign.description.toLowerCase().includes(campaignSearchTerm.toLowerCase())) ||
-      (campaign.customerName && campaign.customerName.toLowerCase().includes(campaignSearchTerm.toLowerCase()));
-    
-    return matchesSearch;
-  }) : [];
-
-  // Use backend-paginated campaigns directly when no search term
-  const displayedCampaigns = campaignSearchTerm ? filteredCampaigns : campaigns;
+  // Search and filtering is now handled in the hook
+  const displayedCampaigns = Array.isArray(campaigns) ? campaigns : [];
 
   // Pagination handlers
   const handleCampaignsPageChange = (newPage) => {
@@ -120,7 +110,7 @@ const OperationDepartment = () => {
   };
 
   const handleCampaignSearchChange = (searchTerm) => {
-    setCampaignSearchTerm(searchTerm);
+    campaignsChangeSearchTerm(searchTerm);
   };
 
   const handleCampaignStatusFilterChange = (status) => {

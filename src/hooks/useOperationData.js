@@ -75,15 +75,21 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
   const [status, setStatus] = useState(statusFilter);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [allCampaigns, setAllCampaigns] = useState([]); // Store all campaigns for search
 
-  const fetchCampaigns = async (pageNum = currentPage, pageLimit = pageSize, statusVal = status) => {
+  const fetchCampaigns = async (pageNum = currentPage, pageLimit = pageSize, statusVal = status, search = searchTerm) => {
     try {
       setLoading(true);
       setError(null);
-(`Fetching campaigns with pagination - Page: ${pageNum}, Limit: ${pageLimit}, Status: ${statusVal}`);
+(`Fetching campaigns with pagination - Page: ${pageNum}, Limit: ${pageLimit}, Status: ${statusVal}, Search: ${search}`);
+      
+      // If searching, fetch all campaigns at once (use high limit)
+      const effectiveLimit = search ? 1000 : pageLimit;
+      const effectivePage = search ? 1 : pageNum;
       
       // Fetch paginated data with status filter
-      const response = await operationCampaignApi.getAllCampaigns(pageNum, pageLimit, statusVal);
+      const response = await operationCampaignApi.getAllCampaigns(effectivePage, effectiveLimit, statusVal);
       
 ('📡 Operation Campaigns API Response:', response);
       
@@ -112,11 +118,29 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
 ('📊 Current page campaigns data:', campaignsData);
 ('📊 Total pages:', totalPagesCount);
       
-      setCampaigns(campaignsData);
-      setTotalCampaigns(totalCount);
-      setCurrentPage(pageNumber);
+      // If searching, store all campaigns and filter client-side
+      if (search) {
+        setAllCampaigns(campaignsData);
+        const filtered = campaignsData.filter(campaign => {
+          const matchesSearch = search === '' || 
+            (campaign.name && campaign.name.toLowerCase().includes(search.toLowerCase())) ||
+            (campaign.description && campaign.description.toLowerCase().includes(search.toLowerCase())) ||
+            (campaign.customerName && campaign.customerName.toLowerCase().includes(search.toLowerCase()));
+          return matchesSearch;
+        });
+('🔍 Filtered campaigns:', filtered.length, 'out of', campaignsData.length);
+        setCampaigns(filtered);
+        setTotalCampaigns(filtered.length);
+        setCurrentPage(1);
+      } else {
+        setCampaigns(campaignsData);
+        setTotalCampaigns(totalCount);
+        setCurrentPage(pageNumber);
+      }
+      
       setPageSize(pageLimit);
       setStatus(statusVal);
+      setSearchTerm(search);
     } catch (err) {
 ('Error fetching campaigns:', err);
       setError(err.message || 'Network Error');
@@ -135,7 +159,7 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
     try {
       const response = await operationCampaignApi.createCampaign(campaignData);
       if (response.success) {
-        fetchCampaigns(currentPage, pageSize, status); // Refresh current page with current status
+        fetchCampaigns(currentPage, pageSize, status, searchTerm); // Refresh current page with current status and search
         return { success: true, data: response.data };
       } else {
         return { success: false, message: response.message };
@@ -149,7 +173,7 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
     try {
       const response = await operationCampaignApi.updateCampaign(id, campaignData);
       if (response.success) {
-        fetchCampaigns(currentPage, pageSize, status); // Refresh current page with current status
+        fetchCampaigns(currentPage, pageSize, status, searchTerm); // Refresh current page with current status and search
         return { success: true, data: response.data };
       } else {
         return { success: false, message: response.message };
@@ -163,7 +187,7 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
     try {
       const response = await operationCampaignApi.deleteCampaign(id);
       if (response.success) {
-        fetchCampaigns(currentPage, pageSize, status); // Refresh current page with current status
+        fetchCampaigns(currentPage, pageSize, status, searchTerm); // Refresh current page with current status and search
         return { success: true, data: response.data };
       } else {
         return { success: false, message: response.message };
@@ -178,7 +202,7 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
 (`Operation Campaigns goToPage: pageNum=${pageNum}, totalCampaigns=${totalCampaigns}, pageSize=${pageSize}, maxPages=${maxPages}`);
     if (totalCampaigns === 0 || (pageNum >= 1 && pageNum <= maxPages)) {
 (`Operation Campaigns goToPage: Fetching page ${pageNum}`);
-      fetchCampaigns(pageNum, pageSize, status);
+      fetchCampaigns(pageNum, pageSize, status, searchTerm);
     } else {
 (`Operation Campaigns goToPage: Page ${pageNum} is out of range (1-${maxPages})`);
     }
@@ -186,13 +210,20 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
 
   const changePageSize = (newPageSize) => {
     setPageSize(newPageSize);
-    fetchCampaigns(1, newPageSize, status);
+    fetchCampaigns(1, newPageSize, status, searchTerm);
   };
 
   const changeStatus = (newStatus) => {
     setStatus(newStatus);
     setCurrentPage(1); // Reset to first page when changing status
-    fetchCampaigns(1, pageSize, newStatus);
+    setSearchTerm(''); // Clear search when changing status
+    fetchCampaigns(1, pageSize, newStatus, '');
+  };
+
+  const changeSearchTerm = (newSearchTerm) => {
+    setSearchTerm(newSearchTerm);
+    setCurrentPage(1); // Reset to first page when searching
+    fetchCampaigns(1, pageSize, status, newSearchTerm);
   };
 
   const nextPage = () => {
@@ -215,7 +246,8 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
     totalCampaigns,
     currentPage,
     status,
-    totalPages: Math.ceil(totalCampaigns / pageSize),
+    searchTerm,
+    totalPages: searchTerm ? 1 : Math.ceil(totalCampaigns / pageSize), // Single page when searching
     fetchCampaigns, 
     createCampaign, 
     updateCampaign, 
@@ -223,6 +255,7 @@ export const useOperationCampaigns = (page = 1, limit = 10, statusFilter = 'all'
     goToPage,
     changePageSize,
     changeStatus,
+    changeSearchTerm,
     nextPage,
     prevPage
   };

@@ -66,7 +66,11 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     goToPage,
     changePageSize,
     changeStatusFilter,
-    clearError
+    clearError,
+    allInvoices,
+    isSearching,
+    fetchAllInvoicesForSearch,
+    fetchInvoices
   } = useAccountingData();
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -107,7 +111,7 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
     }
   }, [openDialog, onClose]);
 
-  // Debounce search term
+  // Debounce search term only
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -115,21 +119,40 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
+  
+  // Trigger search mode when debounced search term changes
+  useEffect(() => {
+    // If there's a search term, fetch all invoices for searching
+    if (debouncedSearchTerm.trim()) {
+      fetchAllInvoicesForSearch(statusFilter);
+    } else if (debouncedSearchTerm === '' && searchTerm === '') {
+      // Only go back to pagination if search was actually cleared
+      // Don't do this on initial mount or when just navigating pages
+      if (isSearching) {
+        fetchInvoices(1, pageSize, statusFilter);
+      }
+    }
+  }, [debouncedSearchTerm]); // Only depend on debouncedSearchTerm
 
-  // Client-side filtering for search only (backend handles status and pagination)
-  const filteredInvoices = invoices.filter(invoice => {
-    if (!debouncedSearchTerm.trim()) return true;
+  // Client-side filtering for search across all pages
+  const filteredInvoices = (() => {
+    // Use allInvoices when searching, otherwise use current page invoices
+    const sourceInvoices = isSearching ? allInvoices : invoices;
+    
+    if (!debouncedSearchTerm.trim()) {
+      return sourceInvoices;
+    }
     
     const searchLower = debouncedSearchTerm.toLowerCase();
-    return (
+    return sourceInvoices.filter(invoice => (
       (invoice.client_name && invoice.client_name.toLowerCase().includes(searchLower)) ||
       (invoice.description && invoice.description.toLowerCase().includes(searchLower)) ||
       (invoice._id && invoice._id.toLowerCase().includes(searchLower)) ||
       (invoice.invoice_type && invoice.invoice_type.toLowerCase().includes(searchLower)) ||
       (invoice.amount && invoice.amount.toString().includes(debouncedSearchTerm)) ||
       (invoice.status && invoice.status.toLowerCase().includes(searchLower))
-    );
-  });
+    ));
+  })();
 
   const handleOpenDialog = (invoice = null) => {
     if (invoice) {
@@ -270,14 +293,22 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
   const handleStatusFilterChange = (event) => {
     const newStatus = event.target.value;
     setStatusFilter(newStatus);
-    changeStatusFilter(newStatus); // Send to backend
+    
+    // If we're currently searching, fetch all invoices with new status
+    if (searchTerm.trim()) {
+      fetchAllInvoicesForSearch(newStatus);
+    } else {
+      // Otherwise use normal pagination
+      changeStatusFilter(newStatus);
+    }
   };
 
   const clearFilters = () => {
     setSearchTerm('');
     setDebouncedSearchTerm('');
     setStatusFilter('all');
-    changeStatusFilter('all'); // Send to backend
+    // Go back to normal pagination mode
+    fetchInvoices(1, pageSize, 'all');
   };
 
   const handleViewDetails = async () => {
@@ -614,30 +645,40 @@ const InvoiceManagement = ({ onCreateInvoice, onClose }) => {
               borderTop: '1px solid #e2e8f0'
             }}>
               <Typography variant="body2" color="text.secondary">
-                {filteredInvoices.length} invoices
-                {(searchTerm || statusFilter !== 'all') && ' (filtered)'}
+                {isSearching ? (
+                  <>
+                    Showing {filteredInvoices.length} of {allInvoices.length} invoices (searching all pages)
+                  </>
+                ) : (
+                  <>
+                    {filteredInvoices.length} invoices
+                    {(searchTerm || statusFilter !== 'all') && ' (filtered)'}
+                  </>
+                )}
               </Typography>
               
-              <FormControl size="small" sx={{ minWidth: 80 }}>
-                <InputLabel id="per-page-label">Per page</InputLabel>
-                <Select
-                  labelId="per-page-label"
-                  id="per-page-select"
-                  value={pageSize}
-                  onChange={(e) => changePageSize(e.target.value)}
-                  label="Per page"
-                >
-                  <MenuItem value={5}>5</MenuItem>
-                  <MenuItem value={10}>10</MenuItem>
-                  <MenuItem value={25}>25</MenuItem>
-                  <MenuItem value={50}>50</MenuItem>
-                </Select>
-              </FormControl>
+              {!isSearching && (
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <InputLabel id="per-page-label">Per page</InputLabel>
+                  <Select
+                    labelId="per-page-label"
+                    id="per-page-select"
+                    value={pageSize}
+                    onChange={(e) => changePageSize(e.target.value)}
+                    label="Per page"
+                  >
+                    <MenuItem value={5}>5</MenuItem>
+                    <MenuItem value={10}>10</MenuItem>
+                    <MenuItem value={25}>25</MenuItem>
+                    <MenuItem value={50}>50</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
             </Box>
           )}
           
-          {/* SimplePagination Component */}
-          {totalPages > 1 && (
+          {/* SimplePagination Component - Only show when not searching */}
+          {!isSearching && totalPages > 1 && (
             <SimplePagination
               currentPage={currentPage}
               totalPages={totalPages}

@@ -20,23 +20,74 @@ export const useAccountingData = () => {
   const [pageSize, setPageSize] = useState(10);
   const [currentStatusFilter, setCurrentStatusFilter] = useState('all');
   
+  // Search state for cross-page search
+  const [allInvoices, setAllInvoices] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  
   // Pagination state for transactions
   const [transactionCurrentPage, setTransactionCurrentPage] = useState(1);
   const [transactionTotalPages, setTransactionTotalPages] = useState(1);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [transactionPageSize, setTransactionPageSize] = useState(10);
 
+  // Fetch all invoices for search (no pagination)
+  const fetchAllInvoicesForSearch = useCallback(async (status = currentStatusFilter) => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    setIsSearching(true);
+    
+    try {
+      // Fetch all invoices with a large limit
+      const result = await accountingApi.getAllInvoices(1, 10000, status);
+      
+      if (result.success) {
+        setAllInvoices(result.data || []);
+        setInvoices(result.data || []); // Show all initially
+        setTotalInvoices(result.data?.length || 0);
+        setTotalPages(1); // Single page when searching
+        setCurrentPage(1);
+      } else {
+        // Handle specific error cases
+        if (result.error && result.error.includes('500')) {
+          setError('Server error: Unable to fetch invoices. Please try again later.');
+        } else if (result.error && result.error.includes('403')) {
+          setError('Access denied: You do not have permission to view invoices.');
+        } else {
+          setError(result.error || 'Failed to fetch invoices');
+        }
+        
+        setFieldErrors(result.fieldErrors || {});
+        setAllInvoices([]);
+        setInvoices([]);
+        setTotalInvoices(0);
+        setTotalPages(0);
+      }
+    } catch (err) {
+      setError('Network error: Unable to connect to the server. Please check your connection.');
+      setFieldErrors({});
+      setAllInvoices([]);
+      setInvoices([]);
+      setTotalInvoices(0);
+      setTotalPages(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentStatusFilter]);
+
   // Fetch all invoices with pagination and status filter
   const fetchInvoices = useCallback(async (page = currentPage, limit = pageSize, status = currentStatusFilter) => {
     setLoading(true);
     setError(null);
     setFieldErrors({});
+    setIsSearching(false);
     
     try {
       const result = await accountingApi.getAllInvoices(page, limit, status);
       
       if (result.success) {
         setInvoices(result.data || []);
+        setAllInvoices([]); // Clear all invoices when not searching
         
         // Update pagination info from API response
         if (result.total !== undefined && result.total > result.data?.length) {
@@ -71,6 +122,7 @@ export const useAccountingData = () => {
         
         // Set empty data on error
         setInvoices([]);
+        setAllInvoices([]);
         setTotalInvoices(0);
         setTotalPages(0);
       }
@@ -80,6 +132,7 @@ export const useAccountingData = () => {
       
       // Set empty data on exception
       setInvoices([]);
+      setAllInvoices([]);
       setTotalInvoices(0);
       setTotalPages(0);
     } finally {
@@ -524,6 +577,10 @@ export const useAccountingData = () => {
     goToPage,
     changePageSize,
     changeStatusFilter,
+    // Search functions
+    allInvoices,
+    isSearching,
+    fetchAllInvoicesForSearch,
     // Transaction functions
     fetchTransactions,
     addTransaction,
