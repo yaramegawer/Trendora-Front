@@ -429,37 +429,63 @@ export const AuthProvider = ({ children }) => {
         if (isCredentialError) {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.';
         }
-        // For 400 status with generic error, it's likely validation issue (bad email format)
+        // For 400 status, assume it's a credential error (not email format)
         else if (error.response?.status === 400) {
-          errorMessage = 'Invalid email format. Please enter a valid email address (e.g., user@example.com).';
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
         } 
-        // For 500 status, could be server error or validation issue
+        // For 500 status, could be server error
         else if (error.response?.status === 500) {
-          // Check if it might be a validation error that the backend didn't handle properly
-          errorMessage = 'Invalid email format. Please use a valid email address (e.g., user@example.com) and try again.';
+          errorMessage = 'Server error. Please try again later or contact support.';
         } 
         else {
           errorMessage = 'Server error. Please try again later or contact support.';
         }
       }
       
-      // Additional check: if error mentions email validation or format
-      // Only trigger this for actual email format errors, not credential errors
-      const emailFormatKeywords = ['email format', 'invalid email format', 'email is not valid', 'invalid email address'];
-      const isCredentialError = errorMessage.toLowerCase().includes('invalid credentials') || 
-                                errorMessage.toLowerCase().includes('wrong password') ||
-                                errorMessage.toLowerCase().includes('incorrect password') ||
-                                errorMessage.toLowerCase().includes('authentication failed');
+      // Check for credential errors FIRST before any format errors
+      const credentialErrorKeywords = [
+        'invalid credentials', 'wrong password', 'incorrect password', 'authentication failed',
+        'invalid email or password', 'invalid password', 'wrong email', 'incorrect email',
+        'login failed', 'authentication error', 'user not found', 'no user found',
+        'password incorrect', 'email not found', 'invalid login', 'failed to authenticate',
+        'user does not exist', 'account not found', 'no account', 'email or password'
+      ];
       
-      if (!isCredentialError && 
-          emailFormatKeywords.some(keyword => errorMessage.toLowerCase().includes(keyword)) && 
-          (error.response?.status === 400 || error.response?.status === 500)) {
+      // Check if it's an email format error (very specific)
+      const emailFormatKeywords = ['email format', 'invalid email format', 'email is not valid', 'invalid email address', 'malformed email', 'email validation'];
+      const isEmailFormatError = emailFormatKeywords.some(keyword => 
+        errorMessage.toLowerCase().includes(keyword)
+      );
+      
+      const isCredentialError = credentialErrorKeywords.some(keyword => 
+        errorMessage.toLowerCase().includes(keyword)
+      );
+      
+       ('🔍 ERROR DEBUG:', {
+        status: error.response?.status,
+        errorMessage,
+        isEmailFormatError,
+        isCredentialError
+      });
+      
+      // If it's SPECIFICALLY an email format error, show format error
+      if (isEmailFormatError && !isCredentialError) {
+         ('📧 Showing email format error');
         errorMessage = 'Please enter a valid email address in the format: example@domain.com';
+      }
+      // If it's a credential error OR 400/401 error (assume credential issue)
+      else if (isCredentialError || error.response?.status === 401 || error.response?.status === 400) {
+         ('🔐 Showing credential error');
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       }
       
       // If no message found in response, handle by status code
       if (errorMessage === 'Login failed. Please try again.') {
-        if (error.response?.status === 400) {
+        // 401 always means credential error
+        if (error.response?.status === 401) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        }
+        else if (error.response?.status === 400) {
           // Handle validation errors from the server
           const errorData = error.response.data;
           
@@ -474,10 +500,9 @@ export const AuthProvider = ({ children }) => {
               errorMessage = Object.values(errors)[0] || 'Please check your input';
             }
           } else {
-            errorMessage = 'Invalid input. Please check your credentials.';
+            // For 400 errors without specific errors, assume it's a credential issue
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
           }
-        } else if (error.response?.status === 401) {
-          errorMessage = 'Invalid email or password';
         } else if (error.response?.status === 404) {
           errorMessage = 'Login service not found';
         } else if (error.response?.status === 500) {

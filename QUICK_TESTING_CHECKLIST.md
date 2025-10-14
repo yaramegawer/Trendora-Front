@@ -148,7 +148,7 @@ npm run build
 ### Production Check
 - [ ] Environment variables set ✅
 - [ ] API endpoints correct ✅
-- [ ] No console.log in production ✅
+- [ ] No   in production ✅
 - [ ] Error tracking configured ✅
 
 ---

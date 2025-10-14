@@ -648,7 +648,7 @@ const AccountingDepartment = () => {
     };
 
     try {
-      console.log('Creating ticket:', ticketDataToSubmit);
+       ('Creating ticket:', ticketDataToSubmit);
       const result = await submitTicket(ticketDataToSubmit);
       
       if (result.success) {
