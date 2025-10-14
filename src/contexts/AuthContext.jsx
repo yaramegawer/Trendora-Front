@@ -419,8 +419,18 @@ export const AuthProvider = ({ children }) => {
       
       if (genericErrors.some(msg => errorMessage.toLowerCase().includes(msg.toLowerCase()))) {
          ('Replacing generic backend error with user-friendly message');
+        // Check if this is a credential error first
+        const isCredentialError = errorMessage.toLowerCase().includes('invalid credentials') || 
+                                  errorMessage.toLowerCase().includes('wrong password') ||
+                                  errorMessage.toLowerCase().includes('incorrect password') ||
+                                  errorMessage.toLowerCase().includes('authentication failed') ||
+                                  errorMessage.toLowerCase().includes('invalid email or password');
+        
+        if (isCredentialError) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        }
         // For 400 status with generic error, it's likely validation issue (bad email format)
-        if (error.response?.status === 400) {
+        else if (error.response?.status === 400) {
           errorMessage = 'Invalid email format. Please enter a valid email address (e.g., user@example.com).';
         } 
         // For 500 status, could be server error or validation issue
@@ -434,8 +444,15 @@ export const AuthProvider = ({ children }) => {
       }
       
       // Additional check: if error mentions email validation or format
-      const emailValidationKeywords = ['email', 'format', 'valid', 'invalid', '@', 'domain'];
-      if (emailValidationKeywords.some(keyword => errorMessage.toLowerCase().includes(keyword)) && 
+      // Only trigger this for actual email format errors, not credential errors
+      const emailFormatKeywords = ['email format', 'invalid email format', 'email is not valid', 'invalid email address'];
+      const isCredentialError = errorMessage.toLowerCase().includes('invalid credentials') || 
+                                errorMessage.toLowerCase().includes('wrong password') ||
+                                errorMessage.toLowerCase().includes('incorrect password') ||
+                                errorMessage.toLowerCase().includes('authentication failed');
+      
+      if (!isCredentialError && 
+          emailFormatKeywords.some(keyword => errorMessage.toLowerCase().includes(keyword)) && 
           (error.response?.status === 400 || error.response?.status === 500)) {
         errorMessage = 'Please enter a valid email address in the format: example@domain.com';
       }
