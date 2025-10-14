@@ -3,8 +3,8 @@ const assetsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon/web-app-manifest-192x192.png',
-  '/icon/web-app-manifest-512x512.png',
+  '/icon/android-chrome-192x192.png',
+  '/icon/android-chrome-512x512.png',
   '/styles.css',
   '/script.js'
 ];
