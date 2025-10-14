@@ -90,7 +90,7 @@ const App = () => {
   );
 };
 
-console.log('App rendered');
+
 
 
 
