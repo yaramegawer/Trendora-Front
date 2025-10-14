@@ -575,7 +575,7 @@ const AccountingDepartment = () => {
     try {
       const result = await submitLeave(leaveData);
       if (result.success) {
-        alert('Leave request submitted successfully!');
+        showSuccess('Leave request submitted successfully!');
         setLeaveData({
           type: '',
           startDate: '',
@@ -583,11 +583,11 @@ const AccountingDepartment = () => {
         });
         setShowLeaveDialog(false);
       } else {
-        alert('Failed to submit leave request: ' + (result.error || result.message || 'Unknown error'));
+        showError('Failed to submit leave request: ' + (result.error || result.message || 'Unknown error'));
       }
     } catch (error) {
-       ('Error submitting leave request:', error);
-      alert('Failed to submit leave request: ' + error.message);
+      console.error('Error submitting leave request:', error);
+      showError('Failed to submit leave request: ' + error.message);
     }
   };
 
@@ -624,19 +624,19 @@ const AccountingDepartment = () => {
   const handleTicketSubmit = async () => {
     // Validate that a valid issue type is selected
     if (ticketData.title === '') {
-      alert('Please select an issue type');
+      showWarning('Please select an issue type');
       return;
     }
 
     // Validate user ID exists
     if (!user || !user.id) {
-      alert('User authentication error. Please log in again.');
+      showError('User authentication error. Please log in again.');
       return;
     }
 
     // Validate description length
     if (ticketData.description.length < 10 || ticketData.description.length > 500) {
-      alert('Description must be between 10 and 500 characters');
+      showWarning('Description must be between 10 and 500 characters');
       return;
     }
 
@@ -648,11 +648,11 @@ const AccountingDepartment = () => {
     };
 
     try {
-       ('Creating ticket:', ticketDataToSubmit);
+      console.log('Creating ticket:', ticketDataToSubmit);
       const result = await submitTicket(ticketDataToSubmit);
       
       if (result.success) {
-        alert('Ticket created successfully!');
+        showSuccess('Ticket created successfully!');
         setTicketData({
           title: '',
           description: '',
@@ -665,13 +665,13 @@ const AccountingDepartment = () => {
           setTicketFieldErrors(result.fieldErrors);
           setTicketSubmitError(result.error || 'Please correct the validation errors below.');
         } else {
-          // If no field errors, show general error in alert
-          alert('Failed to create ticket: ' + (result.error || result.message || 'Unknown error'));
+          // If no field errors, show general error
+          showError('Failed to create ticket: ' + (result.error || result.message || 'Unknown error'));
         }
       }
     } catch (error) {
-       ('Error creating ticket:', error);
-      alert('Failed to create ticket: ' + error.message);
+      console.error('Error creating ticket:', error);
+      showError('Failed to create ticket: ' + error.message);
     }
   };
 
