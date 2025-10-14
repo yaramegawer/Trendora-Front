@@ -150,26 +150,27 @@ const LoginPage = () => {
       let errorMessage = err.message || 'Login failed. Please try again.';
       
       // Make error messages more specific and helpful
-      if (errorMessage.includes('invalid credentials')) {
-        errorMessage = 'Invalid credentials. Please check your email and password.';
+      // Check for credential errors FIRST before format errors
+      if (errorMessage.includes('invalid credentials') || 
+          errorMessage.includes('Invalid email or password') ||
+          errorMessage.includes('Authentication failed') ||
+          errorMessage.includes('No authentication token') ||
+          errorMessage.includes('User not found') ||
+          errorMessage.includes('Login failed')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('ERR_CONNECTION_REFUSED')) {
         errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
-      } else if (errorMessage.includes('Authentication failed') || errorMessage.includes('No authentication token')) {
-        errorMessage = 'Invalid credentials. Please check your email and password.';
-      } else if (errorMessage.includes('Invalid email or password')) {
-        errorMessage = 'The email or password you entered is incorrect. Please try again.';
-      } else if (errorMessage.includes('User not found')) {
-        errorMessage = 'This email is not registered in our system. Please contact your administrator.';
       } else if (errorMessage.includes('Network error') || errorMessage.includes('connection')) {
         errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
       } else if (errorMessage.includes('Access denied') || errorMessage.includes('permission')) {
         errorMessage = 'Access denied. Your account may be disabled or you do not have permission to access this system.';
-      } else if (errorMessage.includes('Invalid input') || errorMessage.includes('format')) {
-        errorMessage = 'Invalid email format. Please use a valid email address (e.g., user@example.com).';
       } else if (errorMessage.includes('Invalid response from server')) {
         errorMessage = 'Server error. Please try again later or contact support.';
-      } else if (errorMessage.includes('Login failed')) {
-        errorMessage = 'Login failed. Please check your credentials and try again.';
+      } else if (errorMessage.includes('email format') || errorMessage.includes('Invalid email format')) {
+        // Only show email format error if it's specifically about email format
+        errorMessage = 'Invalid email format. Please use a valid email address (e.g., user@example.com).';
+      } else if (errorMessage.includes('Invalid input')) {
+        errorMessage = 'Invalid input. Please check your email and password.';
       }
       
       // Capitalize the first letter of the error message for better presentation
