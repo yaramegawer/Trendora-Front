@@ -60,6 +60,9 @@ const OperationDepartment = () => {
   // Filter state for campaigns
   const [campaignStatusFilter, setCampaignStatusFilter] = useState('all');
   const [showCampaignStatusDropdown, setShowCampaignStatusDropdown] = useState(false);
+  
+  // Local search term for immediate UI feedback
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
 
   // Use real API data with pagination and status filter
   const { employees, loading: employeesLoading, error: employeesError, updateEmployeeRating, fetchEmployees } = useOperationEmployees();
@@ -110,7 +113,9 @@ const OperationDepartment = () => {
   };
 
   const handleCampaignSearchChange = (searchTerm) => {
-    campaignsChangeSearchTerm(searchTerm);
+    // Update local state immediately for UI responsiveness
+    setLocalSearchTerm(searchTerm);
+    // The debounced API call will be triggered by the useEffect
   };
 
   const handleCampaignStatusFilterChange = (status) => {
@@ -131,6 +136,15 @@ const OperationDepartment = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showCampaignStatusDropdown]);
+
+  // Debounce search term to avoid API calls on every keystroke
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      campaignsChangeSearchTerm(localSearchTerm);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(debounceTimer);
+  }, [localSearchTerm]);
   
 
   // State for employee ratings
@@ -1229,7 +1243,7 @@ const OperationDepartment = () => {
                       </div>
                       <input
                         type="text"
-                        value={campaignSearchTerm}
+                        value={localSearchTerm}
                         onChange={(e) => handleCampaignSearchChange(e.target.value)}
                         placeholder="Search by name or description..."
                         style={{
@@ -1373,7 +1387,7 @@ const OperationDepartment = () => {
 
                   {/* Results Count */}
                   <div style={{ fontSize: '12px', color: '#6b7280', alignSelf: 'flex-end', marginBottom: '4px' }}>
-                    {campaignSearchTerm 
+                    {localSearchTerm 
                       ? `Showing ${displayedCampaigns.length} of ${campaigns.length} campaigns`
                       : `Showing ${campaigns.length} of ${totalCampaigns} campaigns`
                     }
@@ -1564,7 +1578,7 @@ const OperationDepartment = () => {
             )}
             
             {/* Pagination for Campaigns */}
-            {!campaignSearchTerm && Array.isArray(campaigns) && totalCampaigns > 0 && (
+            {!localSearchTerm && Array.isArray(campaigns) && totalCampaigns > 0 && (
               <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
                 <SimplePagination
                   currentPage={campaignsPage}
@@ -1577,7 +1591,7 @@ const OperationDepartment = () => {
             )}
             
             {/* Show message when no campaigns match filter */}
-            {campaignSearchTerm && Array.isArray(campaigns) && campaigns.length > 0 && displayedCampaigns.length === 0 && (
+            {localSearchTerm && Array.isArray(campaigns) && campaigns.length > 0 && displayedCampaigns.length === 0 && (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: '16px', color: '#6b7280' }}>
                   No campaigns found matching your search criteria

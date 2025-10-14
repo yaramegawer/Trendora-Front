@@ -8,7 +8,6 @@ import LoginPage from './components/auth/LoginPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import theme from './theme';
 import { CircularProgress, Box, Typography, Button } from '@mui/material';
-import { console } from 'inspector';
 
 // Preload critical components for better LCP
 const preloadComponents = () => {
@@ -90,6 +89,17 @@ const App = () => {
   );
 };
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('Service Worker registered:', registration);
+      })
+      .catch(err => {
+        console.log('Service Worker registration failed:', err);
+      });
+  });
+}
 
 
 
