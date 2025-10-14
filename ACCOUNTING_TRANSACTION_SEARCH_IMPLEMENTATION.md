@@ -157,3 +157,4 @@ const [transactionSearchTerm, setTransactionSearchTerm] = useState('');
 7. Test partial matching (e.g., "sal" matches "salary")
 8. Test empty search results display correct message
 
+
