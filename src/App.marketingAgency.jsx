@@ -8,6 +8,7 @@ import LoginPage from './components/auth/LoginPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import theme from './theme';
 import { CircularProgress, Box, Typography, Button } from '@mui/material';
+import { console } from 'inspector';
 
 // Preload critical components for better LCP
 const preloadComponents = () => {
@@ -88,6 +89,8 @@ const App = () => {
     </ErrorBoundary>
   );
 };
+
+console.log('App rendered');
 
 
 
