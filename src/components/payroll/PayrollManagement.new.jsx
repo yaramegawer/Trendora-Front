@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -62,6 +62,19 @@ const PayrollStatus = {
 
 // PayrollForm Component
 const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = false, existingPayroll = [], isInDialog = false }) => {
+  // Refs to enable scrolling to the first field with an error
+  const fieldRefs = useRef({
+    employeeId: null,
+    payPeriod: null,
+    baseSalary: null,
+    bonuses: null,
+    deductions: null,
+    overtimeHours: null,
+    overtimeRate: null,
+    benefits: null,
+    taxes: null,
+    status: null
+  });
   const [formData, setFormData] = useState({
     employeeId: '',
     payPeriod: new Date(),
@@ -212,7 +225,37 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
 
     setErrors(newErrors);
     const isValid = Object.keys(newErrors).length === 0;
+    if (!isValid) {
+      requestAnimationFrame(() => {
+        scrollToFirstError(newErrors);
+      });
+    }
     return isValid;
+  };
+
+  const scrollToFirstError = (errs) => {
+    const order = [
+      'employeeId',
+      'payPeriod',
+      'baseSalary',
+      'bonuses',
+      'overtimeHours',
+      'overtimeRate',
+      'benefits',
+      'deductions',
+      'taxes',
+      'status'
+    ];
+    for (const key of order) {
+      if (errs[key]) {
+        const node = fieldRefs.current[key];
+        if (node && typeof node.scrollIntoView === 'function') {
+          node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (typeof node.focus === 'function') node.focus();
+        }
+        break;
+      }
+    }
   };
 
   const handleChange = (field, value) => {
@@ -328,7 +371,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
         <Stack spacing={3}>
           {/* Only show employee field for new payrolls */}
           {!isEditing && (
-            <FormControl fullWidth required error={!!errors.employeeId}>
+            <FormControl fullWidth required error={!!errors.employeeId} ref={(el) => { fieldRefs.current.employeeId = el; }}>
               <InputLabel id="employee-payroll-label">Employee</InputLabel>
               <Select
                 labelId="employee-payroll-label"
@@ -375,6 +418,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             helperText={errors.payPeriod || 'Click to open calendar and select a date'}
             fullWidth
             InputLabelProps={{ shrink: true }}
+            inputRef={(el) => { fieldRefs.current.payPeriod = el; }}
           />
         </Stack>
 
@@ -395,6 +439,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             helperText={errors.baseSalary}
             required
             inputProps={{ min: 0, step: 'any' }}
+            inputRef={(el) => { fieldRefs.current.baseSalary = el; }}
           />
 
           <TextField
@@ -404,6 +449,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             value={formData.bonuses}
             onChange={(e) => handleChange('bonuses', e.target.value)}
             inputProps={{ min: 0, step: 'any' }}
+            inputRef={(el) => { fieldRefs.current.bonuses = el; }}
           />
 
           <TextField
@@ -413,6 +459,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             value={formData.overtimeHours}
             onChange={(e) => handleChange('overtimeHours', e.target.value)}
             inputProps={{ min: 0, step: 'any' }}
+            inputRef={(el) => { fieldRefs.current.overtimeHours = el; }}
           />
 
           <TextField
@@ -422,6 +469,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             value={formData.overtimeRate}
             onChange={(e) => handleChange('overtimeRate', e.target.value)}
             inputProps={{ min: 0, step: 'any' }}
+            inputRef={(el) => { fieldRefs.current.overtimeRate = el; }}
           />
 
           <TextField
@@ -432,6 +480,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             onChange={(e) => handleChange('benefits', e.target.value)}
             helperText="Allowances, insurance contributions, etc."
             inputProps={{ min: 0, step: 'any' }}
+            inputRef={(el) => { fieldRefs.current.benefits = el; }}
           />
         </Stack>
 
@@ -450,6 +499,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             onChange={(e) => handleChange('deductions', e.target.value)}
             helperText="General deductions (insurance, etc.)"
             inputProps={{ min: 0, step: 'any' }}
+            inputRef={(el) => { fieldRefs.current.deductions = el; }}
           />
 
           <TextField
@@ -460,6 +510,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             onChange={(e) => handleChange('taxes', e.target.value)}
             helperText="Auto-calculated or manually entered"
             inputProps={{ min: 0, step: 'any' }}
+            inputRef={(el) => { fieldRefs.current.taxes = el; }}
           />
         </Stack>
 
@@ -469,7 +520,7 @@ const PayrollForm = ({ payroll, onSave, onCancel, employees = [], loading = fals
             <Typography variant="h6" gutterBottom>
               Status
             </Typography>
-            <FormControl fullWidth>
+            <FormControl fullWidth ref={(el) => { fieldRefs.current.status = el; }}>
               <InputLabel id="payroll-status-label">Status</InputLabel>
               <Select
                 labelId="payroll-status-label"
