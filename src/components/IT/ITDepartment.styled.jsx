@@ -358,6 +358,7 @@ const ITDepartment = () => {
     startDate: '',
     endDate: ''
   });
+  const [newProjectFieldErrors, setNewProjectFieldErrors] = useState({ name: '', description: '' });
 
 
 
@@ -505,21 +506,29 @@ const ITDepartment = () => {
   const handleCreateProject = async () => {
 ('🚀 Starting project creation process...');
 ('📝 New project data:', newProject);
+    // Inline field validation for name/description (show messages under inputs instead of toast)
+    const fieldErrors = { name: '', description: '' };
+    const trimmedName = (newProject.name || '').trim();
+    const trimmedDescription = (newProject.description || '').trim();
+    if (!trimmedName) {
+      fieldErrors.name = 'Project name is required';
+    } else if (trimmedName.length < 3) {
+      fieldErrors.name = 'Project name must be at least 3 characters long';
+    }
+    if (!trimmedDescription) {
+      fieldErrors.description = 'Project description is required';
+    } else if (trimmedDescription.length < 3) {
+      fieldErrors.description = 'Project description must be at least 3 characters long';
+    }
+    if (fieldErrors.name || fieldErrors.description) {
+      setNewProjectFieldErrors(fieldErrors);
+      return; // stop submit; errors will be shown inline
+    }
     
     // Comprehensive validation for required fields
     const validationErrors = [];
     
-    if (!newProject.name || !newProject.name.trim()) {
-      validationErrors.push('Project name is required');
-    } else if (newProject.name.trim().length < 3) {
-      validationErrors.push('Project name must be at least 3 characters long');
-    }
-    
-    if (!newProject.description || !newProject.description.trim()) {
-      validationErrors.push('Project description is required');
-    } else if (newProject.description.trim().length < 3) {
-      validationErrors.push('Project description must be at least 3 characters long');
-    }
+    // name/description handled inline above
     
     // Validate that at least one team member is selected
     if (!newProject.members || newProject.members.length === 0) {
@@ -2509,7 +2518,19 @@ const ITDepartment = () => {
                   id="project-name"
                   type="text"
                   value={newProject.name}
-                  onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setNewProject(prev => ({ ...prev, name: value }));
+                    const trimmed = (value || '').trim();
+                    setNewProjectFieldErrors(prev => ({
+                      ...prev,
+                      name: !trimmed
+                        ? 'Project name is required'
+                        : trimmed.length < 3
+                          ? 'Project name must be at least 3 characters long'
+                          : ''
+                    }));
+                  }}
                   placeholder="Enter project name"
                   style={{
                     width: '100%',
@@ -2520,6 +2541,11 @@ const ITDepartment = () => {
                   }}
                   required
                 />
+                {newProjectFieldErrors.name && (
+                  <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                    {newProjectFieldErrors.name}
+                  </div>
+                )}
               </div>
               
               <div style={{ marginBottom: '16px' }}>
@@ -2529,7 +2555,19 @@ const ITDepartment = () => {
                 <textarea
                   id="project-description"
                   value={newProject.description}
-                  onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setNewProject(prev => ({ ...prev, description: value }));
+                    const trimmed = (value || '').trim();
+                    setNewProjectFieldErrors(prev => ({
+                      ...prev,
+                      description: !trimmed
+                        ? 'Project description is required'
+                        : trimmed.length < 3
+                          ? 'Project description must be at least 3 characters long'
+                          : ''
+                    }));
+                  }}
                   placeholder="Enter project description"
                   rows={3}
                   style={{
@@ -2542,6 +2580,11 @@ const ITDepartment = () => {
                   }}
                   required
                 />
+                {newProjectFieldErrors.description && (
+                  <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                    {newProjectFieldErrors.description}
+                  </div>
+                )}
               </div>
               
               <div style={{ marginBottom: '16px' }}>

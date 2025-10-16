@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Stack,
   TextField,
@@ -42,6 +42,16 @@ const DocumentTypes = [
 ];
 
 const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments = [], serverErrors = {} }) => {
+  // Refs to scroll to the first field with error
+  const fieldRefs = useRef({
+    firstName: null,
+    lastName: null,
+    email: null,
+    department: null,
+    hireDate: null,
+    phone: null,
+    address: null
+  });
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -114,8 +124,38 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         ...prev,
         ...serverErrors
       }));
+      // Ensure we scroll to the first incoming server-side error
+      requestAnimationFrame(() => {
+        scrollToFirstError(serverErrors);
+      });
     }
   }, [serverErrors]);
+
+  const scrollToFirstError = (errs) => {
+    const errorOrder = [
+      'firstName',
+      'lastName',
+      'email',
+      'department',
+      'hireDate',
+      'phone',
+      'address'
+    ];
+
+    for (const key of errorOrder) {
+      if (errs && errs[key]) {
+        const node = fieldRefs.current[key];
+        if (node && typeof node.scrollIntoView === 'function') {
+          node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Also focus the element if possible
+          if (typeof node.focus === 'function') {
+            node.focus();
+          }
+        }
+        break;
+      }
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -170,7 +210,14 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    if (!isValid) {
+      // Scroll to the first error so users at the bottom can see it immediately
+      requestAnimationFrame(() => {
+        scrollToFirstError(newErrors);
+      });
+    }
+    return isValid;
   };
 
   const handleChange = (field, value) => {
@@ -275,6 +322,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
             required
             fullWidth
             inputProps={{ maxLength: 50 }}
+            inputRef={(el) => { fieldRefs.current.firstName = el; }}
           />
           <TextField
             label="Last Name"
@@ -285,6 +333,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
             required
             fullWidth
             inputProps={{ maxLength: 50 }}
+            inputRef={(el) => { fieldRefs.current.lastName = el; }}
           />
         </Stack>
 
@@ -298,12 +347,13 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
           helperText={errors.email}
           required
           fullWidth
+          inputRef={(el) => { fieldRefs.current.email = el; }}
         />
 
 
         {/* Department and Role */}
         <Stack direction="row" spacing={2}>
-          <FormControl fullWidth required error={!!errors.department}>
+          <FormControl fullWidth required error={!!errors.department} ref={(el) => { fieldRefs.current.department = el; }}>
             <InputLabel>Department</InputLabel>
             <Select
               value={formData.department || ''}
@@ -354,6 +404,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
             required
             fullWidth
             inputProps={{ pattern: '[0-9]{10,15}', maxLength: 15 }}
+            inputRef={(el) => { fieldRefs.current.phone = el; }}
           />
           <TextField
             label="Hire Date"
@@ -365,6 +416,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
             required
             fullWidth
             InputLabelProps={{ shrink: true }}
+            inputRef={(el) => { fieldRefs.current.hireDate = el; }}
           />
         </Stack>
 
@@ -397,6 +449,7 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         inputProps={{ maxLength: 200 }}
         error={!!errors.address}
         helperText={errors.address || `${formData.address.length}/200 characters`}
+        inputRef={(el) => { fieldRefs.current.address = el; }}
       />
 
       {/* Document Tracking Section */}

@@ -122,6 +122,7 @@ const DigitalMarketingDepartment = () => {
     endDate: '',
     customerName: ''
   });
+  const [newProjectFieldErrors, setNewProjectFieldErrors] = useState({ name: '', description: '' });
   
   // State for customer selection mode
   const [isNewCustomer, setIsNewCustomer] = useState(false);
@@ -520,17 +521,25 @@ const DigitalMarketingDepartment = () => {
 
   const handleCreateProject = async () => {
     // Validate required fields
-    if (!newProject.name.trim()) {
-      showWarning('Project name is required');
-      return;
+    const fieldErrors = { name: '', description: '' };
+    const trimmedName = (newProject.name || '').trim();
+    const trimmedDescription = (newProject.description || '').trim();
+    if (!trimmedName) {
+      fieldErrors.name = 'Project name is required';
+    } else if (trimmedName.length < 3) {
+      fieldErrors.name = 'Project name must be at least 3 characters';
     }
-    // Validate project name minimum length (backend requires min 3 chars)
-    if (newProject.name.trim().length < 3) {
-      showWarning('Project name must be at least 3 characters');
+    if (!trimmedDescription) {
+      fieldErrors.description = 'Project description is required';
+    } else if (trimmedDescription.length < 3) {
+      fieldErrors.description = 'Project description must be at least 3 characters';
+    }
+    if (fieldErrors.name || fieldErrors.description) {
+      setNewProjectFieldErrors(fieldErrors);
       return;
     }
     // Validate description maximum length if provided (backend max 500)
-    if (newProject.description.trim().length > 500) {
+    if (trimmedDescription.length > 500) {
       showWarning('Project description must be at most 500 characters');
       return;
     }
@@ -541,11 +550,11 @@ const DigitalMarketingDepartment = () => {
     
     // Require dates for create to prevent backend 500
     if (!newProject.startDate) {
-      showWarning('Start date is required');
+      setNewProjectDateErrors(prev => ({ ...prev, start: 'Start date is required' }));
       return;
     }
     if (!newProject.endDate) {
-      showWarning('End date is required');
+      setNewProjectDateErrors(prev => ({ ...prev, end: 'End date is required' }));
       return;
     }
 
@@ -553,14 +562,14 @@ const DigitalMarketingDepartment = () => {
     if (newProject.startDate) {
       const startDate = new Date(newProject.startDate);
       if (isNaN(startDate.getTime())) {
-        showWarning('Please enter a valid start date');
+        setNewProjectDateErrors(prev => ({ ...prev, start: 'Please enter a valid start date' }));
         return;
       }
     }
     if (newProject.endDate) {
       const endDate = new Date(newProject.endDate);
       if (isNaN(endDate.getTime())) {
-        showWarning('Please enter a valid end date');
+        setNewProjectDateErrors(prev => ({ ...prev, end: 'Please enter a valid end date' }));
         return;
       }
     }
@@ -568,7 +577,7 @@ const DigitalMarketingDepartment = () => {
       const startDate = new Date(newProject.startDate);
       const endDate = new Date(newProject.endDate);
       if (startDate >= endDate) {
-        showWarning('End date must be after start date');
+        setNewProjectDateErrors(prev => ({ ...prev, range: 'End date must be after start date' }));
         return;
       }
     }
@@ -627,6 +636,11 @@ const DigitalMarketingDepartment = () => {
         await fetchProjects();
         // Refresh customers data to update project counts
         await fetchCustomers();
+        // If viewing a specific customer's projects, refresh that list too
+        if (showCustomerSections && selectedCustomer) {
+          const customerName = selectedCustomer.name || selectedCustomer.customerName || selectedCustomer.title || selectedCustomer;
+          await fetchCustomerProjects(customerName, customerProjectsCurrentPage, customerProjectsPageSize, projectStatusFilter);
+        }
       } catch (customerNameError) {
         // If customerName field is not allowed, retry without it
         if (customerNameError.message && customerNameError.message.includes('customerName') && customerNameError.message.includes('not allowed')) {
@@ -660,6 +674,11 @@ const DigitalMarketingDepartment = () => {
           await fetchProjects();
           // Refresh customers data to update project counts
           await fetchCustomers();
+          // If viewing a specific customer's projects, refresh that list too
+          if (showCustomerSections && selectedCustomer) {
+            const customerName = selectedCustomer.name || selectedCustomer.customerName || selectedCustomer.title || selectedCustomer;
+            await fetchCustomerProjects(customerName, customerProjectsCurrentPage, customerProjectsPageSize, projectStatusFilter);
+          }
         } else {
           throw customerNameError;
         }
@@ -2133,7 +2152,15 @@ const DigitalMarketingDepartment = () => {
                     id="project-name"
                     type="text"
                     value={newProject.name}
-                    onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewProject(prev => ({ ...prev, name: value }));
+                      const trimmed = (value || '').trim();
+                      setNewProjectFieldErrors(prev => ({
+                        ...prev,
+                        name: !trimmed ? 'Project name is required' : trimmed.length < 3 ? 'Project name must be at least 3 characters' : ''
+                      }));
+                    }}
                     placeholder="Enter project name"
                     style={{
                       width: '100%',
@@ -2144,9 +2171,9 @@ const DigitalMarketingDepartment = () => {
                     }}
                     required
                   />
-                  {(editProjectDateErrors.start || editProjectDateErrors.range) && (
+                  {newProjectFieldErrors.name && (
                     <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
-                      {editProjectDateErrors.start || editProjectDateErrors.range}
+                      {newProjectFieldErrors.name}
                     </div>
                   )}
                 </div>
@@ -2157,7 +2184,15 @@ const DigitalMarketingDepartment = () => {
                   <textarea
                     id="project-description"
                     value={newProject.description}
-                    onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewProject(prev => ({ ...prev, description: value }));
+                      const trimmed = (value || '').trim();
+                      setNewProjectFieldErrors(prev => ({
+                        ...prev,
+                        description: !trimmed ? 'Project description is required' : trimmed.length < 3 ? 'Project description must be at least 3 characters' : ''
+                      }));
+                    }}
                     placeholder="Enter project description"
                     rows={3}
                     style={{
@@ -2170,9 +2205,9 @@ const DigitalMarketingDepartment = () => {
                     }}
                     required
                   />
-                  {(editProjectDateErrors.end || editProjectDateErrors.range) && (
+                  {newProjectFieldErrors.description && (
                     <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
-                      {editProjectDateErrors.end || editProjectDateErrors.range}
+                      {newProjectFieldErrors.description}
                     </div>
                   )}
                 </div>
@@ -2382,6 +2417,7 @@ const DigitalMarketingDepartment = () => {
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
+                    required
                   />
                   {(newProjectDateErrors.start || newProjectDateErrors.range) && (
                     <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
@@ -2410,6 +2446,7 @@ const DigitalMarketingDepartment = () => {
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
+                    required
                   />
                   {(newProjectDateErrors.end || newProjectDateErrors.range) && (
                     <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
