@@ -158,6 +158,31 @@ const DigitalMarketingDepartment = () => {
     priority: 'medium'
   });
 
+  // Date validation errors for project forms
+  const [newProjectDateErrors, setNewProjectDateErrors] = useState({ start: '', end: '', range: '' });
+  const [editProjectDateErrors, setEditProjectDateErrors] = useState({ start: '', end: '', range: '' });
+
+  // Utilities: date validation for project forms
+  const validateDates = (startValue, endValue) => {
+    const errors = { start: '', end: '', range: '' };
+    if (startValue) {
+      const d = new Date(startValue);
+      if (isNaN(d.getTime())) errors.start = 'Invalid start date';
+    }
+    if (endValue) {
+      const d = new Date(endValue);
+      if (isNaN(d.getTime())) errors.end = 'Invalid end date';
+    }
+    if (startValue && endValue) {
+      const s = new Date(startValue);
+      const e = new Date(endValue);
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && s >= e) {
+        errors.range = 'End date must be after start date';
+      }
+    }
+    return errors;
+  };
+
   // Check if user has access to Digital Marketing department
   // Since department info is not available in the user object, allow access
   // The backend will handle the actual authorization
@@ -508,21 +533,9 @@ const DigitalMarketingDepartment = () => {
       showWarning('Project description is required');
       return;
     }
-    // Validate description minimum length (backend requires min 3 chars)
-    if (newProject.description.trim().length < 3) {
-      showWarning('Project description must be at least 3 characters');
-      return;
-    }
-    if (!newProject.customerName.trim()) {
-      showWarning('Customer name is required');
-      return;
-    }
-    if (!newProject.startDate) {
-      showWarning('Start date is required');
-      return;
-    }
-    if (!newProject.endDate) {
-      showWarning('End date is required');
+    // Validate description maximum length (backend max 500)
+    if (newProject.description.trim().length > 500) {
+      showWarning('Project description must be at most 500 characters');
       return;
     }
     if (newProject.members.length === 0) {
@@ -530,21 +543,28 @@ const DigitalMarketingDepartment = () => {
       return;
     }
     
-    // Validate date format and logic
-    const startDate = new Date(newProject.startDate);
-    const endDate = new Date(newProject.endDate);
-    
-    if (isNaN(startDate.getTime())) {
-      showWarning('Please enter a valid start date');
-      return;
+    // Validate date format and logic only if provided (both optional in backend)
+    if (newProject.startDate) {
+      const startDate = new Date(newProject.startDate);
+      if (isNaN(startDate.getTime())) {
+        showWarning('Please enter a valid start date');
+        return;
+      }
     }
-    if (isNaN(endDate.getTime())) {
-      showWarning('Please enter a valid end date');
-      return;
+    if (newProject.endDate) {
+      const endDate = new Date(newProject.endDate);
+      if (isNaN(endDate.getTime())) {
+        showWarning('Please enter a valid end date');
+        return;
+      }
     }
-    if (startDate >= endDate) {
-      showWarning('End date must be after start date');
-      return;
+    if (newProject.startDate && newProject.endDate) {
+      const startDate = new Date(newProject.startDate);
+      const endDate = new Date(newProject.endDate);
+      if (startDate >= endDate) {
+        showWarning('End date must be after start date');
+        return;
+      }
     }
     
     // Validate status
@@ -554,13 +574,10 @@ const DigitalMarketingDepartment = () => {
       return;
     }
     
-    // Validate notes minimum length if not empty (backend: joi.string().min(5).max(200).allow("").optional())
-    if (newProject.notes) {
-      const trimmedProjectNotes = newProject.notes.trim();
-      if (trimmedProjectNotes.length > 0 && trimmedProjectNotes.length < 5) {
-        showWarning('Notes must be at least 5 characters or left empty');
-        return;
-      }
+    // Validate notes maximum length (backend: joi.string().max(1000).allow("").optional())
+    if ((newProject.notes || '').length > 1000) {
+      showWarning('Notes must be at most 1000 characters');
+      return;
     }
     
     try {
@@ -848,7 +865,7 @@ const DigitalMarketingDepartment = () => {
             // Always use the clean notes (allow empty string to clear the field)
             updateData[field] = cleanNotes;
           } else if (field === 'description' || field === 'name' || field === 'status' || field === 'startDate' || field === 'endDate') {
-            // Always include these fields
+            // Include these fields as-is (backend handles optionality)
             updateData[field] = editingProject[field];
           } else {
             updateData[field] = editingProject[field];
@@ -856,21 +873,52 @@ const DigitalMarketingDepartment = () => {
         }
       });
       
-      // Basic validation only (backend will handle detailed validation)
-      if (!updateData.name || updateData.name.trim().length < 3) {
-        throw new Error('Project name must be at least 3 characters');
+      // Validate name only if provided (backend requires min 3, max 100)
+      if (updateData.name !== undefined) {
+        const trimmedName = String(updateData.name).trim();
+        if (trimmedName.length > 0 && trimmedName.length < 3) {
+          throw new Error('Project name must be at least 3 characters');
+        }
+        if (trimmedName.length > 100) {
+          throw new Error('Project name must be at most 100 characters');
+        }
       }
       
-      // Validate description minimum length (backend requires min 3 chars)
-      if (updateData.description && updateData.description.trim().length < 3) {
-        throw new Error('Project description must be at least 3 characters');
+      // Remove description min; enforce max 500 if provided
+      if (updateData.description !== undefined) {
+        const trimmedDesc = String(updateData.description).trim();
+        if (trimmedDesc.length > 500) {
+          throw new Error('Project description must be at most 500 characters');
+        }
       }
       
-      // Validate notes minimum length if not empty (backend: joi.string().min(5).max(200).allow("").optional())
-      // Notes are already trimmed in the forEach loop above
+      // Validate notes max 1000 if provided (allow empty string)
       if (updateData.notes !== undefined) {
-        if (updateData.notes.length > 0 && updateData.notes.length < 5) {
-          throw new Error('Notes must be at least 5 characters or left empty');
+        if (updateData.notes.length > 1000) {
+          throw new Error('Notes must be at most 1000 characters');
+        }
+      }
+      
+      // Validate dates if provided: ensure valid dates and end > start
+      const hasStart = updateData.startDate !== undefined && String(updateData.startDate).trim() !== '';
+      const hasEnd = updateData.endDate !== undefined && String(updateData.endDate).trim() !== '';
+      if (hasStart) {
+        const s = new Date(updateData.startDate);
+        if (isNaN(s.getTime())) {
+          throw new Error('Please enter a valid start date');
+        }
+      }
+      if (hasEnd) {
+        const e = new Date(updateData.endDate);
+        if (isNaN(e.getTime())) {
+          throw new Error('Please enter a valid end date');
+        }
+      }
+      if (hasStart && hasEnd) {
+        const s = new Date(updateData.startDate);
+        const e = new Date(updateData.endDate);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && s >= e) {
+          throw new Error('End date must be after start date');
         }
       }
       
@@ -2090,6 +2138,11 @@ const DigitalMarketingDepartment = () => {
                     }}
                     required
                   />
+                  {(editProjectDateErrors.start || editProjectDateErrors.range) && (
+                    <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                      {editProjectDateErrors.start || editProjectDateErrors.range}
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
@@ -2111,6 +2164,11 @@ const DigitalMarketingDepartment = () => {
                     }}
                     required
                   />
+                  {(editProjectDateErrors.end || editProjectDateErrors.range) && (
+                    <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                      {editProjectDateErrors.end || editProjectDateErrors.range}
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
@@ -2305,7 +2363,12 @@ const DigitalMarketingDepartment = () => {
                     id="project-start-date"
                     type="date"
                     value={newProject.startDate}
-                    onChange={(e) => setNewProject(prev => ({ ...prev, startDate: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewProject(prev => ({ ...prev, startDate: value }));
+                      const errs = validateDates(value, newProject.endDate);
+                      setNewProjectDateErrors(errs);
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -2313,8 +2376,12 @@ const DigitalMarketingDepartment = () => {
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
-                    required
                   />
+                  {(newProjectDateErrors.start || newProjectDateErrors.range) && (
+                    <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                      {newProjectDateErrors.start || newProjectDateErrors.range}
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ marginBottom: '16px' }}>
@@ -2324,7 +2391,12 @@ const DigitalMarketingDepartment = () => {
                     id="project-end-date"
                     type="date"
                     value={newProject.endDate}
-                    onChange={(e) => setNewProject(prev => ({ ...prev, endDate: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewProject(prev => ({ ...prev, endDate: value }));
+                      const errs = validateDates(newProject.startDate, value);
+                      setNewProjectDateErrors(errs);
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -2332,8 +2404,12 @@ const DigitalMarketingDepartment = () => {
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
-                    required
                   />
+                  {(newProjectDateErrors.end || newProjectDateErrors.range) && (
+                    <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                      {newProjectDateErrors.end || newProjectDateErrors.range}
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -2619,7 +2695,12 @@ const DigitalMarketingDepartment = () => {
                     id="edit-project-start-date"
                     type="date"
                     value={editingProject.startDate || ''}
-                    onChange={(e) => setEditingProject(prev => ({ ...prev, startDate: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEditingProject(prev => ({ ...prev, startDate: value }));
+                      const errs = validateDates(value, editingProject.endDate || '');
+                      setEditProjectDateErrors(errs);
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -2637,7 +2718,12 @@ const DigitalMarketingDepartment = () => {
                     id="edit-project-end-date"
                     type="date"
                     value={editingProject.endDate || ''}
-                    onChange={(e) => setEditingProject(prev => ({ ...prev, endDate: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEditingProject(prev => ({ ...prev, endDate: value }));
+                      const errs = validateDates(editingProject.startDate || '', value);
+                      setEditProjectDateErrors(errs);
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
