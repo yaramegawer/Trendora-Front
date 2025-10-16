@@ -897,6 +897,9 @@ const DigitalMarketingDepartment = () => {
       // Remove description min; enforce max 500 if provided
       if (updateData.description !== undefined) {
         const trimmedDesc = String(updateData.description).trim();
+        if (trimmedDesc.length === 0) {
+          throw new Error('Project description cannot be empty');
+        }
         if (trimmedDesc.length > 500) {
           throw new Error('Project description must be at most 500 characters');
         }

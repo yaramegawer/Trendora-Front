@@ -163,6 +163,12 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
       newErrors.phone = 'Phone number must be 10-15 digits';
     }
 
+    // address: optional, but if provided must be at least 5 characters
+    const trimmedAddress = (formData.address || '').trim();
+    if (trimmedAddress.length > 0 && trimmedAddress.length < 5) {
+      newErrors.address = 'Address must be at least 5 characters or left empty';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -239,13 +245,9 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
       
       // Handle address field (backend: joi.string().min(5).max(200).allow("").optional())
       // Always include address field to allow clearing it with empty string
-      const trimmedAddress = formData.address ? formData.address.trim() : '';
-      if (trimmedAddress.length > 0 && trimmedAddress.length < 5) {
-        // If address has content, validate minimum length
-        throw new Error('Address must be at least 5 characters or left empty');
-      }
-      // Always send address (empty string or valid content)
-      dataToSend.address = trimmedAddress;
+      const trimmedAddressToSend = formData.address ? formData.address.trim() : '';
+      // validateForm already ensures min length if provided
+      dataToSend.address = trimmedAddressToSend;
       
       // Only include documents if they exist and are not empty
       if (formData.submittedDocuments && formData.submittedDocuments.length > 0) {
@@ -393,7 +395,8 @@ const EmployeeForm = ({ employee, onSave, onCancel, loading = false, departments
         rows={3}
         placeholder="Enter complete address (street, city, state, zip code, country)"
         inputProps={{ maxLength: 200 }}
-        helperText={`${formData.address.length}/200 characters`}
+        error={!!errors.address}
+        helperText={errors.address || `${formData.address.length}/200 characters`}
       />
 
       {/* Document Tracking Section */}
