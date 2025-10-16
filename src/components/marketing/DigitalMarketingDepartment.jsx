@@ -499,12 +499,27 @@ const DigitalMarketingDepartment = () => {
       showWarning('Project name is required');
       return;
     }
+    // Validate project name minimum length (backend requires min 3 chars)
+    if (newProject.name.trim().length < 3) {
+      showWarning('Project name must be at least 3 characters');
+      return;
+    }
     if (!newProject.description.trim()) {
       showWarning('Project description is required');
       return;
     }
+    // Validate description minimum length (backend requires min 3 chars)
+    if (newProject.description.trim().length < 3) {
+      showWarning('Project description must be at least 3 characters');
+      return;
+    }
     if (!newProject.customerName.trim()) {
       showWarning('Customer name is required');
+      return;
+    }
+    // Validate customer name minimum length (backend requires min 3 chars)
+    if (newProject.customerName.trim().length < 3) {
+      showWarning('Customer name must be at least 3 characters');
       return;
     }
     if (!newProject.startDate) {
@@ -849,6 +864,16 @@ const DigitalMarketingDepartment = () => {
       // Basic validation only (backend will handle detailed validation)
       if (!updateData.name || updateData.name.trim().length < 3) {
         throw new Error('Project name must be at least 3 characters');
+      }
+      
+      // Validate description minimum length (backend requires min 3 chars)
+      if (updateData.description && updateData.description.trim().length < 3) {
+        throw new Error('Project description must be at least 3 characters');
+      }
+      
+      // Validate customer name minimum length (backend requires min 3 chars)
+      if (updateData.customerName && updateData.customerName.trim().length < 3) {
+        throw new Error('Customer name must be at least 3 characters');
       }
       
       // Validate notes minimum length if not empty (backend: joi.string().min(5).max(200).allow("").optional())
