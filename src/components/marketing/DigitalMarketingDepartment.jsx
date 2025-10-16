@@ -529,11 +529,7 @@ const DigitalMarketingDepartment = () => {
       showWarning('Project name must be at least 3 characters');
       return;
     }
-    if (!newProject.description.trim()) {
-      showWarning('Project description is required');
-      return;
-    }
-    // Validate description maximum length (backend max 500)
+    // Validate description maximum length if provided (backend max 500)
     if (newProject.description.trim().length > 500) {
       showWarning('Project description must be at most 500 characters');
       return;
@@ -894,12 +890,9 @@ const DigitalMarketingDepartment = () => {
         }
       }
       
-      // Remove description min; enforce max 500 if provided
+      // Allow empty description; enforce max 500 if provided
       if (updateData.description !== undefined) {
         const trimmedDesc = String(updateData.description).trim();
-        if (trimmedDesc.length === 0) {
-          throw new Error('Project description cannot be empty');
-        }
         if (trimmedDesc.length > 500) {
           throw new Error('Project description must be at most 500 characters');
         }
