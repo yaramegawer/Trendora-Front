@@ -543,7 +543,17 @@ const DigitalMarketingDepartment = () => {
       return;
     }
     
-    // Validate date format and logic only if provided (both optional in backend)
+    // Require dates for create to prevent backend 500
+    if (!newProject.startDate) {
+      showWarning('Start date is required');
+      return;
+    }
+    if (!newProject.endDate) {
+      showWarning('End date is required');
+      return;
+    }
+
+    // Validate date format and logic
     if (newProject.startDate) {
       const startDate = new Date(newProject.startDate);
       if (isNaN(startDate.getTime())) {
