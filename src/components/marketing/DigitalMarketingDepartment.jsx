@@ -517,11 +517,6 @@ const DigitalMarketingDepartment = () => {
       showWarning('Customer name is required');
       return;
     }
-    // Validate customer name minimum length (backend requires min 3 chars)
-    if (newProject.customerName.trim().length < 3) {
-      showWarning('Customer name must be at least 3 characters');
-      return;
-    }
     if (!newProject.startDate) {
       showWarning('Start date is required');
       return;
@@ -869,11 +864,6 @@ const DigitalMarketingDepartment = () => {
       // Validate description minimum length (backend requires min 3 chars)
       if (updateData.description && updateData.description.trim().length < 3) {
         throw new Error('Project description must be at least 3 characters');
-      }
-      
-      // Validate customer name minimum length (backend requires min 3 chars)
-      if (updateData.customerName && updateData.customerName.trim().length < 3) {
-        throw new Error('Customer name must be at least 3 characters');
       }
       
       // Validate notes minimum length if not empty (backend: joi.string().min(5).max(200).allow("").optional())
