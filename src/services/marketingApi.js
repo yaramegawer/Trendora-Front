@@ -20,17 +20,42 @@ const apiCall = async (endpoint, options = {}) => {
     
     return response.data || response;
   } catch (error) {
+    const status = error.response?.status;
+    const method = options.method || 'GET';
+    
+    // For POST, PUT, DELETE requests, throw errors so the user knows something went wrong
+    // For GET requests, return empty data to prevent UI crashes
+    const isMutationRequest = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase());
+    
     // Provide more specific error messages
-    if (error.response?.status === 404) {
+    if (status === 404) {
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Resource not found');
+      }
       throw new Error('API endpoint not found. Please check if the backend route is properly configured.');
-    } else if (error.response?.status === 401) {
+    } else if (status === 401) {
       throw new Error('Unauthorized. Please check your authentication.');
-    } else if (error.response?.status === 403) {
-      // Silently handle 403 errors without throwing
+    } else if (status === 403) {
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Access denied for this department.');
+      }
+      // For GET requests, silently handle 403 errors
       return [];
-    } else if (error.response?.status === 400) {
+    } else if (status === 400) {
+      if (isMutationRequest) {
+        const errorMessage = error.response?.data?.message || 'Invalid data. Please check your input.';
+        throw new Error(errorMessage);
+      }
       throw new Error('Bad request. Please check your data format.');
+    } else if (status === 500) {
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Server error. Please try again later.');
+      }
+      return [];
     } else {
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || error.message || 'An error occurred. Please try again.');
+      }
       throw new Error(`API Error: ${error.message}`);
     }
   }

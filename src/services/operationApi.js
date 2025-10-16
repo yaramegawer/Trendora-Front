@@ -11,12 +11,54 @@ const apiCall = async (endpoint, options = {}) => {
     });
     return response.data;
   } catch (error) {
-    // Silently handle 403 errors without throwing
-    if (error.response?.status === 403) {
+    const status = error.response?.status;
+    const method = options.method || 'GET';
+    
+    // For POST, PUT, DELETE requests, throw errors so the user knows something went wrong
+    // For GET requests, return empty data to prevent UI crashes
+    const isMutationRequest = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase());
+    
+    // Handle 403 errors
+    if (status === 403) {
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Access denied for this department.');
+      }
+      // For GET requests, silently handle 403 errors
       return [];
     }
-    // Operation API Error handled
-    throw error;
+    
+    // Handle 400 validation errors
+    if (status === 400) {
+      if (isMutationRequest) {
+        const errorMessage = error.response?.data?.message || 'Invalid data. Please check your input.';
+        throw new Error(errorMessage);
+      }
+      return [];
+    }
+    
+    // Handle 404 errors
+    if (status === 404) {
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Resource not found');
+      }
+      return [];
+    }
+    
+    // Handle 500 errors
+    if (status === 500) {
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Server error. Please try again later.');
+      }
+      return [];
+    }
+    
+    // For mutations, throw the error; for GET, return empty data
+    if (isMutationRequest) {
+      throw new Error(error.response?.data?.message || error.message || 'An error occurred. Please try again.');
+    }
+    
+    // Operation API Error handled - returning empty for GET
+    return [];
   }
 };
 

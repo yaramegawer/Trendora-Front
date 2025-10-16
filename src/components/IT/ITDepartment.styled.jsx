@@ -506,30 +506,55 @@ const ITDepartment = () => {
 ('🚀 Starting project creation process...');
 ('📝 New project data:', newProject);
     
-    // Validate required fields
-    if (!newProject.name.trim()) {
-      showWarning('Project name is required');
-      return;
+    // Comprehensive validation for required fields
+    const validationErrors = [];
+    
+    if (!newProject.name || !newProject.name.trim()) {
+      validationErrors.push('Project name is required');
+    } else if (newProject.name.trim().length < 3) {
+      validationErrors.push('Project name must be at least 3 characters long');
     }
-    if (!newProject.description.trim()) {
-      showWarning('Project description is required');
+    
+    if (!newProject.description || !newProject.description.trim()) {
+      validationErrors.push('Project description is required');
+    } else if (newProject.description.trim().length < 3) {
+      validationErrors.push('Project description must be at least 3 characters long');
+    }
+    
+    // Validate that at least one team member is selected
+    if (!newProject.members || newProject.members.length === 0) {
+      validationErrors.push('At least one team member must be selected');
+    }
+    
+    // Validate date range if both dates are provided
+    if (newProject.startDate && newProject.endDate) {
+      const startDate = new Date(newProject.startDate);
+      const endDate = new Date(newProject.endDate);
+      
+      if (endDate < startDate) {
+        validationErrors.push('End date cannot be before start date');
+      }
+    }
+    
+    // Show all validation errors
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => showWarning(error));
       return;
     }
     
     try {
       // Filter data to only include allowed fields per backend schema
       const createData = {
-        name: newProject.name,
-        description: newProject.description,
+        name: newProject.name.trim(),
+        description: newProject.description.trim(),
         status: newProject.status,
-        notes: newProject.notes || '',
+        notes: newProject.notes?.trim() || '',
         ...(newProject.startDate && { startDate: newProject.startDate }),
         ...(newProject.endDate && { endDate: newProject.endDate })
       };
       
-      // Only include members if they exist and are valid ObjectIds
+      // Extract member IDs from the members array
       if (newProject.members && newProject.members.length > 0) {
-        // If members are populated objects, extract their IDs
         const memberIds = newProject.members.map(member => {
           if (typeof member === 'object' && member._id) {
             return member._id;
@@ -572,15 +597,22 @@ const ITDepartment = () => {
         config: error.config
       });
       
-      let errorMessage = 'Failed to create project: ' + error.message;
-      if (error.response?.data?.message) {
-        errorMessage = `Failed to create project: ${error.response.data.message}`;
+      // Use the error message from the backend or provide a user-friendly fallback
+      let errorMessage = 'Failed to create project';
+      
+      if (error.message) {
+        // The error message from the backend is already formatted
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       } else if (error.response?.status === 401) {
         errorMessage = 'Unauthorized. Please check your authentication.';
       } else if (error.response?.status === 403) {
         errorMessage = 'Access denied for this department.';
       } else if (error.response?.status === 400) {
-        errorMessage = 'Bad request. Please check your data format.';
+        errorMessage = 'Invalid data. Please check all required fields are filled correctly.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
       }
       
       showError(errorMessage);
@@ -633,30 +665,55 @@ const ITDepartment = () => {
       return;
     }
 
-    // Validate required fields
-    if (!editingProject.name.trim()) {
-      showWarning('Project name is required');
-      return;
+    // Comprehensive validation for required fields
+    const validationErrors = [];
+    
+    if (!editingProject.name || !editingProject.name.trim()) {
+      validationErrors.push('Project name is required');
+    } else if (editingProject.name.trim().length < 3) {
+      validationErrors.push('Project name must be at least 3 characters long');
     }
-    if (!editingProject.description.trim()) {
-      showWarning('Project description is required');
+    
+    if (!editingProject.description || !editingProject.description.trim()) {
+      validationErrors.push('Project description is required');
+    } else if (editingProject.description.trim().length < 3) {
+      validationErrors.push('Project description must be at least 3 characters long');
+    }
+    
+    // Validate that at least one team member is selected
+    if (!editingProject.members || editingProject.members.length === 0) {
+      validationErrors.push('At least one team member must be selected');
+    }
+    
+    // Validate date range if both dates are provided
+    if (editingProject.startDate && editingProject.endDate) {
+      const startDate = new Date(editingProject.startDate);
+      const endDate = new Date(editingProject.endDate);
+      
+      if (endDate < startDate) {
+        validationErrors.push('End date cannot be before start date');
+      }
+    }
+    
+    // Show all validation errors
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => showWarning(error));
       return;
     }
 
     try {
       // Filter data to only include allowed fields per backend schema
       const updateData = {
-        name: editingProject.name,
-        description: editingProject.description,
+        name: editingProject.name.trim(),
+        description: editingProject.description.trim(),
         status: editingProject.status,
-        notes: editingProject.notes || '',
+        notes: editingProject.notes?.trim() || '',
         ...(editingProject.startDate && { startDate: editingProject.startDate }),
         ...(editingProject.endDate && { endDate: editingProject.endDate })
       };
       
-      // Only include members if they exist and are valid ObjectIds
+      // Extract member IDs from the members array
       if (editingProject.members && Array.isArray(editingProject.members) && editingProject.members.length > 0) {
-        // If members are populated objects, extract their IDs
         const memberIds = editingProject.members.map(member => {
           if (typeof member === 'object' && member._id) {
             return member._id;
@@ -679,7 +736,25 @@ const ITDepartment = () => {
       setEditingProject(null);
     } catch (error) {
 ('Error updating project:', error);
-      showError('Failed to update project: ' + error.message);
+      
+      // Use the error message from the backend or provide a user-friendly fallback
+      let errorMessage = 'Failed to update project';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Unauthorized. Please check your authentication.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Access denied for this department.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid data. Please check all required fields are filled correctly.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      showError(errorMessage);
     }
   };
 

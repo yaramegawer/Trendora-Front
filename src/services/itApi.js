@@ -38,14 +38,19 @@ const apiCall = async (endpoint, options = {}) => {
     console.error('❌ IT API Error Message:', error.response?.data?.message || error.message);
     
     const status = error.response?.status;
-      ('🔍 Checking status code:', status, 'Type:', typeof status);
+    const method = options.method || 'GET';
+      ('🔍 Checking status code:', status, 'Method:', method, 'Type:', typeof status);
     
-    // Handle ALL errors gracefully - return empty data for GET requests
-    // Only throw for authentication errors (401)
+    // For POST, PUT, DELETE requests, throw errors so the user knows something went wrong
+    // For GET requests, return empty data to prevent UI crashes
+    const isMutationRequest = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase());
     
     if (status === 404) {
       console.error('❌ 404 Not Found - Backend response:', error.response?.data);
-        ('ℹ️ Returning empty data for 404');
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Resource not found');
+      }
+        ('ℹ️ Returning empty data for 404 (GET request)');
       return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
     
@@ -55,13 +60,21 @@ const apiCall = async (endpoint, options = {}) => {
     }
     
     if (status === 403) {
-        ('🔒 403 Forbidden - returning empty data');
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Access denied for this department.');
+      }
+        ('🔒 403 Forbidden - returning empty data (GET request)');
       return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
     
     if (status === 400) {
       console.error('❌ 400 Bad Request - Backend response:', error.response?.data);
-        ('ℹ️ Returning empty data for 400');
+      if (isMutationRequest) {
+        // For mutation requests, throw the error so validation errors are shown
+        const errorMessage = error.response?.data?.message || 'Invalid data. Please check your input.';
+        throw new Error(errorMessage);
+      }
+        ('ℹ️ Returning empty data for 400 (GET request)');
       return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
     
@@ -69,14 +82,19 @@ const apiCall = async (endpoint, options = {}) => {
       console.error('💥 500 Internal Server Error - Backend response:', error.response?.data);
       console.error('💥 Backend error message:', error.response?.data?.message);
       console.error('💥 Backend error details:', error.response?.data?.error);
-        ('ℹ️ Returning empty data for 500 error - backend needs to be fixed');
+      if (isMutationRequest) {
+        throw new Error(error.response?.data?.message || 'Server error. Please try again later.');
+      }
+        ('ℹ️ Returning empty data for 500 error (GET request)');
       return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
     
-    // Catch-all: For any other error (including network errors, timeouts, etc.)
-    // Return empty data instead of crashing the UI
+    // Catch-all: For any other error
     console.error('⚠️ Unhandled error type - status:', status);
-      ('ℹ️ Returning empty data for unknown error to prevent UI crash');
+    if (isMutationRequest) {
+      throw new Error(error.response?.data?.message || error.message || 'An error occurred. Please try again.');
+    }
+      ('ℹ️ Returning empty data for unknown error (GET request)');
     return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
   }
 };
@@ -160,21 +178,12 @@ export const itProjectApi = {
   createProject: async (projectData) => {
       // Creating project via API
     
-    try {
-      const result = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
-        method: 'POST',
-        data: projectData
-      });
+    const result = await apiCall(API_CONFIG.ENDPOINTS.IT.PROJECTS, {
+      method: 'POST',
+      data: projectData
+    });
       // Project created successfully
-      return result.data || result;
-    } catch (error) {
-      // Silently handle 403 errors without throwing
-      if (error.response?.status === 403) {
-        return [];
-      }
-      // Project creation error handled
-      throw error;
-    }
+    return result.data || result;
   },
 
   // Update project
