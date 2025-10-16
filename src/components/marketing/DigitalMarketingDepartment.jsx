@@ -1100,7 +1100,7 @@ const DigitalMarketingDepartment = () => {
                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                   {totalProjects || projects?.length || 0}
                 </p>
-                <p style={{ fontSize: '8px', color: '#1c242e', marginTop: '4px', margin: 0 }}>{customers.length} customers</p>
+                
               </div>
               <div style={{
                 padding: '10px',
