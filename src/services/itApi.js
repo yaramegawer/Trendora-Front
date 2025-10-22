@@ -19,7 +19,7 @@ const apiCall = async (endpoint, options = {}) => {
       // Return the full response data object to preserve pagination info (total, page, limit, etc.)
       return response.data;
     } else if (response.data && response.data.success === false) {
-      console.error('❌ IT API Error response:', response.data);
+      // Silent: IT API error response
       // Handle specific ObjectId casting errors gracefully
       if (response.data.message && response.data.message.includes('Cast to ObjectId failed')) {
         return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
@@ -31,11 +31,7 @@ const apiCall = async (endpoint, options = {}) => {
       ('⚠️ IT API Unexpected response format:', response.data);
     return response.data || response;
   } catch (error) {
-    console.error('❌ IT API Error:', error);
-    console.error('❌ IT API Error Response:', error.response);
-    console.error('❌ IT API Error Data:', error.response?.data);
-    console.error('❌ IT API Error Status:', error.response?.status);
-    console.error('❌ IT API Error Message:', error.response?.data?.message || error.message);
+    // Silent: IT API error details
     
     const status = error.response?.status;
     const method = options.method || 'GET';
@@ -46,7 +42,7 @@ const apiCall = async (endpoint, options = {}) => {
     const isMutationRequest = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase());
     
     if (status === 404) {
-      console.error('❌ 404 Not Found - Backend response:', error.response?.data);
+      // Silent: 404 Not Found
       if (isMutationRequest) {
         throw new Error(error.response?.data?.message || 'Resource not found');
       }
@@ -55,7 +51,7 @@ const apiCall = async (endpoint, options = {}) => {
     }
     
     if (status === 401) {
-      console.error('❌ 401 Unauthorized - Re-throwing for auth handling');
+      // Silent: 401 Unauthorized
       throw new Error('Unauthorized. Please check your authentication.');
     }
     
@@ -68,7 +64,7 @@ const apiCall = async (endpoint, options = {}) => {
     }
     
     if (status === 400) {
-      console.error('❌ 400 Bad Request - Backend response:', error.response?.data);
+      // Silent: 400 Bad Request
       if (isMutationRequest) {
         // For mutation requests, throw the error so validation errors are shown
         const errorMessage = error.response?.data?.message || 'Invalid data. Please check your input.';
@@ -79,9 +75,7 @@ const apiCall = async (endpoint, options = {}) => {
     }
     
     if (status === 500) {
-      console.error('💥 500 Internal Server Error - Backend response:', error.response?.data);
-      console.error('💥 Backend error message:', error.response?.data?.message);
-      console.error('💥 Backend error details:', error.response?.data?.error);
+      // Silent: 500 Internal Server Error
       if (isMutationRequest) {
         throw new Error(error.response?.data?.message || 'Server error. Please try again later.');
       }
@@ -90,7 +84,7 @@ const apiCall = async (endpoint, options = {}) => {
     }
     
     // Catch-all: For any other error
-    console.error('⚠️ Unhandled error type - status:', status);
+    // Silent: Unhandled error type
     if (isMutationRequest) {
       throw new Error(error.response?.data?.message || error.message || 'An error occurred. Please try again.');
     }
@@ -153,8 +147,7 @@ export const itProjectApi = {
       // Return the full response to preserve pagination info (total, page, limit, totalPages)
       return response;
     } catch (error) {
-      console.error('❌ Error getting projects:', error);
-      console.error('❌ Error details:', error.response?.data);
+      // Silent: Error getting projects
       
       // Handle all errors gracefully - return empty data
       if (error.response?.status === 403 || error.response?.status === 404 || error.response?.status === 500) {
@@ -230,8 +223,7 @@ export const itTicketApi = {
       // Return the full response to preserve pagination info (total, page, limit, totalPages)
       return response;
     } catch (error) {
-      console.error('❌ Error getting tickets:', error);
-      console.error('❌ Error details:', error.response?.data);
+      // Silent: Error getting tickets
       
       // Handle all errors gracefully - return empty data
       // The apiCall already handles 403, 404, 500, but just in case
@@ -277,6 +269,21 @@ export const itTicketApi = {
 
 // Leave API functions
 export const itLeaveApi = {
+  // Get all department leaves
+  getDepartmentLeaves: async (departmentId, page = 1, limit = 10) => {
+    const endpoint = API_CONFIG.ENDPOINTS.IT.DEPARTMENT_LEAVES.replace(':departmentId', departmentId);
+    const response = await apiCall(endpoint, {
+      method: 'GET',
+      params: { page, limit }
+    });
+    return response;
+  },
+
+  // Get employee leaves (fallback method)
+  getEmployeeLeaves: async () => {
+    const response = await apiCall(API_CONFIG.ENDPOINTS.IT.LEAVES);
+    return response;
+  },
 
   // Submit employee leave
   submitEmployeeLeave: async (leaveData) => {
@@ -287,4 +294,22 @@ export const itLeaveApi = {
     return response.data || response;
   },
 
+  // Update leave status
+  updateLeaveStatus: async (id, leaveData) => {
+    const endpoint = API_CONFIG.ENDPOINTS.IT.UPDATE_LEAVE.replace(':id', id);
+    const response = await apiCall(endpoint, {
+      method: 'PUT',
+      data: leaveData
+    });
+    return response.data || response;
+  },
+
+  // Delete leave
+  deleteLeave: async (id) => {
+    const endpoint = API_CONFIG.ENDPOINTS.IT.DELETE_LEAVE.replace(':id', id);
+    const response = await apiCall(endpoint, {
+      method: 'DELETE'
+    });
+    return response.data || response;
+  }
 };

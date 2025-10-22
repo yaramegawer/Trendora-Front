@@ -21,13 +21,15 @@ import {
   Wifi,
   Server,
   Upload,
-  FileText
+  FileText,
+  Calendar
 } from 'lucide-react';
 import { useITEmployees, useITProjects, useITTickets, useITLeaves } from '../../hooks/useITData';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { itLeaveApi } from '../../services/itApi';
 import SimplePagination from '../common/SimplePagination';
+import ITLeavesManagement from './ITLeavesManagement';
 
 const ITDepartment = () => {
   // Get user from auth context
@@ -1098,7 +1100,8 @@ const ITDepartment = () => {
                 { id: 'dashboard', label: 'Dashboard', icon: Activity },
                 { id: 'employees', label: 'Employees', icon: Users },
                 { id: 'tickets', label: 'Tickets', icon: Ticket },
-                { id: 'projects', label: 'Projects', icon: FolderOpen }
+                { id: 'projects', label: 'Projects', icon: FolderOpen },
+                { id: 'leaves', label: 'Leaves', icon: Calendar }
               ].map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -2348,6 +2351,18 @@ const ITDepartment = () => {
           </div>
         )}
 
+        {/* Leaves Tab */}
+        {activeTab === 'leaves' && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            border: '1px solid #f3f4f6',
+            padding: '24px'
+          }}>
+            <ITLeavesManagement />
+          </div>
+        )}
 
       </div>
 

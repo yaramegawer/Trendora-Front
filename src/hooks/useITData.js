@@ -97,10 +97,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
       // Store all projects - filtering will be applied by applyFiltersAndPagination
       setAllProjects(projectsData);
     } catch (err) {
-      console.error('❌ Error fetching IT projects:', err);
-      console.error('❌ Error type:', err.constructor.name);
-      console.error('❌ Error message:', err.message);
-      console.error('❌ Error stack:', err.stack);
+      // Silent fail for IT projects fetch
       
       // Handle specific ObjectId casting errors silently
       if (err.message && err.message.includes('Cast to ObjectId failed')) {
@@ -327,10 +324,7 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
       setCurrentStatusFilter(filter);
       setTotalPages(totalPagesNum);
     } catch (err) {
-      console.error('❌ Error fetching IT tickets:', err);
-      console.error('❌ Error type:', err.constructor.name);
-      console.error('❌ Error message:', err.message);
-      console.error('❌ Error stack:', err.stack);
+      // Silent fail for IT tickets fetch
       
       // Set error message only if it's meaningful (not just API errors)
       if (err.message && !err.message.includes('API Error')) {
@@ -434,34 +428,121 @@ export const useITTickets = (page = 1, limit = 10, statusFilter = 'all') => {
   };
 };
 
-// Custom hook for IT leave data management
-export const useITLeaves = () => {
+// Custom hook for IT leave data management with pagination
+export const useITLeaves = (page = 1, limit = 10) => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [totalLeaves, setTotalLeaves] = useState(0);
+  const [currentPage, setCurrentPage] = useState(page);
+  const [pageSize, setPageSize] = useState(limit);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchLeaves = async () => {
+  const fetchLeaves = async (pageNum = currentPage, pageLimit = pageSize, departmentId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await itLeaveApi.getEmployeeLeaves();
+      // Fetching IT department leaves
       
-      // Handle different response formats
+      // Use the actual IT department ObjectId
+      const response = await itLeaveApi.getDepartmentLeaves('68da376594328b3a175633a7', pageNum, pageLimit);
+      
+      // IT Leaves API response received
+      
+      // Handle response format
       let leavesData = [];
+      let totalCount = 0;
+      let currentPageNum = pageNum;
+      let totalPagesNum = 1;
       
-      if (Array.isArray(response)) {
-        leavesData = response;
+      if (response && response.leaves && Array.isArray(response.leaves)) {
+        leavesData = response.leaves;
+        totalCount =
+          response.total ||
+          response.count ||
+          response.totalCount ||
+          response.pagination?.total ||
+          response.leaves.length;
+        currentPageNum = response.page || response.currentPage || pageNum;
+        totalPagesNum =
+          response.totalPages ||
+          response.pages ||
+          response.pagination?.totalPages ||
+          Math.ceil((totalCount || leavesData.length) / pageLimit);
       } else if (response && response.data && Array.isArray(response.data)) {
         leavesData = response.data;
-      } else if (response && Array.isArray(response)) {
+        totalCount =
+          response.total ||
+          response.count ||
+          response.totalCount ||
+          response.pagination?.total ||
+          response.data.length;
+        currentPageNum = response.page || response.currentPage || pageNum;
+        totalPagesNum =
+          response.totalPages ||
+          response.pages ||
+          response.pagination?.totalPages ||
+          Math.ceil((totalCount || leavesData.length) / pageLimit);
+      } else if (Array.isArray(response)) {
         leavesData = response;
+        totalCount = response.length;
       }
       
-      setLeaves(leavesData);
+      if (pageLimit >= 1000) {
+        let allLeaves = [...leavesData];
+        const maxPages = 20;
+        if (totalPagesNum && totalPagesNum > 1) {
+          const pagesToFetch = Math.min(totalPagesNum, maxPages);
+          for (let p = 2; p <= pagesToFetch; p++) {
+            const resp = await itLeaveApi.getDepartmentLeaves('68da376594328b3a175633a7', p, pageLimit);
+            let batch = [];
+            if (resp && resp.leaves && Array.isArray(resp.leaves)) batch = resp.leaves;
+            else if (resp && resp.data && Array.isArray(resp.data)) batch = resp.data;
+            else if (Array.isArray(resp)) batch = resp;
+            if (batch.length === 0) break;
+            allLeaves = allLeaves.concat(batch);
+          }
+        } else {
+          let p = 2;
+          while (p <= maxPages) {
+            const resp = await itLeaveApi.getDepartmentLeaves('68da376594328b3a175633a7', p, pageLimit);
+            let batch = [];
+            if (resp && resp.leaves && Array.isArray(resp.leaves)) batch = resp.leaves;
+            else if (resp && resp.data && Array.isArray(resp.data)) batch = resp.data;
+            else if (Array.isArray(resp)) batch = resp;
+            if (!batch || batch.length === 0) break;
+            allLeaves = allLeaves.concat(batch);
+            p++;
+          }
+        }
+        setLeaves(allLeaves);
+        setTotalLeaves(totalCount || allLeaves.length);
+        setCurrentPage(1);
+        setPageSize(pageLimit);
+        setTotalPages(1);
+      } else {
+        setLeaves(leavesData);
+        setTotalLeaves(totalCount);
+        setCurrentPage(currentPageNum);
+        setPageSize(pageLimit);
+        setTotalPages(totalPagesNum);
+      }
+      
+      // Processed IT leaves
+      
     } catch (err) {
-// IT Leaves API Error handled
-      setError(err.message);
+      // Silent fail for IT leaves fetch
+      
+      // Set error message only if it's meaningful (not just API errors)
+      if (err.message && !err.message.includes('API Error')) {
+        setError(err.message);
+      } else {
+        setError(null); // Don't show generic API errors to users
+      }
+      
       setLeaves([]);
+      setTotalLeaves(0);
+      setTotalPages(0);
     } finally {
       setLoading(false);
     }
@@ -470,10 +551,10 @@ export const useITLeaves = () => {
   const submitLeave = async (leaveData) => {
     try {
       const newLeave = await itLeaveApi.submitEmployeeLeave(leaveData);
-      await fetchLeaves(); // Refresh the list
+      await fetchLeaves(currentPage, pageSize); // Refresh the current page
       return newLeave;
     } catch (err) {
-// Error submitting leave
+      // Silent fail for submit leave
       throw err;
     }
   };
@@ -481,10 +562,10 @@ export const useITLeaves = () => {
   const updateLeaveStatus = async (id, leaveData) => {
     try {
       const updatedLeave = await itLeaveApi.updateLeaveStatus(id, leaveData);
-      await fetchLeaves(); // Refresh the list
+      await fetchLeaves(currentPage, pageSize); // Refresh the current page
       return updatedLeave;
     } catch (err) {
-// Error updating leave status
+      // Silent fail for update leave status
       throw err;
     }
   };
@@ -492,25 +573,57 @@ export const useITLeaves = () => {
   const deleteLeave = async (id) => {
     try {
       await itLeaveApi.deleteLeave(id);
-      await fetchLeaves(); // Refresh the list
+      await fetchLeaves(currentPage, pageSize); // Refresh the current page
     } catch (err) {
-// Error deleting leave
+      // Silent fail for delete leave
       throw err;
     }
   };
 
-  // Disabled automatic API call - only fetch when explicitly requested
-  // useEffect(() => {
-  //   fetchLeaves();
-  // }, []);
+  // Pagination functions
+  const goToPage = (pageNum) => {
+    if (totalLeaves === 0 || (pageNum >= 1 && pageNum <= totalPages)) {
+      fetchLeaves(pageNum, pageSize);
+    }
+  };
+
+  const changePageSize = (newPageSize) => {
+    setPageSize(newPageSize);
+    fetchLeaves(1, newPageSize); // Reset to first page when changing page size
+  };
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchLeaves(currentPage, pageSize);
+  }, []);
 
   return {
     leaves,
     loading,
     error,
+    totalLeaves,
+    currentPage,
+    pageSize,
+    totalPages,
     fetchLeaves,
     submitLeave,
     updateLeaveStatus,
-    deleteLeave
+    deleteLeave,
+    goToPage,
+    changePageSize,
+    nextPage,
+    prevPage
   };
 };

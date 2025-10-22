@@ -29,6 +29,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { useOperationEmployees, useOperationCampaigns, useOperationLeaves, useOperationRecentActivities } from '../../hooks/useOperationData';
+import OperationLeavesManagement from './OperationLeavesManagement';
 import { operationTicketApi } from '../../services/operationApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -716,7 +717,8 @@ const OperationDepartment = () => {
           {[
             { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
             { id: 'employees', label: 'Employees', icon: Users },
-            { id: 'campaigns', label: 'Campaigns', icon: Megaphone }
+            { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
+            { id: 'leaves', label: 'Leaves', icon: Calendar }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1598,6 +1600,19 @@ const OperationDepartment = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Leaves Tab */}
+        {activeTab === 'leaves' && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            border: '1px solid #f3f4f6',
+            padding: '16px'
+          }}>
+            <OperationLeavesManagement />
           </div>
         )}
 
