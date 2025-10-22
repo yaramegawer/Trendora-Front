@@ -148,7 +148,8 @@ export const operationLeaveApi = {
   },
 
   getDepartmentLeaves: async (departmentId, page = 1, limit = 10) => {
-    const endpoint = API_CONFIG.ENDPOINTS.OPERATION.LEAVES.replace(
+    // Use configured endpoint to avoid double /api in final URL
+    const endpoint = API_CONFIG.ENDPOINTS.OPERATION.DEPARTMENT_LEAVES.replace(
       ":departmentId",
       departmentId
     );

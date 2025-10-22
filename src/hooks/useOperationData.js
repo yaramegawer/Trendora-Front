@@ -596,6 +596,7 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
   const [totalPages, setTotalPages] = useState(1);
   const [status, setStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [departmentContext, setDepartmentContext] = useState(null);
 
   const fetchLeaves = async (
     pageParam = currentPage,
@@ -606,16 +607,15 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await operationLeaveApi.getEmployeeLeaves(
+      // Use department-scoped endpoint to strictly fetch Operation leaves
+      const response = await operationLeaveApi.getDepartmentLeaves(
+        "68da378594328b3a175633b3",
         pageParam,
-        limitParam,
-        statusParam,
-        searchParam
+        limitParam
       );
       console.log("Operation Employee Leaves API Response:", response);
 
       let leavesData = [];
-      let userDepartment = null;
       let totalCount = 0;
       let respPage = pageParam;
       let totalPagesCount = 1;
@@ -636,229 +636,50 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
           : Math.max(2, (pageParam || 1) + 0); // show at least current page and enable Next if full
       } else if (response && Array.isArray(response.data)) {
         leavesData = response.data;
+        if (response.department) setDepartmentContext(response.department);
         totalCount =
           response.total || response.totalCount || response.data.length;
         respPage = response.page || respPage;
         totalPagesCount =
           response.totalPages ||
           Math.max(1, Math.ceil(totalCount / limitParam));
+      } else if (
+        response &&
+        response.data &&
+        Array.isArray(response.data.data)
+      ) {
+        // Nested: { success, data: { data: [...], total, page, totalPages } }
+        leavesData = response.data.data;
+        if (response.data.department) setDepartmentContext(response.data.department);
+        totalCount =
+          response.data.total !== undefined ? response.data.total : leavesData.length;
+        respPage = response.data.page !== undefined ? response.data.page : respPage;
+        totalPagesCount =
+          response.data.totalPages !== undefined
+            ? response.data.totalPages
+            : Math.max(1, Math.ceil(totalCount / limitParam));
       } else if (response && Array.isArray(response.leaves)) {
         leavesData = response.leaves;
+        if (response.department) setDepartmentContext(response.department);
         totalCount = response.count || response.total || response.leaves.length;
         respPage = response.page || respPage;
         totalPagesCount =
           response.totalPages ||
           Math.max(1, Math.ceil(totalCount / limitParam));
       }
-
-      // Aggregate across all pages when searching or when applying status filter across pages
-      if ((searchParam && String(searchParam).trim() !== "") || (statusParam && statusParam !== 'all')) {
-        try {
-          const maxProbePages = 50;
-          let allLeaves = [...(Array.isArray(leavesData) ? leavesData : [])];
-          let lastLen = allLeaves.length;
-          for (let p = 1; p <= maxProbePages; p++) {
-            if (p === respPage) continue;
-            const probeResp = await operationLeaveApi.getEmployeeLeaves(p, limitParam, statusParam, null);
-            let probeBatch = [];
-            if (Array.isArray(probeResp)) {
-              probeBatch = probeResp;
-            } else if (probeResp && Array.isArray(probeResp.data)) {
-              probeBatch = probeResp.data;
-            } else if (probeResp && Array.isArray(probeResp.leaves)) {
-              probeBatch = probeResp.leaves;
-            }
-            const len = probeBatch?.length || 0;
-            if (len === 0) break;
-            allLeaves = allLeaves.concat(probeBatch);
-            lastLen = len;
-            if (len < limitParam) break;
-          }
-          // If status filter is active, apply it on the aggregated dataset
-          if (statusParam && statusParam !== 'all') {
-            const desired = String(statusParam).toLowerCase();
-            allLeaves = allLeaves.filter(l => String(l.status || '').toLowerCase() === desired);
-          }
-          leavesData = allLeaves;
-          totalCount = allLeaves.length;
-          respPage = 1;
-          totalPagesCount = 1; // client-side mode will paginate in UI when filters/search are active
-        } catch (e) {
-          // if aggregation fails, fall back to current page data
-        }
-      }
-
-      // Determine if backend provided explicit total information
-      const explicitTotalFound = Boolean(
-        (response && (response.total || response.totalCount || response.totalPages))
-      );
-
-      // Normalize an inflated or incorrect totalPages from backend
-      if (totalCount && limitParam) {
-        const computedPages = Math.max(1, Math.ceil(totalCount / limitParam));
-        if (!totalPagesCount || totalPagesCount > computedPages) {
-          totalPagesCount = computedPages;
-        }
-      }
-
-      // Try infer department from items when absent
-      if (!userDepartment && leavesData.length > 0) {
-        const firstWithDept = leavesData.find(
-          (l) =>
-            l.department ||
-            l.departmentName ||
-            l.employee?.department ||
-            l.employee?.departmentName ||
-            (typeof l.employee?.department === "string" &&
-              l.employee.department)
-        );
-        if (firstWithDept) {
-          userDepartment =
-            firstWithDept.department ||
-            firstWithDept.departmentName ||
-            firstWithDept.employee?.department ||
-            firstWithDept.employee?.departmentName ||
-            null;
-        }
-      }
-
-      // Show only operation-related leaves when department exists (or infer), otherwise try to show operation-tagged leaves, fallback to all
-      if (userDepartment) {
-        const departmentLower = (
-          typeof userDepartment === "string"
-            ? userDepartment
-            : String(userDepartment || "")
-        ).toLowerCase();
-        const isOperation =
-          departmentLower === "operation" ||
-          departmentLower === "operations" ||
-          departmentLower.includes("operation") ||
-          departmentLower.includes("ops");
-
-        if (!isOperation) {
-          console.log(
-            "User not in Operation department — hiding leaves for this hook."
-          );
-          leavesData = [];
-          totalCount = 0;
-          totalPagesCount = 1;
-        } else {
-          console.log("User in Operation department — returning leaves.");
-        }
+      // Normalize totals simply.
+      if (limitParam >= 1000) {
+        // Single large fetch, no further paging
+        totalPagesCount = 1;
+        respPage = 1;
+        totalCount = Array.isArray(leavesData) ? leavesData.length : (totalCount || 0);
       } else {
-        const operationLeaves = leavesData.filter((l) => {
-          const dept =
-            (
-              l.department ||
-              l.departmentName ||
-              l.employee?.department ||
-              l.employee?.departmentName ||
-              l.employee?.department?.name
-            )
-              ?.toString?.()
-              .toLowerCase?.() || "";
-          return (
-            dept.includes("operation") ||
-            dept.includes("ops") ||
-            dept.includes("operations")
-          );
-        });
-
-        if (operationLeaves.length > 0) {
-          console.log(
-            "No user department but found operation-tagged leaves, using them."
-          );
-          leavesData = operationLeaves;
-          totalCount = operationLeaves.length;
-          totalPagesCount = Math.max(1, Math.ceil(totalCount / limitParam));
-        } else if (leavesData.length > 0) {
-          // fallback: avoid hiding data if nothing indicates department
-          console.log(
-            "No department info found — returning all leaves as fallback."
-          );
-        } else {
-          console.log("No leaves available.");
-        }
-      }
-
-      // Guard: never report fewer total pages/items than the current page implies
-      const minImpliedTotal = Math.max(0, ((respPage || 1) - 1) * (limitParam || 10)) + (leavesData?.length || 0);
-      totalCount = Math.max(totalCount || 0, minImpliedTotal);
-      totalPagesCount = Math.max(totalPagesCount || 1, respPage || 1);
-
-      // If we don't have explicit totals, infer more:
-      if (!explicitTotalFound && limitParam < 1000) {
-        try {
-          const currentLen = Array.isArray(leavesData) ? leavesData.length : 0;
-          // If current page is full, there must be at least one more page
-          if (currentLen >= (limitParam || 10)) {
-            totalPagesCount = Math.max(totalPagesCount || 1, (respPage || 1) + 1);
-          }
-
-          // Probe forward from the current page to discover the real number of pages (capped)
-          const maxProbePages = 50;
-          let discoveredPages = respPage || 1;
-          let lastLen = currentLen;
-          for (let p = (respPage || 1) + 1; p <= maxProbePages; p++) {
-            const probeResp = await operationLeaveApi.getEmployeeLeaves(p, limitParam);
-            let probeBatch = [];
-            if (Array.isArray(probeResp)) {
-              probeBatch = probeResp;
-            } else if (probeResp && Array.isArray(probeResp.data)) {
-              probeBatch = probeResp.data;
-            } else if (probeResp && Array.isArray(probeResp.leaves)) {
-              probeBatch = probeResp.leaves;
-            }
-            const len = probeBatch?.length || 0;
-            if (len === 0) break; // no more pages
-            discoveredPages = p;
-            lastLen = len;
-            if (len < limitParam) break; // reached last page
-          }
-          // Update totals based on probing
-          totalPagesCount = Math.max(totalPagesCount || 1, discoveredPages);
-          const probedTotal = (Math.max(discoveredPages - 1, 0) * limitParam) + (lastLen || 0);
-          totalCount = Math.max(totalCount || 0, probedTotal);
-        } catch (e) {
-          // Silent fail on probing; keep best-effort estimates
-        }
+        totalPagesCount = Math.max(1, Math.ceil((totalCount || (leavesData?.length || 0)) / (limitParam || 10)));
       }
 
       if (limitParam >= 1000) {
-        let allLeaves = [...leavesData];
-        const maxPages = 20;
-        if (totalPagesCount && totalPagesCount > 1) {
-          const pagesToFetch = Math.min(totalPagesCount, maxPages);
-          for (let p = 2; p <= pagesToFetch; p++) {
-            const resp = await operationLeaveApi.getEmployeeLeaves(p, limitParam);
-            let batch = [];
-            if (Array.isArray(resp)) {
-              batch = resp;
-            } else if (resp && Array.isArray(resp.data)) {
-              batch = resp.data;
-            } else if (resp && Array.isArray(resp.leaves)) {
-              batch = resp.leaves;
-            }
-            if (!batch || batch.length === 0) break;
-            allLeaves = allLeaves.concat(batch);
-          }
-        } else {
-          let p = 2;
-          while (p <= maxPages) {
-            const resp = await operationLeaveApi.getEmployeeLeaves(p, limitParam);
-            let batch = [];
-            if (Array.isArray(resp)) {
-              batch = resp;
-            } else if (resp && Array.isArray(resp.data)) {
-              batch = resp.data;
-            } else if (resp && Array.isArray(resp.leaves)) {
-              batch = resp.leaves;
-            }
-            if (!batch || batch.length === 0) break;
-            allLeaves = allLeaves.concat(batch);
-            p++;
-          }
-        }
+        // Do not probe more pages to avoid server 500s on page>1
+        const allLeaves = [...leavesData];
         setLeaves(allLeaves);
         setTotalLeaves(totalCount || allLeaves.length);
         setCurrentPage(1);
@@ -968,6 +789,7 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
     currentPage,
     pageSize,
     totalPages,
+    departmentContext,
     status,
     searchTerm,
     fetchLeaves,

@@ -26,6 +26,7 @@ const OperationLeavesManagement = () => {
     leaves,
     loading: leavesLoading,
     error: leavesError,
+    departmentContext,
     updateLeaveStatus,
     deleteLeave,
   } = useOperationDepartmentLeaves(1, 1000);
@@ -41,8 +42,11 @@ const OperationLeavesManagement = () => {
         }
         return leaves;
       });
+    } else if (!leavesLoading) {
+      // When hook intentionally returns empty (e.g., non-operation user), clear cache
+      setCachedLeaves([]);
     }
-  }, [leaves]);
+  }, [leaves, leavesLoading]);
 
   // Reset to first page when filters change (client-side only)
   useEffect(() => {
@@ -51,6 +55,7 @@ const OperationLeavesManagement = () => {
 
   const isLocalMode = true;
   const sourceLeaves = (Array.isArray(leaves) && leaves.length > 0) ? leaves : cachedLeaves;
+  const backendIsOperation = typeof departmentContext === 'string' && departmentContext.toLowerCase().includes('operation');
   const filteredLeaves = isLocalMode
     ? (sourceLeaves || []).filter((leave) => {
         const statusMatch = statusFilter === "all" || leave.status === statusFilter;
@@ -60,13 +65,28 @@ const OperationLeavesManagement = () => {
         )
           .toString()
           .toLowerCase();
+        const deptText = (
+          leave?.department ||
+          leave?.departmentName ||
+          leave?.employee?.department ||
+          leave?.employee?.departmentName ||
+          leave?.employee?.department?.name ||
+          ""
+        )
+          .toString()
+          .toLowerCase();
         const searchMatch =
           !term ||
           leave.employee?.firstName?.toLowerCase().includes(term) ||
           leave.employee?.lastName?.toLowerCase().includes(term) ||
           typeText.includes(term) ||
           leave.reason?.toLowerCase().includes(term);
-        return statusMatch && searchMatch;
+        const hasDept = deptText.trim().length > 0;
+        const deptMatch = !hasDept ||
+          deptText.includes("operation") ||
+          deptText.includes("operations") ||
+          deptText.includes("ops");
+        return statusMatch && searchMatch && deptMatch;
       })
     : (sourceLeaves || []);
 
