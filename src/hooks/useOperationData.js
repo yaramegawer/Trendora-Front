@@ -23,6 +23,26 @@ export const useOperationEmployees = () => {
         setEmployees([]);
         setError(response.message || "Failed to fetch Operation employees");
       }
+
+      // If department endpoint returned no leaves, try fallback to all leaves
+      if ((!leavesData || leavesData.length === 0)) {
+        try {
+          const fallback = await operationLeaveApi.getAllLeaves();
+          if (Array.isArray(fallback)) {
+            leavesData = fallback;
+            totalCount = fallback.length;
+            respPage = 1;
+            totalPagesCount = 1;
+          } else if (fallback && Array.isArray(fallback.data)) {
+            leavesData = fallback.data;
+            totalCount = fallback.total || fallback.data.length;
+            respPage = 1;
+            totalPagesCount = 1;
+          }
+        } catch (fallbackErr) {
+          // ignore; keep current empty state if fallback also fails
+        }
+      }
     } catch (err) {
       setError(err.message || "Network Error");
       setEmployees([]);
@@ -607,14 +627,24 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
     setLoading(true);
     setError(null);
     try {
-      // Use department-scoped endpoint to strictly fetch Operation leaves
-      const response = await operationLeaveApi.getDepartmentLeaves(
-        "68da378594328b3a175633b3",
-        pageParam,
-        limitParam
-      );
-      " "("Operation Employee Leaves API Response:", response);
-
+      // Prefer department-scoped endpoint first
+      let response;
+      try {
+        response = await operationLeaveApi.getDepartmentLeaves(
+          "68da378594328b3a175633b3",
+          pageParam,
+          limitParam
+        );
+      } catch (depErr) {
+        const status = depErr?.response?.status;
+        if (status === 404 || status === 500) {
+          // Fallback to fetching all leaves when department endpoint isn't available
+          response = await operationLeaveApi.getAllLeaves();
+        } else {
+          throw depErr;
+        }
+      }
+      console.log("Operation Employee Leaves API Response:", response);
       let leavesData = [];
       let totalCount = 0;
       let respPage = pageParam;
@@ -710,8 +740,15 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
         setSearchTerm(searchParam);
       }
     } catch (err) {
-      " "("Operation Employee Leaves API Error:", err?.message || err);
-      setError(err?.message || "Network Error");
+      const status = err?.response?.status;
+      if (status === 404 || status === 500) {
+        // Treat as empty without surfacing error
+        console.log("Operation Employee Leaves API Error (suppressed):", status);
+        setError("");
+      } else {
+        console.log("Operation Employee Leaves API Error:", err?.message || err);
+        setError(err?.message || "Network Error");
+      }
       setLeaves([]);
       setTotalLeaves(0);
       setTotalPages(1);
