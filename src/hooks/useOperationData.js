@@ -594,8 +594,8 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
   const [currentPage, setCurrentPage] = useState(page);
   const [pageSize, setPageSize] = useState(limit);
   const [totalPages, setTotalPages] = useState(1);
-  const [status, setStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [status, setStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [departmentContext, setDepartmentContext] = useState(null);
 
   const fetchLeaves = async (
@@ -613,7 +613,7 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
         pageParam,
         limitParam
       );
-      console.log("Operation Employee Leaves API Response:", response);
+      " "("Operation Employee Leaves API Response:", response);
 
       let leavesData = [];
       let totalCount = 0;
@@ -626,14 +626,16 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
         leavesData = response;
         // Infer a lower-bound total count based on current page and limit
         totalCount = Math.max(
-          (Math.max((pageParam || 1) - 1, 0) * (limitParam || 10)) + (response.length || 0),
+          Math.max((pageParam || 1) - 1, 0) * (limitParam || 10) +
+            (response.length || 0),
           response.length || 0
         );
         respPage = pageParam;
         // If the page is full, assume at least one more page exists; else current page is the last
-        totalPagesCount = (response.length < (limitParam || 10))
-          ? Math.max(1, pageParam)
-          : Math.max(2, (pageParam || 1) + 0); // show at least current page and enable Next if full
+        totalPagesCount =
+          response.length < (limitParam || 10)
+            ? Math.max(1, pageParam)
+            : Math.max(2, (pageParam || 1) + 0); // show at least current page and enable Next if full
       } else if (response && Array.isArray(response.data)) {
         leavesData = response.data;
         if (response.department) setDepartmentContext(response.department);
@@ -650,10 +652,14 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
       ) {
         // Nested: { success, data: { data: [...], total, page, totalPages } }
         leavesData = response.data.data;
-        if (response.data.department) setDepartmentContext(response.data.department);
+        if (response.data.department)
+          setDepartmentContext(response.data.department);
         totalCount =
-          response.data.total !== undefined ? response.data.total : leavesData.length;
-        respPage = response.data.page !== undefined ? response.data.page : respPage;
+          response.data.total !== undefined
+            ? response.data.total
+            : leavesData.length;
+        respPage =
+          response.data.page !== undefined ? response.data.page : respPage;
         totalPagesCount =
           response.data.totalPages !== undefined
             ? response.data.totalPages
@@ -672,9 +678,16 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
         // Single large fetch, no further paging
         totalPagesCount = 1;
         respPage = 1;
-        totalCount = Array.isArray(leavesData) ? leavesData.length : (totalCount || 0);
+        totalCount = Array.isArray(leavesData)
+          ? leavesData.length
+          : totalCount || 0;
       } else {
-        totalPagesCount = Math.max(1, Math.ceil((totalCount || (leavesData?.length || 0)) / (limitParam || 10)));
+        totalPagesCount = Math.max(
+          1,
+          Math.ceil(
+            (totalCount || leavesData?.length || 0) / (limitParam || 10)
+          )
+        );
       }
 
       if (limitParam >= 1000) {
@@ -697,7 +710,7 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
         setSearchTerm(searchParam);
       }
     } catch (err) {
-      console.log("Operation Employee Leaves API Error:", err?.message || err);
+      " "("Operation Employee Leaves API Error:", err?.message || err);
       setError(err?.message || "Network Error");
       setLeaves([]);
       setTotalLeaves(0);
@@ -772,7 +785,7 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
   const changeStatus = (newStatus) => {
     setStatus(newStatus);
     setCurrentPage(1);
-    fetchLeaves(1, pageSize, newStatus, '');
+    fetchLeaves(1, pageSize, newStatus, "");
   };
 
   const changeSearchTerm = (newSearch) => {

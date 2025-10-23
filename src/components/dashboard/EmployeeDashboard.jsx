@@ -500,8 +500,16 @@ const EmployeeDashboard = () => {
       setLeavesTotal(totalCount);
     } catch (err) {
        ('❌ User Leaves API Error:', err);
-      setLeavesError(err.message || 'Failed to fetch leaves');
-      setLeaves([]);
+      const status = err?.response?.status;
+      if (status === 404 || status === 500) {
+        // Treat 404/500 from leaves endpoint as "no leaves" to avoid alarming users
+        setLeaves([]);
+        setLeavesTotal(0);
+        setLeavesError('');
+      } else {
+        setLeavesError(err.message || 'Failed to fetch leaves');
+        setLeaves([]);
+      }
     } finally {
       setLeavesLoading(false);
     }
@@ -593,8 +601,16 @@ const EmployeeDashboard = () => {
       setTicketsTotal(totalCount);
     } catch (err) {
        ('❌ User Tickets API Error:', err);
-      setTicketsError(err.message || 'Failed to fetch tickets');
-      setTickets([]);
+      const status = err?.response?.status;
+      if (status === 404 || status === 500) {
+        // Treat 404/500 from tickets endpoint as "no tickets" to avoid scaring users
+        setTickets([]);
+        setTicketsTotal(0);
+        setTicketsError('');
+      } else {
+        setTicketsError(err.message || 'Failed to fetch tickets');
+        setTickets([]);
+      }
     } finally {
       setTicketsLoading(false);
     }
@@ -980,7 +996,7 @@ const EmployeeDashboard = () => {
                   </Alert>
                 ) : leaves.length === 0 ? (
                   <Typography color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
-                    No leave requests found.
+                    You don't have any leave requests yet.
                   </Typography>
                 ) : (
                   <TableContainer component={Paper}>
@@ -1058,7 +1074,7 @@ const EmployeeDashboard = () => {
                   </Alert>
                 ) : tickets.length === 0 ? (
                   <Typography color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
-                    No support tickets found.
+                    You don't have any support tickets yet.
                   </Typography>
                 ) : (
                   <TableContainer component={Paper}>
