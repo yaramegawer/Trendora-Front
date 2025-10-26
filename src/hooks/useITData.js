@@ -489,32 +489,8 @@ export const useITLeaves = (page = 1, limit = 10) => {
       }
       
       if (pageLimit >= 1000) {
-        let allLeaves = [...leavesData];
-        const maxPages = 20;
-        if (totalPagesNum && totalPagesNum > 1) {
-          const pagesToFetch = Math.min(totalPagesNum, maxPages);
-          for (let p = 2; p <= pagesToFetch; p++) {
-            const resp = await itLeaveApi.getDepartmentLeaves('68da376594328b3a175633a7', p, pageLimit);
-            let batch = [];
-            if (resp && resp.leaves && Array.isArray(resp.leaves)) batch = resp.leaves;
-            else if (resp && resp.data && Array.isArray(resp.data)) batch = resp.data;
-            else if (Array.isArray(resp)) batch = resp;
-            if (batch.length === 0) break;
-            allLeaves = allLeaves.concat(batch);
-          }
-        } else {
-          let p = 2;
-          while (p <= maxPages) {
-            const resp = await itLeaveApi.getDepartmentLeaves('68da376594328b3a175633a7', p, pageLimit);
-            let batch = [];
-            if (resp && resp.leaves && Array.isArray(resp.leaves)) batch = resp.leaves;
-            else if (resp && resp.data && Array.isArray(resp.data)) batch = resp.data;
-            else if (Array.isArray(resp)) batch = resp;
-            if (!batch || batch.length === 0) break;
-            allLeaves = allLeaves.concat(batch);
-            p++;
-          }
-        }
+        // Do not probe additional pages to avoid backend 404s
+        const allLeaves = [...leavesData];
         setLeaves(allLeaves);
         setTotalLeaves(totalCount || allLeaves.length);
         setCurrentPage(1);

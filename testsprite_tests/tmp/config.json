@@ -1,0 +1,15 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "executionArgs": {
+    "projectName": "TrendoraFront",
+    "projectPath": "C:\\Users\\DELL\\OneDrive\\Desktop\\TrendoraFront",
+    "testIds": [],
+    "additionalInstruction": "Run comprehensive testing to identify all errors, bugs, and issues in the Trendora application including authentication, department access control, API integrations, UI components, and data management features.",
+    "envs": {
+      "API_KEY": ""
+    }
+  }
+}

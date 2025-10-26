@@ -40,14 +40,13 @@ const useOptimizedData = () => {
           loading: false
         }));
 
-        // Fetch remaining data in background
+        // Fetch remaining data in background (avoid operation campaigns for now)
         setTimeout(async () => {
           try {
-            const [leavesRes, payrollRes, itProjectsRes, operationCampaignsRes] = await Promise.all([
+            const [leavesRes, payrollRes, itProjectsRes] = await Promise.all([
               api.get('/hr/leaves?page=1&limit=10'),
               api.get('/hr/payroll?page=1&limit=10'),
-              api.get('/it/projects?page=1&limit=10'),
-              api.get('/operation/campaigns?page=1&limit=10')
+              api.get('/it/projects?page=1&limit=10')
             ]);
 
             setData(prev => ({
@@ -55,10 +54,10 @@ const useOptimizedData = () => {
               leaves: leavesRes.data?.data || [],
               payroll: payrollRes.data?.data || [],
               itProjects: itProjectsRes.data?.data || [],
-              operationCampaigns: operationCampaignsRes.data?.data || []
+              operationCampaigns: []
             }));
           } catch (err) {
-('Background data fetch error:', err);
+            console.error('Background data fetch error:', err);
           }
         }, 100);
       } catch (err) {

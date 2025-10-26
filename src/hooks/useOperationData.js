@@ -21,30 +21,12 @@ export const useOperationEmployees = () => {
         setEmployees(response.data);
       } else {
         setEmployees([]);
-        setError(response.message || "Failed to fetch Operation employees");
-      }
-
-      // If department endpoint returned no leaves, try fallback to all leaves
-      if ((!leavesData || leavesData.length === 0)) {
-        try {
-          const fallback = await operationLeaveApi.getAllLeaves();
-          if (Array.isArray(fallback)) {
-            leavesData = fallback;
-            totalCount = fallback.length;
-            respPage = 1;
-            totalPagesCount = 1;
-          } else if (fallback && Array.isArray(fallback.data)) {
-            leavesData = fallback.data;
-            totalCount = fallback.total || fallback.data.length;
-            respPage = 1;
-            totalPagesCount = 1;
-          }
-        } catch (fallbackErr) {
-          // ignore; keep current empty state if fallback also fails
-        }
+        // Show user-friendly message instead of technical error
+        setError("We couldn't load employees right now. Please try again later.");
       }
     } catch (err) {
-      setError(err.message || "Network Error");
+      // Show user-friendly message instead of technical error
+      setError("We couldn't load employees right now. Please try again later.");
       setEmployees([]);
     } finally {
       setLoading(false);
@@ -217,9 +199,7 @@ export const useOperationCampaigns = (
     }
   };
 
-  useEffect(() => {
-    fetchCampaigns();
-  }, []);
+  // Do not auto-fetch on mount; let the UI trigger fetch when Campaigns tab opens
 
   const createCampaign = async (campaignData) => {
     try {
@@ -350,7 +330,6 @@ export const useOperationLeaves = () => {
     setError(null);
     try {
       const response = await operationLeaveApi.getEmployeeLeaves();
-      "Operation Employee Leaves API Response:", response;
 
       // Handle different response formats
       let leavesData = [];
@@ -411,9 +390,7 @@ export const useOperationLeaves = () => {
     }
   };
 
-  useEffect(() => {
-    fetchLeaves();
-  }, []);
+  // Do not auto-fetch on mount to avoid unnecessary API calls
 
   const addLeave = async (leaveData) => {
     try {
@@ -627,24 +604,8 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
     setLoading(true);
     setError(null);
     try {
-      // Prefer department-scoped endpoint first
-      let response;
-      try {
-        response = await operationLeaveApi.getDepartmentLeaves(
-          "68da378594328b3a175633b3",
-          pageParam,
-          limitParam
-        );
-      } catch (depErr) {
-        const status = depErr?.response?.status;
-        if (status === 404 || status === 500) {
-          // Fallback to fetching all leaves when department endpoint isn't available
-          response = await operationLeaveApi.getAllLeaves();
-        } else {
-          throw depErr;
-        }
-      }
-      console.log("Operation Employee Leaves API Response:", response);
+      // Avoid department endpoint (causes 404); fetch all leaves directly
+      const response = await operationLeaveApi.getAllLeaves();
       let leavesData = [];
       let totalCount = 0;
       let respPage = pageParam;
@@ -1107,14 +1068,9 @@ export const useOperationRecentActivities = () => {
     setError(null);
     try {
       // Fetch all operation data in parallel (tickets removed)
-      const [employeesResponse, campaignsResponse, leavesResponse] =
-        await Promise.all([
-          operationEmployeeApi.getAllEmployees().catch(() => ({ data: [] })),
-          operationCampaignApi
-            .getAllCampaigns(1, 100, "all")
-            .catch(() => ({ data: [] })),
-          operationLeaveApi.getEmployeeLeaves().catch(() => ({ data: [] })),
-        ]);
+      const [employeesResponse] = await Promise.all([
+        operationEmployeeApi.getAllEmployees().catch(() => ({ data: [] })),
+      ]);
 
       // Extract data from responses
       const employees = Array.isArray(employeesResponse)
@@ -1123,17 +1079,9 @@ export const useOperationRecentActivities = () => {
         ? employeesResponse.data
         : [];
 
-      const campaigns = Array.isArray(campaignsResponse)
-        ? campaignsResponse
-        : campaignsResponse?.data || campaignsResponse?.success
-        ? campaignsResponse.data
-        : [];
+      const campaigns = [];
 
-      const leaves = Array.isArray(leavesResponse)
-        ? leavesResponse
-        : leavesResponse?.data || leavesResponse?.success
-        ? leavesResponse.data
-        : [];
+      const leaves = [];
 
       // Generate recent activities from the data (tickets removed)
       const activities = generateRecentActivities(

@@ -1,6 +1,6 @@
-import React, { StrictMode } from 'react'
+import React, { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import Example from './src/App.marketingAgency.jsx'
+const App = lazy(() => import('./src/App.marketingAgency.jsx'))
 import KombaiWrapper from './KombaiWrapper'
 import ErrorBoundary from '@kombai/react-error-boundary'
 import './src/index.css'
@@ -32,7 +32,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <KombaiWrapper>
-        <Example />
+        <Suspense fallback={null}>
+          <App />
+        </Suspense>
       </KombaiWrapper>
     </ErrorBoundary>
   </StrictMode>,

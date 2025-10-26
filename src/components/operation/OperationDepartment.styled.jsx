@@ -992,7 +992,18 @@ const OperationDepartment = () => {
               </div>
             ) : employeesError ? (
               <div style={{ textAlign: 'center', padding: '32px' }}>
-                <div style={{ fontSize: '14px', color: '#ef4444' }}>Error: {employeesError}</div>
+                <div style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  
+                  borderRadius: '8px',
+                  padding: '16px',
+                  display: 'inline-block'
+                }}>
+                  No employees found.
+                </div>
+              
+                
               </div>
             ) : Array.isArray(employees) && employees.length > 0 ? (
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>

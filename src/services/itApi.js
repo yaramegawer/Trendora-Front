@@ -1,95 +1,42 @@
 import api from '../api/axios';
 import { API_CONFIG } from '../config/api';
 
-// Helper function for API calls
+// Helper function for API calls (no console errors for GET)
 const apiCall = async (endpoint, options = {}) => {
   try {
-      ('🌐 IT API Call:', { endpoint, options });
-    const response = await api({ url: endpoint, ...options });
-      ('📥 IT API Response:', response);
-    
-    // Handle backend response format: {success: true, data: [...], total: X}
-    if (response.data && response.data.success === true) {
-        ('✅ IT API Success response with pagination:', {
-        dataLength: response.data.data?.length,
-        total: response.data.total,
-        page: response.data.page,
-        totalPages: response.data.totalPages
-      });
-      // Return the full response data object to preserve pagination info (total, page, limit, etc.)
+    const method = (options.method || 'GET').toUpperCase();
+    const isMutationRequest = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+    const response = await api({ url: endpoint, method, data: options.data, params: options.params });
+
+    const status = response?.status;
+    if (status >= 200 && status < 300) {
       return response.data;
-    } else if (response.data && response.data.success === false) {
-      // Silent: IT API error response
-      // Handle specific ObjectId casting errors gracefully
-      if (response.data.message && response.data.message.includes('Cast to ObjectId failed')) {
-        return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
-      }
-      
-      throw new Error(response.data.message || 'API request failed');
     }
-    
-      ('⚠️ IT API Unexpected response format:', response.data);
-    return response.data || response;
+
+    if (!isMutationRequest) {
+      // For GET: return empty, suppressing console errors
+      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+    }
+
+    const message =
+      response?.data?.message ||
+      (status === 400
+        ? 'Invalid data. Please check your input.'
+        : status === 403
+        ? 'Access denied for this department.'
+        : status === 404
+        ? 'Resource not found'
+        : status === 500
+        ? 'Server error. Please try again later.'
+        : 'An error occurred. Please try again.');
+    throw new Error(message);
   } catch (error) {
-    // Silent: IT API error details
-    
-    const status = error.response?.status;
-    const method = options.method || 'GET';
-      ('🔍 Checking status code:', status, 'Method:', method, 'Type:', typeof status);
-    
-    // For POST, PUT, DELETE requests, throw errors so the user knows something went wrong
-    // For GET requests, return empty data to prevent UI crashes
-    const isMutationRequest = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase());
-    
-    if (status === 404) {
-      // Silent: 404 Not Found
-      if (isMutationRequest) {
-        throw new Error(error.response?.data?.message || 'Resource not found');
-      }
-        ('ℹ️ Returning empty data for 404 (GET request)');
+    const method = (options.method || 'GET').toUpperCase();
+    const isMutationRequest = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+    if (!isMutationRequest) {
       return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
-    
-    if (status === 401) {
-      // Silent: 401 Unauthorized
-      throw new Error('Unauthorized. Please check your authentication.');
-    }
-    
-    if (status === 403) {
-      if (isMutationRequest) {
-        throw new Error(error.response?.data?.message || 'Access denied for this department.');
-      }
-        ('🔒 403 Forbidden - returning empty data (GET request)');
-      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
-    }
-    
-    if (status === 400) {
-      // Silent: 400 Bad Request
-      if (isMutationRequest) {
-        // For mutation requests, throw the error so validation errors are shown
-        const errorMessage = error.response?.data?.message || 'Invalid data. Please check your input.';
-        throw new Error(errorMessage);
-      }
-        ('ℹ️ Returning empty data for 400 (GET request)');
-      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
-    }
-    
-    if (status === 500) {
-      // Silent: 500 Internal Server Error
-      if (isMutationRequest) {
-        throw new Error(error.response?.data?.message || 'Server error. Please try again later.');
-      }
-        ('ℹ️ Returning empty data for 500 error (GET request)');
-      return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
-    }
-    
-    // Catch-all: For any other error
-    // Silent: Unhandled error type
-    if (isMutationRequest) {
-      throw new Error(error.response?.data?.message || error.message || 'An error occurred. Please try again.');
-    }
-      ('ℹ️ Returning empty data for unknown error (GET request)');
-    return { success: true, data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+    throw new Error(error?.message || 'Network error. Please try again.');
   }
 };
 
