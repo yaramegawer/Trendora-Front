@@ -20,7 +20,8 @@ import {
   TableRow,
   Paper,
   Avatar,
-  Stack
+  Stack,
+  TextField
 } from '@mui/material';
 import {
   EmailOutlined,
@@ -35,12 +36,14 @@ import api from '../../api/axios';
 import { API_CONFIG } from '../../config/api';
 import SimplePagination from '../common/SimplePagination';
 import { userApiService } from '../../services/userApi';
+import { dashboardApi } from '../../services/dashboardApi';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useNotification();
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [advanceDialogOpen, setAdvanceDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -66,6 +69,36 @@ const EmployeeDashboard = () => {
     endDate: '',
     leaveType: 'annual'
   });
+
+  // Advance form state
+  const [advanceForm, setAdvanceForm] = useState({
+    amount: '',
+    payrollMonth: ''
+  });
+
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  // Advances list state
+  const [advances, setAdvances] = useState([]);
+  const [advancesLoading, setAdvancesLoading] = useState(false);
+  const [advancesError, setAdvancesError] = useState('');
+  const [advancesPage, setAdvancesPage] = useState(1);
+  const [advancesTotal, setAdvancesTotal] = useState(0);
+  const [advancesTotalPages, setAdvancesTotalPages] = useState(1);
+  const [advanceError, setAdvanceError] = useState('');
 
   // Ticket form state
   const [ticketForm, setTicketForm] = useState({
@@ -248,6 +281,166 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handleAdvanceSubmit = async () => {
+    setLoading(true);
+    setError('');
+    setAdvanceError('');
+    setSuccess('');
+
+    if (!user) {
+      showError('You must be logged in to request an advance.');
+      setError('You must be logged in to request an advance.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Basic validation
+      if (!advanceForm.amount || Number(advanceForm.amount) < 1) {
+        setAdvanceError('Amount must be at least 1.');
+        setLoading(false);
+        return;
+      }
+      if (!advanceForm.payrollMonth) {
+        setAdvanceError('Payroll month is required.');
+        setLoading(false);
+        return;
+      }
+      const rawMonth = (advanceForm.payrollMonth || '').trim();
+      let monthLabel = rawMonth;
+      if (/^\d{4}-\d{2}$/.test(rawMonth)) {
+        const monthIndex = Math.max(0, Math.min(11, parseInt(rawMonth.split('-')[1], 10) - 1));
+        monthLabel = monthNames[monthIndex];
+      }
+
+      // Client-side guard: prevent duplicate advance for same month
+      const hasDuplicate = (advances || []).some(a => ((a.payrollMonth || '') + '').toLowerCase() === (monthLabel + '').toLowerCase());
+      if (hasDuplicate) {
+        setAdvanceError('You can request only one advance per month.');
+        setLoading(false);
+        return;
+      }
+
+      const payload = {
+        amount: Number(advanceForm.amount),
+        payrollMonth: monthLabel,
+      };
+
+      const res = await dashboardApi.requestAdvance(payload);
+
+      if (res && res.success === false) {
+        throw new Error(res.message || 'Failed to request advance');
+      }
+
+      showSuccess('Advance request submitted successfully!');
+      setSuccess('Advance request submitted successfully!');
+      setAdvanceForm({ amount: '', payrollMonth: '' });
+      setAdvanceDialogOpen(false);
+
+      if (activeTab === 3) {
+        fetchAdvances(advancesPage);
+      }
+    } catch (err) {
+      const rawMessage = err?.response?.data?.message || err?.message || 'Failed to request advance. Please try again.';
+      const lower = (rawMessage || '').toLowerCase();
+      const duplicateMsg = lower.includes('duplicate') || lower.includes('already') || lower.includes('exists')
+        ? 'You can request only one advance per month.'
+        : rawMessage;
+      setAdvanceError(duplicateMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAdvances = async (page = 1) => {
+    setAdvancesLoading(true);
+    setAdvancesError('');
+    try {
+      const response = await dashboardApi.getEmployeeAdvances(page, 10);
+      let advancesData = [];
+      let totalCount = 0;
+      let currentPage = page;
+      let limit = 10;
+      let totalPages = undefined;
+
+      if (response && response.success && Array.isArray(response.data)) {
+        advancesData = response.data;
+        totalCount = response.totalAdvances ?? response.total ?? response.count ?? response.totalCount ?? advancesData.length;
+        currentPage = response.page ?? page;
+        limit = response.limit ?? 10;
+        totalPages = response.totalPages ?? response.total_pages;
+      } else if (Array.isArray(response)) {
+        advancesData = response;
+        totalCount = advancesData.length;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        advancesData = response.data;
+        totalCount = response.totalAdvances ?? response.total ?? response.count ?? response.totalCount ?? advancesData.length;
+        currentPage = response.page ?? page;
+        limit = response.limit ?? 10;
+        totalPages = response.totalPages ?? response.total_pages;
+      }
+
+      // Accurate total fallback using totalPages when totalAdvances is missing
+      if ((!response?.totalAdvances && !response?.total && !response?.count && !response?.totalCount) && typeof totalPages === 'number' && typeof limit === 'number') {
+        if (currentPage < totalPages) {
+          totalCount = totalPages * limit;
+        } else {
+          totalCount = Math.max(((totalPages - 1) * limit) + advancesData.length, advancesData.length);
+        }
+      }
+
+      // If still no reliable total (no totalAdvances) OR suspicious totalPages=1 with full page on page 1,
+      // do a single large-limit fetch to count accurately.
+      const noTotalsProvided = (!response?.totalAdvances && !response?.total && !response?.count && !response?.totalCount);
+      const suspiciousSinglePage = (typeof totalPages === 'number' && totalPages === 1 && currentPage === 1 && Array.isArray(advancesData) && advancesData.length === limit);
+      if ((noTotalsProvided && (typeof totalPages !== 'number' || totalPages <= 0)) || suspiciousSinglePage) {
+        if (currentPage === 1) {
+          try {
+            const probe = await dashboardApi.getEmployeeAdvances(1, 1000);
+            if (probe && probe.success && Array.isArray(probe.data)) {
+              totalCount = probe.data.length;
+            } else if (Array.isArray(probe)) {
+              totalCount = probe.length;
+            } else if (probe && probe.data && Array.isArray(probe.data)) {
+              totalCount = probe.data.length;
+            }
+            // Recompute totalPages from more accurate total if backend totalPages looked wrong
+            if (typeof totalCount === 'number' && totalCount > 0) {
+              totalPages = Math.max(1, Math.ceil(totalCount / limit));
+            }
+          } catch (_) {
+            // ignore; keep previous best-effort totalCount
+          }
+        }
+      }
+      setAdvances(advancesData);
+      setAdvancesPage(currentPage);
+      setAdvancesTotal(totalCount);
+      if (typeof totalPages === 'number' && totalPages > 0) {
+        setAdvancesTotalPages(totalPages);
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 404 || status === 500) {
+        // If page out of range, show empty state for that page but keep known totals
+        if (status === 404 && page > 1) {
+          setAdvances([]);
+          setAdvancesPage(page);
+          setAdvancesError('');
+        } else {
+          setAdvances([]);
+          setAdvancesTotal(0);
+          setAdvancesError('');
+        }
+      } else {
+        setAdvancesError(err.message || 'Failed to fetch advances');
+        setAdvances([]);
+      }
+    } finally {
+      setAdvancesLoading(false);
+    }
+  };
+
   // Fetch user profile
   const fetchUserProfile = async () => {
     setProfileLoading(true);
@@ -390,8 +583,13 @@ const EmployeeDashboard = () => {
         ...prev,
         [field]: event.target.value
       }));
-    } else {
+    } else if (form === 'ticket') {
       setTicketForm(prev => ({
+        ...prev,
+        [field]: event.target.value
+      }));
+    } else if (form === 'advance') {
+      setAdvanceForm(prev => ({
         ...prev,
         [field]: event.target.value
       }));
@@ -626,6 +824,14 @@ const EmployeeDashboard = () => {
     fetchLeaves(newPage);
   };
 
+  // Handle advances pagination
+  const handleAdvancesPageChange = (newPage) => {
+    const safePage = Math.max(1, Number(newPage) || 1);
+    if (safePage !== advancesPage) {
+      fetchAdvances(safePage);
+    }
+  };
+
   // Fetch user profile on component mount
   React.useEffect(() => {
     fetchUserProfile();
@@ -637,6 +843,8 @@ const EmployeeDashboard = () => {
       fetchLeaves();
     } else if (activeTab === 2) { // Tickets tab
       fetchTickets();
+    } else if (activeTab === 3) { // Advances tab
+      fetchAdvances();
     }
   }, [activeTab]);
 
@@ -868,6 +1076,7 @@ const EmployeeDashboard = () => {
           <Tab label="Submit Requests" />
           <Tab label="My Leaves" />
           <Tab label="My Tickets" />
+          <Tab label="My Advances" />
         </Tabs>
 
         {/* Tab Content */}
@@ -924,6 +1133,56 @@ const EmployeeDashboard = () => {
                 </CardContent>
               </Card>
 
+              {/* Request Advance Card */}
+              <Card sx={{ 
+                height: 300, 
+                width: '800px',
+                display: 'flex',
+                flexDirection: 'column',
+                '&:hover': { boxShadow: 6 }, 
+                transition: 'box-shadow 0.3s' 
+              }}>
+                <CardContent sx={{ 
+                  p: 3, 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
+                  <Box>
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 1 }}>
+                        Request Salary Advance
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Submit a request for a salary advance for a specific payroll month
+                      </Typography>
+                    </Box>
+
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Click the button below to fill out your advance request.
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    onClick={() => { setAdvanceError(''); setAdvanceDialogOpen(true); fetchAdvances(1); }}
+                    color="secondary"
+                    sx={{
+                      py: 1.5,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      borderRadius: 2
+                    }}
+                  >
+                    Request Advance
+                  </Button>
+                </CardContent>
+              </Card>
+
               {/* Submit Ticket Card */}
               <Card sx={{ 
                 height: 280, 
@@ -974,6 +1233,76 @@ const EmployeeDashboard = () => {
                 </CardContent>
               </Card>
             </Box>
+          </Box>
+        )}
+
+        {activeTab === 3 && (
+          <Box>
+            {/* My Advances Tab */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  My Advances
+                </Typography>
+
+                {advancesLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : advancesError ? (
+                  <Alert severity="error">{advancesError}</Alert>
+                ) : advances.length === 0 ? (
+                  <Typography color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
+                    You don't have any advance requests yet.
+                  </Typography>
+                ) : (
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Amount</TableCell>
+                          <TableCell>Payroll Month</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Requested At</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {advances.map((adv, index) => (
+                          <TableRow key={adv._id || adv.id || index}>
+                            <TableCell>
+                              <Typography variant="body2">{adv.amount ?? 'N/A'}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{adv.payrollMonth || 'N/A'}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={(adv.status || 'pending')}
+                                color={getStatusColor(adv.status || 'pending')}
+                                size="small"
+                                sx={{ textTransform: 'capitalize' }}
+                              />
+                            </TableCell>
+                            <TableCell>{formatDate(adv.requestDate || adv.createdAt)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+
+                {advances.length > 0 && (
+                  <SimplePagination
+                    currentPage={advancesPage}
+                    totalPages={advancesTotalPages}
+                    totalItems={advancesTotal}
+                    pageSize={10}
+                    onPageChange={handleAdvancesPageChange}
+                    itemLabel="advances"
+                  />
+                )}
+              </CardContent>
+            </Card>
           </Box>
         )}
 
@@ -1276,6 +1605,131 @@ const EmployeeDashboard = () => {
                   }}
                 >
                   {loading ? 'Submitting...' : 'Submit Leave'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Advance Request Dialog */}
+      {advanceDialogOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '480px'
+          }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '18px', fontWeight: '600' }}>
+              Request Salary Advance
+            </h3>
+            {advanceError && (
+              <div style={{
+                marginBottom: '12px',
+                color: '#b91c1c',
+                backgroundColor: '#fee2e2',
+                border: '1px solid #fecaca',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}>
+                {advanceError}
+              </div>
+            )}
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleAdvanceSubmit();
+            }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label htmlFor="advance-amount" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Amount (EGP) *
+                </label>
+                <input
+                  id="advance-amount"
+                  type="number"
+                  min={1}
+                  value={advanceForm.amount}
+                  onChange={(e) => setAdvanceForm(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="e.g. 500"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="advance-month" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Payroll Month *
+                </label>
+                <input
+                  id="advance-month"
+                  type="month"
+                  value={advanceForm.payrollMonth}
+                  onChange={(e) => setAdvanceForm(prev => ({ ...prev, payrollMonth: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdvanceDialogOpen(false);
+                    setAdvanceError('');
+                    setAdvanceForm({ amount: '', payrollMonth: '' });
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#6b7280',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: loading ? '#9ca3af' : '#0d9488',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: loading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? 'Submitting...' : 'Submit Advance'}
                 </button>
               </div>
             </form>

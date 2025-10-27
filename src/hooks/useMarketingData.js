@@ -490,7 +490,7 @@ export const useMarketingLeaves = () => {
 
   const submitLeave = async (leaveData) => {
     const newLeave = await marketingLeaveApi.submitEmployeeLeave(leaveData);
-    await fetchLeaves(lastDepartmentId); // Refresh the list for the current department
+    await fetchLeaves(lastDepartmentId, 1, 1000); // Refresh with large limit for client-side pagination
     return newLeave;
   };
 
@@ -499,13 +499,13 @@ export const useMarketingLeaves = () => {
       id,
       leaveData
     );
-    await fetchLeaves(lastDepartmentId); // Refresh the list for the current department
+    await fetchLeaves(lastDepartmentId, 1, 1000); // Refresh with large limit for client-side pagination
     return updatedLeave;
   };
 
   const deleteLeave = async (id) => {
     await marketingLeaveApi.deleteLeave(id);
-    await fetchLeaves(lastDepartmentId); // Refresh the list for the current department
+    await fetchLeaves(lastDepartmentId, 1, 1000); // Refresh with large limit for client-side pagination
   };
 
   // Disabled automatic API call - only fetch when explicitly requested

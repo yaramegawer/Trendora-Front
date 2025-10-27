@@ -28,6 +28,7 @@ import { useITEmployees, useITProjects, useITTickets, useITLeaves } from '../../
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { itLeaveApi } from '../../services/itApi';
+import { dashboardApi } from '../../services/dashboardApi';
 import SimplePagination from '../common/SimplePagination';
 import ITLeavesManagement from './ITLeavesManagement';
 
@@ -129,6 +130,8 @@ const ITDepartment = () => {
     // Hook handles both filtering and pagination
     projectsGoToPage(newPage);
   };
+
+  
 
   const handleTicketsPageChange = (newPage) => {
 ('IT Department Styled: Tickets page change to:', newPage);
@@ -386,6 +389,79 @@ const ITDepartment = () => {
     startDate: '',
     endDate: ''
   });
+  const [showAdvanceForm, setShowAdvanceForm] = useState(false);
+  const [advanceForm, setAdvanceForm] = useState({ amount: '', payrollMonth: '' });
+  const [advanceLoading, setAdvanceLoading] = useState(false);
+  const [advanceError, setAdvanceError] = useState('');
+  const [existingAdvances, setExistingAdvances] = useState([]);
+  const [advancesLoading, setAdvancesLoading] = useState(false);
+  
+  const handleCreateAdvance = async () => {
+    try {
+      setAdvanceLoading(true);
+      setAdvanceError('');
+      if (!advanceForm.amount || Number(advanceForm.amount) < 1) {
+        setAdvanceError('Amount must be at least 1.');
+        return;
+      }
+      if (!advanceForm.payrollMonth) {
+        setAdvanceError('Payroll month is required.');
+        return;
+      }
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const raw = String(advanceForm.payrollMonth).trim();
+      let monthLabel = raw;
+      if (/^\d{4}-\d{2}$/.test(raw)) {
+        const idx = Math.max(0, Math.min(11, parseInt(raw.split('-')[1], 10) - 1));
+        monthLabel = monthNames[idx];
+      }
+      const hasDuplicate = (existingAdvances || []).some(a => ((a?.payrollMonth || '') + '').toLowerCase() === (monthLabel + '').toLowerCase());
+      if (hasDuplicate) {
+        setAdvanceError('You can request only one advance per month.');
+        return;
+      }
+      const payload = { amount: Number(advanceForm.amount), payrollMonth: monthLabel };
+      const res = await dashboardApi.requestAdvance(payload);
+      if (res && res.success === false) {
+        throw new Error(res.message || 'Failed to request advance');
+      }
+      showSuccess('Advance request submitted successfully!');
+      setAdvanceForm({ amount: '', payrollMonth: '' });
+      setShowAdvanceForm(false);
+    } catch (error) {
+      const msg = error?.message || 'Failed to request advance';
+      showError(msg);
+      setAdvanceError(msg);
+    } finally {
+      setAdvanceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchExistingAdvances = async () => {
+      try {
+        setAdvancesLoading(true);
+        setAdvanceError('');
+        const res = await dashboardApi.getEmployeeAdvances(1, 1000);
+        let list = [];
+        if (res && res.success && Array.isArray(res.data)) {
+          list = res.data;
+        } else if (Array.isArray(res)) {
+          list = res;
+        } else if (res && res.data && Array.isArray(res.data)) {
+          list = res.data;
+        }
+        setExistingAdvances(list);
+      } catch (_) {
+        // ignore fetch errors for duplicate check
+      } finally {
+        setAdvancesLoading(false);
+      }
+    };
+    if (showAdvanceForm) {
+      fetchExistingAdvances();
+    }
+  }, [showAdvanceForm]);
   
   // Debug logging
 ('IT Department - showEmployeeForm:', showEmployeeForm);
@@ -1219,6 +1295,29 @@ const ITDepartment = () => {
                   Submit Leave
                 </button>
 
+                <button
+                  onClick={() => setShowAdvanceForm(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 16px',
+                    backgroundColor: '#1c242e',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: '500',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#111827'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#1c242e'}
+                >
+                  <Plus size={16} />
+                  Request Advance
+                </button>
+
         <button
           onClick={() => document.getElementById('pdf-upload').click()}
           style={{
@@ -1245,144 +1344,134 @@ const ITDepartment = () => {
             </div>
 
             {/* Stats Overview */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '20px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                  <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    backgroundColor: '#dbeafe', 
-                    borderRadius: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    position: 'relative'
-                  }}>
-                    <Users size={20} color="#3b82f6" />
-                    <div style={{
-                      position: 'absolute',
-                      top: '-6px',
-                      right: '-6px',
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      minWidth: '20px',
-                      textAlign: 'center',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}>
-                      {Array.isArray(employees) ? employees.length : 0}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Total Employees</h4>
-                    <p style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                      {employeesLoading ? '...' : Array.isArray(employees) ? employees.length : 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '20px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                  <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    backgroundColor: '#fef3c7', 
-                    borderRadius: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    position: 'relative'
-                  }}>
-                    <Ticket size={20} color="#d97706" />
-                    <div style={{
-                      position: 'absolute',
-                      top: '-6px',
-                      right: '-6px',
-                      backgroundColor: '#ef4444',
-                      color: 'white',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      minWidth: '20px',
-                      textAlign: 'center',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}>
-                      {totalTickets || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Total Tickets</h4>
-                    <p style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                      {ticketsLoading ? '...' : totalTickets || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '20px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                  <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    backgroundColor: '#d1fae5', 
-                    borderRadius: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    position: 'relative'
-                  }}>
-                    <FolderOpen size={20} color="#059669" />
-                    <div style={{
-                      position: 'absolute',
-                      top: '-6px',
-                      right: '-6px',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      minWidth: '20px',
-                      textAlign: 'center',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}>
-                      {totalProjects || 0}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 }}>Total Projects</h4>
-                    <p style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                      {projectsLoading ? '...' : totalProjects || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            
           </div>
         )}
+
+      {showAdvanceForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
+              Request Advance
+            </h3>
+            {advancesLoading && (
+              <div style={{
+                marginBottom: '12px',
+                fontSize: '12px',
+                color: '#6b7280'
+              }}>
+                Checking existing requests...
+              </div>
+            )}
+            {advanceError && (
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px 12px',
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+                borderRadius: '6px',
+                fontSize: '12px'
+              }}>
+                {advanceError}
+              </div>
+            )}
+            <form onSubmit={(e) => { e.preventDefault(); if (!advanceLoading) handleCreateAdvance(); }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label htmlFor="advance-amount" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Amount *
+                </label>
+                <input
+                  id="advance-amount"
+                  type="number"
+                  min="1"
+                  value={advanceForm.amount}
+                  onChange={(e) => setAdvanceForm({ ...advanceForm, amount: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="advance-month" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Payroll Month *
+                </label>
+                <input
+                  id="advance-month"
+                  type="month"
+                  value={advanceForm.payrollMonth}
+                  onChange={(e) => setAdvanceForm({ ...advanceForm, payrollMonth: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanceForm(false)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={advanceLoading}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#1c242e',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: advanceLoading ? 'not-allowed' : 'pointer',
+                    opacity: advanceLoading ? 0.8 : 1
+                  }}
+                >
+                  {advanceLoading ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
         {activeTab === 'employees' && (
           <div style={{

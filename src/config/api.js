@@ -17,6 +17,8 @@ export const API_CONFIG = {
       LEAVES: "/hr/leaves",
       PAYROLL: "/hr/payroll",
       ATTENDANCE: "/hr/attendance",
+      ADVANCES: "/hr/Advance",
+      ADVANCES_LIST: "/hr/advances",
     },
     IT: {
       EMPLOYEES: "/it/employees/ITDeprt",
@@ -64,6 +66,7 @@ export const API_CONFIG = {
     DASHBOARD: {
       LEAVES: "/dashboard/leaves",
       TICKETS: "/dashboard/tickets",
+      ADVANCES: "/dashboard/advance",
     },
   },
 };

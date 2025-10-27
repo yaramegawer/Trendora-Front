@@ -3,6 +3,7 @@ import { Stack, Typography, Tabs, Tab, Box } from '@mui/material';
 import EmployeeManagement from '../employees/EmployeeManagement.new';
 import LeaveManagement from '../leaves/LeaveManagement.new';
 import PayrollManagement from '../payroll/PayrollManagement.new';
+import AdvancesManagement from './AdvancesManagement.new';
 import AttendanceManagement from '../attendance/AttendanceManagement';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -49,7 +50,8 @@ const HRDepartment = () => {
     { label: 'Employees', component: <EmployeeManagement /> },
     { label: 'Leaves', component: <LeaveManagement /> },
     { label: 'Payroll', component: <PayrollManagement /> },
-    { label: 'Attendance', component: <AttendanceManagement /> }
+    { label: 'Attendance', component: <AttendanceManagement /> },
+    { label: 'Advances', component: <AdvancesManagement /> }
   ];
 
   return (

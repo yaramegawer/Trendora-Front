@@ -119,6 +119,8 @@ const LeaveManagement = () => {
     reason: ''
   });
 
+  
+
   const handleAddLeave = async () => {
     // Allow all authenticated users to add leaves
     
@@ -301,6 +303,17 @@ const LeaveManagement = () => {
   };
 
   const { leaves: paginatedLeaves, total: displayTotal, totalPages: displayTotalPages } = getFilteredAndPaginatedLeaves();
+
+  // Clamp current page when data/page count changes (e.g., after delete/update or search/filter)
+  React.useEffect(() => {
+    const maxPages = Math.max(1, displayTotalPages || 1);
+    if (currentPage > maxPages) {
+      goToPage(maxPages);
+    } else if (currentPage < 1) {
+      goToPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayTotalPages]);
 
   // Debug logging
 ('🔍 Pagination Debug:', {

@@ -7,7 +7,8 @@ const SimplePagination = ({
   totalPages = 1, 
   totalItems = 0,
   pageSize = 10,
-  onPageChange 
+  onPageChange,
+  itemLabel = 'items'
 }) => {
 
   // Calculate total pages from totalItems if totalPages is not provided or is 1
@@ -177,7 +178,7 @@ const SimplePagination = ({
         color: '#6b7280',
         whiteSpace: 'nowrap'
       }}>
-        {totalItems} {totalItems === 1 ? 'item' : 'items'} total
+        {totalItems} {totalItems === 1 ? (itemLabel.endsWith('s') ? itemLabel.slice(0, -1) : itemLabel) : itemLabel} total
       </Typography>
 
     </Box>

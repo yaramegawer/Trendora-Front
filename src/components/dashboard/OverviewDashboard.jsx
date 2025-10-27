@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import SimplePagination from '../common/SimplePagination';
 import api from '../../api/axios';
 import { userApiService } from '../../services/userApi';
+import { dashboardApi } from '../../services/dashboardApi';
 
 
 const OverviewDashboard = memo(() => {
@@ -14,6 +15,14 @@ const OverviewDashboard = memo(() => {
     const [userLeaves, setUserLeaves] = useState([]);
     const [userLeavesLoading, setUserLeavesLoading] = useState(false);
     const [userLeavesError, setUserLeavesError] = useState('');
+    // All advances state (admin/overview)
+    const [advances, setAdvances] = useState([]);
+    const [advancesLoading, setAdvancesLoading] = useState(false);
+    const [advancesError, setAdvancesError] = useState('');
+    const [advancesPage, setAdvancesPage] = useState(1);
+    const [advancesPageSize, setAdvancesPageSize] = useState(10);
+    const [advancesTotal, setAdvancesTotal] = useState(0);
+    const [advancesTotalPages, setAdvancesTotalPages] = useState(1);
     
     // Pagination state for user leaves
     const [userLeavesCurrentPage, setUserLeavesCurrentPage] = useState(1);
@@ -44,6 +53,91 @@ const OverviewDashboard = memo(() => {
       } finally {
         setProfileLoading(false);
       }
+    };
+
+    // Fetch all employees advances
+    const fetchAllAdvances = async (page = advancesPage, limit = advancesPageSize) => {
+      setAdvancesLoading(true);
+      setAdvancesError('');
+      try {
+        const res = await dashboardApi.getEmployeeAdvances(page, limit);
+        let items = [];
+        let total = 0;
+        let currentPage = page;
+        let size = limit;
+        let totalPages = undefined;
+        if (res && res.success && Array.isArray(res.data)) {
+          items = res.data;
+          total = res.totalAdvances ?? res.total ?? res.count ?? res.totalCount ?? items.length;
+          currentPage = res.page ?? page;
+          size = res.limit ?? limit;
+          totalPages = res.totalPages ?? res.total_pages;
+        } else if (Array.isArray(res)) {
+          items = res;
+          total = items.length;
+        } else if (res && res.data && Array.isArray(res.data)) {
+          items = res.data;
+          total = res.totalAdvances ?? res.total ?? res.count ?? res.totalCount ?? items.length;
+          currentPage = res.page ?? page;
+          size = res.limit ?? limit;
+          totalPages = res.totalPages ?? res.total_pages;
+        }
+        // Accurate total fallback using totalPages when totalAdvances is missing
+        if ((!res?.totalAdvances && !res?.total && !res?.count && !res?.totalCount) && typeof totalPages === 'number' && typeof size === 'number') {
+          if (currentPage < totalPages) {
+            total = totalPages * size;
+          } else {
+            total = Math.max(((totalPages - 1) * size) + items.length, items.length);
+          }
+        }
+
+        // Probe for accurate total if none provided or if suspicious single full page
+        const noTotalsProvided = (!res?.totalAdvances && !res?.total && !res?.count && !res?.totalCount);
+        const suspiciousSinglePage = (typeof totalPages === 'number' && totalPages === 1 && currentPage === 1 && Array.isArray(items) && items.length === size);
+        if ((noTotalsProvided && (typeof totalPages !== 'number' || totalPages <= 0)) || suspiciousSinglePage) {
+          if (currentPage === 1) {
+            try {
+              const probe = await dashboardApi.getEmployeeAdvances(1, 1000);
+              if (probe && probe.success && Array.isArray(probe.data)) {
+                total = probe.data.length;
+              } else if (Array.isArray(probe)) {
+                total = probe.length;
+              } else if (probe && probe.data && Array.isArray(probe.data)) {
+                total = probe.data.length;
+              }
+              if (typeof total === 'number' && total > 0) {
+                totalPages = Math.max(1, Math.ceil(total / size));
+              }
+            } catch (_) {
+              // ignore
+            }
+          }
+        }
+        setAdvances(items);
+        setAdvancesPage(currentPage);
+        setAdvancesTotal(total);
+        if (typeof totalPages === 'number' && totalPages > 0) {
+          setAdvancesTotalPages(totalPages);
+        }
+      } catch (e) {
+        const status = e?.response?.status;
+        if (status === 404 && (advancesPage || 1) > 1) {
+          // out-of-range: show empty for that page
+          setAdvances([]);
+          setAdvancesPage(page);
+          setAdvancesError('');
+        } else {
+          setAdvancesError(e.message || 'Failed to fetch advances');
+          setAdvances([]);
+          setAdvancesTotal(0);
+        }
+      } finally {
+        setAdvancesLoading(false);
+      }
+    };
+
+    const handleAdvancesPageChange = (newPage) => {
+      fetchAllAdvances(newPage, advancesPageSize);
     };
 
     // Helper function to get full name
@@ -220,6 +314,8 @@ const OverviewDashboard = memo(() => {
     useEffect(() => {
       if (activeTab === 1) { // Leaves tab
         fetchUserLeaves(userLeavesCurrentPage, userLeavesPageSize);
+      } else if (activeTab === 2) { // All Advances tab
+        fetchAllAdvances(advancesPage, advancesPageSize);
       }
     }, [activeTab]);
 
@@ -285,6 +381,13 @@ const OverviewDashboard = memo(() => {
             iconPosition="start" 
             id="leaves-tab"
             aria-controls="leaves-panel"
+          />
+          <Tab 
+            label="All Advances" 
+            icon={<EventNote />} 
+            iconPosition="start" 
+            id="advances-tab"
+            aria-controls="advances-panel"
           />
         </Tabs>
       </Box>
@@ -482,6 +585,99 @@ const OverviewDashboard = memo(() => {
               </Stack>
             </CardContent>
           </Card>
+        </Box>
+      )}
+
+      {/* All Advances Tab */}
+      {activeTab === 2 && (
+        <Box id="advances-panel" role="tabpanel" aria-labelledby="advances-tab">
+          <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
+            All Employees Advances
+          </Typography>
+
+          {advancesLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+              <CircularProgress />
+              <Typography sx={{ ml: 2 }}>Loading advances...</Typography>
+            </Box>
+          ) : advancesError ? (
+            <Alert severity="error">{advancesError}</Alert>
+          ) : advances.length === 0 ? (
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                <EventNote sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No Advances Found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  There are no advance requests to show.
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h3" gutterBottom sx={{ mb: 3 }}>
+                    Advances List
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Employee</TableCell>
+                          <TableCell>Amount</TableCell>
+                          <TableCell>Payroll Month</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Requested At</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {advances.map((adv, idx) => (
+                          <TableRow key={adv._id || adv.id || idx}>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {(
+                                  (adv.employee && ((adv.employee.firstName || adv.employee.first_name || '') + ' ' + (adv.employee.lastName || adv.employee.last_name || ''))) ||
+                                  adv.employeeName || 'Unknown'
+                                ).trim()}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {adv?.employee?.email || ''}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>EGP {Number(adv.amount || 0).toLocaleString()}</TableCell>
+                            <TableCell>{adv.payrollMonth || 'N/A'}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={adv.status || 'pending'}
+                                color={(adv.status || '').toLowerCase() === 'approved' || (adv.status || '').toLowerCase() === 'paid' ? 'success' : (adv.status || '').toLowerCase() === 'pending' ? 'warning' : (adv.status || '').toLowerCase() === 'rejected' ? 'error' : 'default'}
+                                size="small"
+                                sx={{ textTransform: 'capitalize' }}
+                              />
+                            </TableCell>
+                            <TableCell>{new Date(adv.requestDate || adv.createdAt || adv.created_at || Date.now()).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+
+                  {/* Pagination for advances */}
+                  {advancesTotal > 0 && (
+                    <SimplePagination
+                      currentPage={advancesPage}
+                      totalPages={advancesTotalPages}
+                      totalItems={advancesTotal}
+                      pageSize={advancesPageSize}
+                      onPageChange={handleAdvancesPageChange}
+                      itemLabel="advances"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </Box>
       )}
 

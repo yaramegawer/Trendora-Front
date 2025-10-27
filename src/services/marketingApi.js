@@ -313,39 +313,57 @@ export const marketingLeaveApi = {
     });
   },
 
-  // Update leave status - prefer global /leaves/:id then fall back to marketing-specific
+  // Update leave status - prefer Digital Marketing endpoint first, then generic marketing, then global
   updateLeaveStatus: async (id, leaveData) => {
-    const globalEndpoint = `/leaves/${id}`;
-    try {
-      return await apiCall(globalEndpoint, { method: "PUT", data: leaveData });
-    } catch (err) {
-      if (API_CONFIG.ENDPOINTS.MARKETING.UPDATE_LEAVE) {
-        const endpoint = API_CONFIG.ENDPOINTS.MARKETING.UPDATE_LEAVE.replace(
-          ":id",
-          id
-        );
-        return await apiCall(endpoint, { method: "PUT", data: leaveData });
+    const safeId = encodeURIComponent(id);
+    // Try Digital Marketing specific endpoint first if configured
+    if (API_CONFIG.ENDPOINTS.MARKETING.UPDATE_LEAVE) {
+      const dmEndpoint = API_CONFIG.ENDPOINTS.MARKETING.UPDATE_LEAVE.replace(
+        ":id",
+        safeId
+      );
+      try {
+        return await apiCall(dmEndpoint, { method: "PUT", data: leaveData });
+      } catch (err) {
+        // fall through to next option
       }
-      const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.LEAVES}/${id}`;
-      return await apiCall(endpoint, { method: "PUT", data: leaveData });
+    }
+
+    // Fallback to generic marketing leaves endpoint
+    try {
+      const marketingEndpoint = `${API_CONFIG.ENDPOINTS.MARKETING.LEAVES}/${safeId}`;
+      return await apiCall(marketingEndpoint, { method: "PUT", data: leaveData });
+    } catch (err) {
+      // Final fallback to global leaves endpoint
+      const globalEndpoint = `/leaves/${safeId}`;
+      return await apiCall(globalEndpoint, { method: "PUT", data: leaveData });
     }
   },
 
   // Delete leave - prefer global /leaves/:id then fall back
   deleteLeave: async (id) => {
-    const globalEndpoint = `/leaves/${id}`;
-    try {
-      return await apiCall(globalEndpoint, { method: "DELETE" });
-    } catch (err) {
-      if (API_CONFIG.ENDPOINTS.MARKETING.DELETE_LEAVE) {
-        const endpoint = API_CONFIG.ENDPOINTS.MARKETING.DELETE_LEAVE.replace(
-          ":id",
-          id
-        );
-        return await apiCall(endpoint, { method: "DELETE" });
+    const safeId = encodeURIComponent(id);
+    // Try Digital Marketing specific endpoint first
+    if (API_CONFIG.ENDPOINTS.MARKETING.DELETE_LEAVE) {
+      const dmEndpoint = API_CONFIG.ENDPOINTS.MARKETING.DELETE_LEAVE.replace(
+        ":id",
+        safeId
+      );
+      try {
+        return await apiCall(dmEndpoint, { method: "DELETE" });
+      } catch (err) {
+        // fall through to next option
       }
-      const endpoint = `${API_CONFIG.ENDPOINTS.MARKETING.LEAVES}/${id}`;
-      return await apiCall(endpoint, { method: "DELETE" });
+    }
+
+    // Fallback to generic marketing leaves endpoint
+    try {
+      const marketingEndpoint = `${API_CONFIG.ENDPOINTS.MARKETING.LEAVES}/${safeId}`;
+      return await apiCall(marketingEndpoint, { method: "DELETE" });
+    } catch (err) {
+      // Final fallback to global leaves endpoint
+      const globalEndpoint = `/leaves/${safeId}`;
+      return await apiCall(globalEndpoint, { method: "DELETE" });
     }
   },
 };

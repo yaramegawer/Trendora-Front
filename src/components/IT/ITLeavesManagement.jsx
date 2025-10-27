@@ -91,6 +91,19 @@ const ITLeavesManagement = () => {
       })
     : (leaves || []);
 
+  // Compute pagination helpers to keep UI stable when data changes (e.g., after delete/update)
+  const totalFiltered = Array.isArray(filteredLeaves) ? filteredLeaves.length : 0;
+  const computedTotalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const computedCurrentPage = Math.min(Math.max(1, leavesCurrentPage), computedTotalPages);
+
+  // Clamp current page when data shrinks/expands
+  useEffect(() => {
+    if (leavesCurrentPage !== computedCurrentPage) {
+      setLeavesCurrentPage(computedCurrentPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalFiltered, pageSize]);
+
   // Handle status filter change
   const handleStatusFilterChange = (newStatus) => {
     setStatusFilter(newStatus);
@@ -843,20 +856,14 @@ const ITLeavesManagement = () => {
             <div style={{ marginTop: "24px" }}>
               {isLocalMode ? (
                 <SimplePagination
-                  currentPage={leavesCurrentPage}
-                  totalPages={Math.max(1, Math.ceil(filteredLeaves.length / pageSize))}
+                  currentPage={computedCurrentPage}
+                  totalPages={computedTotalPages}
                   onPageChange={(page) => {
                     setLeavesCurrentPage(page);
                   }}
-                  onPageSizeChange={(size) => {
-                    setLeavesCurrentPage(1);
-                    if (typeof leavesChangePageSize === "function") {
-                      leavesChangePageSize(size);
-                    }
-                  }}
                   pageSize={pageSize}
-                  totalItems={filteredLeaves.length}
-                  showPageSizeSelector={true}
+                  totalItems={totalFiltered}
+                  showPageSizeSelector={false}
                 />
               ) : (
                 <SimplePagination

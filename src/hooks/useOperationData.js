@@ -605,7 +605,8 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
     setError(null);
     try {
       // Avoid department endpoint (causes 404); fetch all leaves directly
-      const response = await operationLeaveApi.getAllLeaves();
+      const response = await operationLeaveApi.getDepartmentLeaves('68da378594328b3a175633b3', pageParam, limitParam);
+            
       let leavesData = [];
       let totalCount = 0;
       let respPage = pageParam;
@@ -1067,21 +1068,39 @@ export const useOperationRecentActivities = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch all operation data in parallel (tickets removed)
-      const [employeesResponse] = await Promise.all([
+      // Fetch employees, campaigns, and leaves in parallel (tickets currently not listed)
+      const [employeesResponse, campaignsResponse, leavesResponse] = await Promise.all([
         operationEmployeeApi.getAllEmployees().catch(() => ({ data: [] })),
+        operationCampaignApi.getAllCampaigns(1, 1000, 'all').catch(() => ({ success: true, data: [] })),
+        operationLeaveApi.getEmployeeLeaves(1, 1000).catch(() => ({ data: [] })),
       ]);
 
-      // Extract data from responses
+      // Normalize employees
       const employees = Array.isArray(employeesResponse)
         ? employeesResponse
-        : employeesResponse?.data || employeesResponse?.success
+        : employeesResponse?.data || (employeesResponse?.success && Array.isArray(employeesResponse.data))
         ? employeesResponse.data
         : [];
 
-      const campaigns = [];
+      // Normalize campaigns
+      let campaigns = [];
+      if (Array.isArray(campaignsResponse)) {
+        campaigns = campaignsResponse;
+      } else if (campaignsResponse && Array.isArray(campaignsResponse.data)) {
+        campaigns = campaignsResponse.data;
+      } else if (campaignsResponse && campaignsResponse.success && Array.isArray(campaignsResponse.data)) {
+        campaigns = campaignsResponse.data;
+      }
 
-      const leaves = [];
+      // Normalize leaves
+      let leaves = [];
+      if (Array.isArray(leavesResponse)) {
+        leaves = leavesResponse;
+      } else if (leavesResponse && Array.isArray(leavesResponse.data)) {
+        leaves = leavesResponse.data;
+      } else if (leavesResponse && leavesResponse.success && Array.isArray(leavesResponse.data)) {
+        leaves = leavesResponse.data;
+      }
 
       // Generate recent activities from the data (tickets removed)
       const activities = generateRecentActivities(

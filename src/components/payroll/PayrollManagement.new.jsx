@@ -801,8 +801,14 @@ const PayrollManagement = () => {
     // Get employee name
     const employeeName = getEmployeeNameFromPayroll(payroll);
     
-    // Calculate net pay if not available
-    const netPay = payroll.netPay || (payroll.baseSalary + (payroll.bonuses || 0) + ((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)) + (payroll.benefits || 0) - (payroll.deductions || 0) - (payroll.taxes || 0));
+    // Calculate net pay if not available (include advance as deduction)
+    const netPay = payroll.netPay || (
+      (payroll.baseSalary || 0) +
+      (payroll.bonuses || 0) +
+      ((payroll.overtimeHours || 0) * (payroll.overtimeRate || 0)) +
+      (payroll.benefits || 0) -
+      ((payroll.deductions || 0) + (payroll.taxes || 0) + (payroll.advance || 0))
+    );
     
     // Format pay date
     const formattedPayDate = formatPayDate(payroll.payDate) || 'N/A';
@@ -881,12 +887,16 @@ const PayrollManagement = () => {
             <span>EGP ${(payroll.deductions || 0).toLocaleString()}</span>
           </div>
           <div class="deductions-row">
+            <span>Advance</span>
+            <span>EGP ${(payroll.advance || 0).toLocaleString()}</span>
+          </div>
+          <div class="deductions-row">
             <span>Taxes</span>
             <span>EGP ${(payroll.taxes || 0).toLocaleString()}</span>
           </div>
           <div class="total-row">
             <span>Total Deductions</span>
-            <span>EGP ${((payroll.deductions || 0) + (payroll.taxes || 0)).toLocaleString()}</span>
+            <span>EGP ${((payroll.deductions || 0) + (payroll.taxes || 0) + (payroll.advance || 0)).toLocaleString()}</span>
           </div>
         </div>
         
@@ -1311,6 +1321,7 @@ const PayrollManagement = () => {
                 <TableCell>Pay Date</TableCell>
                 <TableCell>Base Salary</TableCell>
                 <TableCell>Deductions</TableCell>
+                <TableCell>Advance</TableCell>
                 <TableCell>Net Pay</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
@@ -1334,6 +1345,7 @@ const PayrollManagement = () => {
                   <TableCell>{formatPayDate(pay.payDate)}</TableCell>
                   <TableCell>EGP {pay.baseSalary?.toLocaleString() || 0}</TableCell>
                   <TableCell>EGP {pay.deductions?.toLocaleString() || 0}</TableCell>
+                  <TableCell>EGP {pay.advance?.toLocaleString() || 0}</TableCell>
                   <TableCell>
                     <Typography variant="body2" color="white" sx={{ bgcolor: 'primary.main', p: 0.5, borderRadius: 1, display: 'inline-block' }}>
                       EGP {pay.netPay?.toLocaleString() || 0}

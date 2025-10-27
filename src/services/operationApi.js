@@ -76,8 +76,47 @@ export const operationEmployeeApi = {
 export const operationCampaignApi = {
   // Get all campaigns with pagination and status filter
   getAllCampaigns: async (page = 1, limit = 10, status = null) => {
-    // Temporarily suppress backend errors: return empty without network call
-    return { success: true, data: [], total: 0, page, limit, totalPages: 0 };
+    try {
+      const params = { page, limit };
+      if (status && status !== 'all') params.status = status;
+      const response = await apiCall(API_CONFIG.ENDPOINTS.OPERATION.CAMPAIGNS, {
+        method: 'GET',
+        params,
+      });
+
+      // Normalize possible shapes
+      if (response && response.success && Array.isArray(response.data)) {
+        return response; // { success, data, total, page, limit, totalPages }
+      }
+      if (Array.isArray(response)) {
+        const data = response;
+        return {
+          success: true,
+          data,
+          total: data.length,
+          page,
+          limit,
+          totalPages: Math.max(1, Math.ceil(data.length / (limit || 10))),
+        };
+      }
+      if (response && response.data && Array.isArray(response.data)) {
+        return {
+          success: true,
+          data: response.data,
+          total: response.total || response.data.length,
+          page: response.page || page,
+          limit: response.limit || limit,
+          totalPages:
+            response.totalPages || Math.max(1, Math.ceil((response.total || response.data.length) / (response.limit || limit || 10))),
+        };
+      }
+
+      // Fallback: return empty normalized
+      return { success: true, data: [], total: 0, page, limit, totalPages: 0 };
+    } catch (_) {
+      // On error, return empty normalized to avoid UI breaks
+      return { success: true, data: [], total: 0, page, limit, totalPages: 0 };
+    }
   },
 
   // Create new campaign
