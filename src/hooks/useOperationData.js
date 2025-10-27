@@ -705,10 +705,10 @@ export const useOperationDepartmentLeaves = (page = 1, limit = 10) => {
       const status = err?.response?.status;
       if (status === 404 || status === 500) {
         // Treat as empty without surfacing error
-        console.log("Operation Employee Leaves API Error (suppressed):", status);
+         ("Operation Employee Leaves API Error (suppressed):", status);
         setError("");
       } else {
-        console.log("Operation Employee Leaves API Error:", err?.message || err);
+         ("Operation Employee Leaves API Error:", err?.message || err);
         setError(err?.message || "Network Error");
       }
       setLeaves([]);
