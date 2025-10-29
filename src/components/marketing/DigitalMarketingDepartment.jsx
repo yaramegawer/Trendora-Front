@@ -2016,7 +2016,7 @@ const DigitalMarketingDepartment = () => {
                           }}
                         >
                           {employee.name ||
-                            employee.firstName ||
+                            employee.firstName +' ' + employee.lastName ||
                             "Unknown Employee"}
                         </h3>
                         <p

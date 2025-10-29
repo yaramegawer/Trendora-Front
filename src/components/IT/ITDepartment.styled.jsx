@@ -1518,7 +1518,7 @@ const ITDepartment = () => {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                         <div>
                           <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                            {employee.name || employee.firstName || 'Unknown Employee'}
+                            { employee.firstName+' ' + employee.lastName || 'Unknown Employee'}
                           </h3>
                           <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
                             {employee.position || employee.role || 'IT Specialist'}
