@@ -147,37 +147,49 @@ const LoginPage = () => {
        ('Login error:', err);
       
       // Create more user-friendly error messages
-      let errorMessage = err.message || 'Login failed. Please try again.';
-      
-      // Make error messages more specific and helpful
-      // Check for credential errors FIRST before format errors
-      if (errorMessage.includes('invalid credentials') || 
-          errorMessage.includes('Invalid email or password') ||
-          errorMessage.includes('Authentication failed') ||
-          errorMessage.includes('No authentication token') ||
-          errorMessage.includes('User not found') ||
-          errorMessage.includes('Login failed')) {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('ERR_CONNECTION_REFUSED')) {
-        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
-      } else if (errorMessage.includes('Network error') || errorMessage.includes('connection')) {
-        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
-      } else if (errorMessage.includes('Access denied') || errorMessage.includes('permission')) {
-        errorMessage = 'Access denied. Your account may be disabled or you do not have permission to access this system.';
-      } else if (errorMessage.includes('Invalid response from server')) {
-        errorMessage = 'Server error. Please try again later or contact support.';
-      } else if (errorMessage.includes('email format') || errorMessage.includes('Invalid email format')) {
-        // Only show email format error if it's specifically about email format
-        errorMessage = 'Invalid email format. Please use a valid email address (e.g., user@example.com).';
-      } else if (errorMessage.includes('Invalid input')) {
-        errorMessage = 'Invalid input. Please check your email and password.';
-      }
-      
-      // Capitalize the first letter of the error message for better presentation
-      if (errorMessage && errorMessage.length > 0) {
-        errorMessage = errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1);
-      }
-      
+     // Prefer server-provided message if available
+     
+     console.log(err);
+let errorMessage =
+
+  err?.response?.data?.message ||
+  err?.data?.message ||
+  err?.message ||
+  'Login failed. Please try again.';
+
+
+const msg = (errorMessage || '').toLowerCase().trim();
+
+// Specific checks first
+if (msg.includes('your account is inactive')) {
+  errorMessage = 'Your account is inactive, please contact admin.';
+} else if (
+  msg.includes('invalid credentials') || 
+  msg.includes('invalid email or password') ||
+  msg.includes('authentication failed') ||
+  msg.includes('no authentication token') ||
+  msg.includes('user not found') ||
+  msg.includes('login failed')
+) {
+  errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+} else if (msg.includes('failed to fetch') || msg.includes('err_connection_refused')) {
+  errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+} else if (msg.includes('network error') || msg.includes('connection')) {
+  errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+} else if (msg.includes('access denied') || msg.includes('permission')) {
+  errorMessage = 'Access denied. Your account may be disabled or you do not have permission to access this system.';
+} else if (msg.includes('invalid response from server')) {
+  errorMessage = 'Server error. Please try again later or contact support.';
+} else if (msg.includes('email format') || msg.includes('invalid email format')) {
+  errorMessage = 'Invalid email format. Please use a valid email address (e.g., user@example.com).';
+} else if (msg.includes('invalid input')) {
+  errorMessage = 'Invalid input. Please check your email and password.';
+}
+
+// Keep your presentation tweak
+if (errorMessage && errorMessage.length > 0) {
+  errorMessage = errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1);
+} 
       // Store error in localStorage as backup (for component re-mount issues)
       localStorage.setItem('loginError', errorMessage);
       setError(errorMessage);

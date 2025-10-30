@@ -121,6 +121,7 @@ export const AuthProvider = ({ children }) => {
       
       const response = await api.post(API_CONFIG.ENDPOINTS.USER.LOGIN, requestData);
 
+      
       const data = response.data;
       
       // Debug logging
@@ -136,11 +137,26 @@ export const AuthProvider = ({ children }) => {
       if (!data) {
         throw new Error('No data received from server');
       }
+      console.log(data)
+      
+      // If backend returned an explicit error field, handle it immediately
+      if (typeof data.error === 'string' && data.error.trim()) {
+        const errText = data.error.trim();
+        if (errText.toLowerCase().includes('inactive')) {
+          throw new Error('Your account is inactive, please contact admin.');
+        }
+        throw new Error(errText);
+      }
       
       // Check if the response indicates authentication failure (backend returns success: false)
       if (data.success === false) {
          ('Login failed - success is false');
-        const errorMessage = data.message || 'Invalid credentials';
+        const errorMessage = data.error || 'Invalid credentials';
+        
+        // Inactive account handling
+        if (errorMessage.includes('inactive')) {
+          throw new Error('Your account is inactive, please contact admin.');
+        }
         // Provide more helpful error message for invalid credentials
         if (errorMessage.includes('invalid credentials')) {
           throw new Error('Invalid email or password. Please check your credentials and try again.');
@@ -149,6 +165,9 @@ export const AuthProvider = ({ children }) => {
       }
       
       // Check if the response indicates authentication failure by message content
+      if (data.message && (data.message.toLowerCase().includes('inactive'))) {
+        throw new Error('Your account is inactive, please contact admin.');
+      }
       if (data.message && (data.message.includes('invalid') || data.message.includes('wrong') || data.message.includes('incorrect'))) {
         throw new Error(data.message || 'Invalid credentials');
       }
@@ -376,6 +395,7 @@ export const AuthProvider = ({ children }) => {
       
       return data;
     } catch (error) {
+      
        ('=== Login Error Details ===');
        ('Full error object:', error);
        ('Error response:', error.response);
@@ -387,23 +407,40 @@ export const AuthProvider = ({ children }) => {
       // Handle different types of errors
       let errorMessage = 'Login failed. Please try again.';
       
-      // First, try to extract message from response data (highest priority)
+      // First, try to extract message from response data (prefer explicit `error` from backend)
       if (error.response?.data) {
         const responseData = error.response.data;
-        
-        // Try various possible error message fields
-        const possibleMessageFields = [
-          'message', 'error', 'msg', 'errorMessage', 'error_message',
-          'detail', 'details', 'description'
-        ];
-        
-        for (const field of possibleMessageFields) {
-          if (responseData[field] && typeof responseData[field] === 'string') {
-            errorMessage = responseData[field];
-             (`Found error message in field '${field}':`, errorMessage);
-            break;
+        // Prefer explicit backend error
+        if (typeof responseData.error === 'string' && responseData.error.trim()) {
+          errorMessage = responseData.error;
+        } else {
+          // Try other possible fields (without 'error' since we checked it already)
+          const possibleMessageFields = [
+            'message', 'msg', 'errorMessage', 'error_message',
+            'detail', 'details', 'description'
+          ];
+          for (const field of possibleMessageFields) {
+            if (responseData[field] && typeof responseData[field] === 'string') {
+              errorMessage = responseData[field];
+               (`Found error message in field '${field}':`, errorMessage);
+              break;
+            }
           }
         }
+      }
+      
+      // If this is an app-thrown Error (no Axios response), prefer its message
+      if (!error.response && typeof error.message === 'string' && error.message.trim()) {
+        errorMessage = error.message.trim();
+      }
+      
+      // Detect inactive account early and set a friendly, specific message
+      const rawBackendError = String(error.response?.data?.error || '');
+      const isInactiveAccount = (error.response?.status === 403)
+        || String(errorMessage || '').toLowerCase().includes('inactive')
+        || rawBackendError.toLowerCase().includes('inactive');
+      if (isInactiveAccount) {
+        errorMessage = 'Your account is inactive, please contact admin.';
       }
       
       // Replace generic backend error messages with user-friendly ones
@@ -417,7 +454,7 @@ export const AuthProvider = ({ children }) => {
         '500'
       ];
       
-      if (genericErrors.some(msg => errorMessage.toLowerCase().includes(msg.toLowerCase()))) {
+      if (!isInactiveAccount && genericErrors.some(msg => errorMessage.toLowerCase().includes(msg.toLowerCase()))) {
          ('Replacing generic backend error with user-friendly message');
         // Check if this is a credential error first
         const isCredentialError = errorMessage.toLowerCase().includes('invalid credentials') || 
@@ -426,6 +463,7 @@ export const AuthProvider = ({ children }) => {
                                   errorMessage.toLowerCase().includes('authentication failed') ||
                                   errorMessage.toLowerCase().includes('invalid email or password');
         
+                              
         if (isCredentialError) {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.';
         }
@@ -474,7 +512,7 @@ export const AuthProvider = ({ children }) => {
         errorMessage = 'Please enter a valid email address in the format: example@domain.com';
       }
       // If it's a credential error OR 400/401 error (assume credential issue)
-      else if (isCredentialError || error.response?.status === 401 || error.response?.status === 400) {
+      else if (!isInactiveAccount && (isCredentialError || error.response?.status === 401 || error.response?.status === 400)) {
          ('🔐 Showing credential error');
         errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       }
@@ -482,7 +520,7 @@ export const AuthProvider = ({ children }) => {
       // If no message found in response, handle by status code
       if (errorMessage === 'Login failed. Please try again.') {
         // 401 always means credential error
-        if (error.response?.status === 401) {
+        if (!isInactiveAccount && error.response?.status === 401) {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.';
         }
         else if (error.response?.status === 400) {

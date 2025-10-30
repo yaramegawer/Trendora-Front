@@ -386,7 +386,7 @@ const OperationDepartment = () => {
     // Allow all authenticated users to create campaigns
 
     // Validate required fields
-    if (!newCampaign.name || !newCampaign.customerName || !newCampaign.startDate || !newCampaign.endDate) {
+    if (!newCampaign.name  || !newCampaign.startDate || !newCampaign.endDate) {
       showWarning('Please fill in all required fields (Name, Customer Name, Start Date, End Date)');
       return;
     }
@@ -398,7 +398,7 @@ const OperationDepartment = () => {
     }
 
     // Validate customer name length
-    if (newCampaign.customerName.length < 3 || newCampaign.customerName.length > 100) {
+    if (newCampaign.customerName &&( newCampaign.customerName.length < 3 || newCampaign.customerName.length > 100)) {
       showWarning('Customer name must be between 3 and 100 characters');
       return;
     }
@@ -525,9 +525,10 @@ const OperationDepartment = () => {
       if (editingCampaign.name && editingCampaign.name.trim()) {
         campaignData.name = editingCampaign.name.trim();
       }
-      if (editingCampaign.customerName && editingCampaign.customerName.trim()) {
-        campaignData.customerName = editingCampaign.customerName.trim();
-      }
+      if ('customerName' in editingCampaign) {
+  const trimmed = (editingCampaign.customerName ?? '').trim();
+  campaignData.customerName = trimmed; // '' when cleared
+}
       if (editingCampaign.description && editingCampaign.description.trim()) {
         campaignData.description = editingCampaign.description.trim();
       }
@@ -1924,7 +1925,7 @@ const OperationDepartment = () => {
                   placeholder="Enter customer name (3-100 characters)"
                   minLength={3}
                   maxLength={100}
-                  required
+                  
                   style={{
                     width: '100%',
                     padding: '8px 12px',

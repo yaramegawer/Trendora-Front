@@ -68,7 +68,10 @@ export const userApiService = {
       // Handle different error response structures
       if (error.response?.status === 401) {
         throw new Error('Invalid email or password');
-      } else if (error.response?.status === 404) {
+      }if(error.response?.error=='your account is inactive, please contact admin'){
+        throw new Error('your account is inactive, please contact admin');
+      }
+       else if (error.response?.status === 404) {
         throw new Error('User not found');
       } else if (error.response?.status === 400) {
         throw new Error(error.response?.data?.message || 'Invalid credentials');
