@@ -164,6 +164,7 @@ const DigitalMarketingDepartment = () => {
     type: "",
     startDate: "",
     endDate: "",
+    leave_hour: "",
   });
   const [showAdvanceForm, setShowAdvanceForm] = useState(false);
   const [advanceForm, setAdvanceForm] = useState({ amount: "", payrollMonth: "" });
@@ -1008,7 +1009,8 @@ const DigitalMarketingDepartment = () => {
       showWarning("Start date is required");
       return;
     }
-    if (!newLeave.endDate) {
+    const isEarly = newLeave.type === 'early';
+    if (!isEarly && !newLeave.endDate) {
       showWarning("End date is required");
       return;
     }
@@ -1017,7 +1019,7 @@ const DigitalMarketingDepartment = () => {
     const startDate = new Date(newLeave.startDate);
     const endDate = new Date(newLeave.endDate);
 
-    if (startDate >= endDate) {
+    if (!isEarly && startDate >= endDate) {
       showWarning("End date must be after start date");
       return;
     }
@@ -1027,9 +1029,12 @@ const DigitalMarketingDepartment = () => {
       const leaveData = {
         type: newLeave.type,
         startDate: newLeave.startDate,
-        endDate: newLeave.endDate,
+        endDate: isEarly ? newLeave.startDate : newLeave.endDate,
         status: "pending",
       };
+      if (newLeave.leave_hour !== "" && !isNaN(newLeave.leave_hour)) {
+        leaveData.leave_hours = Math.max(0, Number(newLeave.leave_hour));
+      }
 
       "📤 Submitting leave data:", leaveData;
       await submitLeave(leaveData);
@@ -1038,6 +1043,7 @@ const DigitalMarketingDepartment = () => {
         type: "",
         startDate: "",
         endDate: "",
+        leave_hour: "",
       });
       setShowLeaveForm(false);
     } catch (error) {
@@ -4728,6 +4734,8 @@ const DigitalMarketingDepartment = () => {
                     <option value="annual">Annual Leave</option>
                     <option value="sick">Sick Leave</option>
                     <option value="unpaid">Unpaid Leave</option>
+                    <option value="early">Early Leave</option>
+                    <option value="emergency">Emergency Leave</option>
                   </select>
                 </div>
 
@@ -4741,7 +4749,7 @@ const DigitalMarketingDepartment = () => {
                       fontWeight: "500",
                     }}
                   >
-                    Start Date{" "}
+                    {newLeave.type === 'early' ? 'Date ' : 'Start Date '}
                   </label>
                   <input
                     id="leave-start-date"
@@ -4761,35 +4769,70 @@ const DigitalMarketingDepartment = () => {
                   />
                 </div>
 
-                <div style={{ marginBottom: "20px" }}>
-                  <label
-                    htmlFor="leave-end-date"
-                    style={{
-                      display: "block",
-                      marginBottom: "4px",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                    }}
-                  >
-                    End Date{" "}
-                  </label>
-                  <input
-                    id="leave-end-date"
-                    type="date"
-                    value={newLeave.endDate}
-                    onChange={(e) =>
-                      setNewLeave({ ...newLeave, endDate: e.target.value })
-                    }
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "4px",
-                      fontSize: "14px",
-                    }}
-                  />
-                </div>
+                {newLeave.type !== 'early' && (
+                  <div style={{ marginBottom: "20px" }}>
+                    <label
+                      htmlFor="leave-end-date"
+                      style={{
+                        display: "block",
+                        marginBottom: "4px",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                      }}
+                    >
+                      End Date{" "}
+                    </label>
+                    <input
+                      id="leave-end-date"
+                      type="date"
+                      value={newLeave.endDate}
+                      onChange={(e) =>
+                        setNewLeave({ ...newLeave, endDate: e.target.value })
+                      }
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {newLeave.type === 'early' && (
+                  <div style={{ marginBottom: "16px" }}>
+                    <label
+                      htmlFor="leave-hours"
+                      style={{
+                        display: "block",
+                        marginBottom: "4px",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                      }}
+                    >
+                      Leave Hours (Optional)
+                    </label>
+                    <input
+                      id="leave-hours"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={newLeave.leave_hour}
+                      onChange={(e) =>
+                        setNewLeave({ ...newLeave, leave_hour: e.target.value })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                      }}
+                    />
+                  </div>
+                )}
 
                 <div
                   style={{

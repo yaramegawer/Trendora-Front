@@ -193,7 +193,8 @@ const EmployeeDashboard = () => {
       return;
     }
 
-    if (!leaveForm.endDate) {
+    const isEarly = leaveForm.leaveType === 'early';
+    if (!isEarly && !leaveForm.endDate) {
       showWarning('Please select an end date.');
       setError('Please select an end date.');
       setLoading(false);
@@ -207,7 +208,7 @@ const EmployeeDashboard = () => {
       return;
     }
 
-    if (new Date(leaveForm.startDate) > new Date(leaveForm.endDate)) {
+    if (!isEarly && new Date(leaveForm.startDate) > new Date(leaveForm.endDate)) {
       showWarning('End date must be after start date.');
       setLoading(false);
       return;
@@ -243,10 +244,13 @@ const EmployeeDashboard = () => {
       
       const leaveData = {
         startDate: leaveForm.startDate,
-        endDate: leaveForm.endDate,
+        endDate: isEarly ? leaveForm.startDate : leaveForm.endDate,
         type: leaveForm.leaveType,
         status: 'pending'
       };
+      if (leaveForm.leave_hour !== undefined && leaveForm.leave_hour !== '' && !isNaN(leaveForm.leave_hour)) {
+        leaveData.leave_hours = Math.max(0, Number(leaveForm.leave_hour));
+      }
 
        ('Submitting leave request:', leaveData);
       
@@ -264,7 +268,8 @@ const EmployeeDashboard = () => {
       setLeaveForm({
         startDate: '',
         endDate: '',
-        leaveType: 'annual'
+        leaveType: 'annual',
+        leave_hour: ''
       });
       
       // Refresh leaves list if leaves tab is active
@@ -1525,12 +1530,14 @@ const EmployeeDashboard = () => {
                   <option value="annual">Annual Leave</option>
                   <option value="sick">Sick Leave</option>
                   <option value="unpaid">Unpaid Leave</option>
+                  <option value="early">Early Leave</option>
+                  <option value="emergency">Emergency Leave</option>
                 </select>
               </div>
               
               <div style={{ marginBottom: '16px' }}>
                 <label htmlFor="leave-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Start Date *
+                  {leaveForm.leaveType === 'early' ? 'Date *' : 'Start Date *'}
                 </label>
                 <input
                   id="leave-start-date"
@@ -1547,27 +1554,50 @@ const EmployeeDashboard = () => {
                   required
                 />
               </div>
+              {leaveForm.leaveType !== 'early' && (
+                <div style={{ marginBottom: '20px' }}>
+                  <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    End Date *
+                  </label>
+                  <input
+                    id="leave-end-date"
+                    type="date"
+                    value={leaveForm.endDate}
+                    onChange={(e) => setLeaveForm(prev => ({ ...prev, endDate: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                    required
+                  />
+                </div>
+              )}
               
-              <div style={{ marginBottom: '20px' }}>
-                <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  End Date *
-                </label>
-                <input
-                  id="leave-end-date"
-                  type="date"
-                  value={leaveForm.endDate}
-                  onChange={(e) => setLeaveForm(prev => ({ ...prev, endDate: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                  required
-                />
-              </div>
-              
+              {leaveForm.leaveType === 'early' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="leave-hours" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Leave Hours                  </label>
+                  <input
+                    id="leave-hours"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={leaveForm.leave_hour || ''}
+                    onChange={(e) => setLeaveForm(prev => ({ ...prev, leave_hour: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
@@ -1576,7 +1606,8 @@ const EmployeeDashboard = () => {
                     setLeaveForm({
                       startDate: '',
                       endDate: '',
-                      leaveType: 'annual'
+                      leaveType: 'annual',
+                      leave_hour: ''
                     });
                   }}
                   style={{

@@ -109,7 +109,8 @@ const AccountingDepartment = () => {
   const [leaveData, setLeaveData] = useState({
     type: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    leave_hour: ''
   });
   const [ticketData, setTicketData] = useState({
     title: '',
@@ -552,12 +553,13 @@ const AccountingDepartment = () => {
   const handleLeaveSubmit = async () => {
     // Validate form
     const errors = {};
+    const isEarly = leaveData.type === 'early';
     if (!leaveData.type) errors.type = 'Leave type is required';
     if (!leaveData.startDate) errors.startDate = 'Start date is required';
-    if (!leaveData.endDate) errors.endDate = 'End date is required';
+    if (!isEarly && !leaveData.endDate) errors.endDate = 'End date is required';
     
     // Validate dates
-    if (leaveData.startDate && leaveData.endDate) {
+    if (!isEarly && leaveData.startDate && leaveData.endDate) {
       const startDate = new Date(leaveData.startDate);
       const endDate = new Date(leaveData.endDate);
       if (startDate > endDate) {
@@ -573,13 +575,22 @@ const AccountingDepartment = () => {
     setLeaveFieldErrors({});
     
     try {
-      const result = await submitLeave(leaveData);
+      const payload = {
+        ...leaveData,
+        endDate: isEarly ? leaveData.startDate : leaveData.endDate,
+      };
+      if (leaveData.leave_hour !== '' && !isNaN(leaveData.leave_hour)) {
+        payload.leave_hours = Math.max(0, Number(leaveData.leave_hour));
+      }
+      delete payload.leave_hour;
+      const result = await submitLeave(payload);
       if (result.success) {
         showSuccess('Leave request submitted successfully!');
         setLeaveData({
           type: '',
           startDate: '',
-          endDate: ''
+          endDate: '',
+          leave_hour: ''
         });
         setShowLeaveDialog(false);
       } else {
@@ -596,7 +607,8 @@ const AccountingDepartment = () => {
     setLeaveData({
       type: '',
       startDate: '',
-      endDate: ''
+      endDate: '',
+      leave_hour: ''
     });
     setLeaveFieldErrors({});
     setLeaveSubmitError('');
@@ -1765,6 +1777,8 @@ const AccountingDepartment = () => {
                   <option value="annual">Annual Leave</option>
                   <option value="sick">Sick Leave</option>
                   <option value="unpaid">Unpaid Leave</option>
+                  <option value="early">Early Leave</option>
+                  <option value="emergency">Emergency Leave</option>
                 </select>
                 {leaveFieldErrors.type && (
                   <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>
@@ -1772,10 +1786,33 @@ const AccountingDepartment = () => {
                   </div>
                 )}
               </div>
+
+              {leaveData.type === 'early' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="leave-hours" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    Leave Hours 
+                  </label>
+                  <input
+                    id="leave-hours"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={leaveData.leave_hour}
+                    onChange={handleLeaveInputChange('leave_hour')}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${leaveFieldErrors.leave_hour ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+              )}
               
               <div style={{ marginBottom: '16px' }}>
                 <label htmlFor="leave-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Start Date
+                  {leaveData.type === 'early' ? 'Date' : 'Start Date'}
                 </label>
                 <input
                   type="date"
@@ -1798,30 +1835,32 @@ const AccountingDepartment = () => {
                 )}
               </div>
               
-              <div style={{ marginBottom: '16px' }}>
-                <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  id="leave-end-date"
-                  value={leaveData.endDate}
-                  onChange={handleLeaveInputChange('endDate')}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: `1px solid ${leaveFieldErrors.endDate ? '#ef4444' : '#d1d5db'}`,
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                  required
-                />
-                {leaveFieldErrors.endDate && (
-                  <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>
-                    {leaveFieldErrors.endDate}
-                  </div>
-                )}
-              </div>
+              {leaveData.type !== 'early' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    id="leave-end-date"
+                    value={leaveData.endDate}
+                    onChange={handleLeaveInputChange('endDate')}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${leaveFieldErrors.endDate ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                    required
+                  />
+                  {leaveFieldErrors.endDate && (
+                    <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>
+                      {leaveFieldErrors.endDate}
+                    </div>
+                  )}
+                </div>
+              )}
               
               <div style={{
                 display: 'flex',

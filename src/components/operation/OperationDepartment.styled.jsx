@@ -101,7 +101,8 @@ const OperationDepartment = () => {
   const [leaveFormData, setLeaveFormData] = useState({
     type: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    leave_hour: ''
   });
   const [leaveFormErrors, setLeaveFormErrors] = useState({});
   const [leaveFormLoading, setLeaveFormLoading] = useState(false);
@@ -671,12 +672,13 @@ const OperationDepartment = () => {
     
     // Validate form
     const errors = {};
+    const isEarly = leaveFormData.type === 'early';
     if (!leaveFormData.type) errors.type = 'Leave type is required';
     if (!leaveFormData.startDate) errors.startDate = 'Start date is required';
-    if (!leaveFormData.endDate) errors.endDate = 'End date is required';
+    if (!isEarly && !leaveFormData.endDate) errors.endDate = 'End date is required';
     
     // Validate dates
-    if (leaveFormData.startDate && leaveFormData.endDate) {
+    if (!isEarly && leaveFormData.startDate && leaveFormData.endDate) {
       const startDate = new Date(leaveFormData.startDate);
       const endDate = new Date(leaveFormData.endDate);
       if (startDate > endDate) {
@@ -693,13 +695,22 @@ const OperationDepartment = () => {
     setLeaveFormErrors({});
     
     try {
-      const result = await addLeave(leaveFormData);
+      const payload = {
+        ...leaveFormData,
+        endDate: isEarly ? leaveFormData.startDate : leaveFormData.endDate,
+      };
+      if (leaveFormData.leave_hour !== '' && !isNaN(leaveFormData.leave_hour)) {
+        payload.leave_hours = Math.max(0, Number(leaveFormData.leave_hour));
+      }
+      delete payload.leave_hour;
+      const result = await addLeave(payload);
       if (result.success) {
         showSuccess('Leave request submitted successfully!');
         setLeaveFormData({
           type: '',
           startDate: '',
-          endDate: ''
+          endDate: '',
+          leave_hour: ''
         });
         setShowCreateOperationLeave(false);
       } else {
@@ -2583,6 +2594,8 @@ const OperationDepartment = () => {
                   <option value="annual">Annual Leave</option>
                   <option value="sick">Sick Leave</option>
                   <option value="unpaid">Unpaid Leave</option>
+                  <option value="early">Early Leave</option>
+                  <option value="emergency">Emergency Leave</option>
                 </select>
                 {leaveFormErrors.type && (
                   <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>
@@ -2593,7 +2606,7 @@ const OperationDepartment = () => {
               
               <div style={{ marginBottom: '20px' }}>
                 <label htmlFor="leave-start-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                  Start Date
+                  {leaveFormData.type === 'early' ? 'Date' : 'Start Date'}
                 </label>
                 <input
                   id="leave-start-date"
@@ -2616,6 +2629,7 @@ const OperationDepartment = () => {
                 )}
               </div>
               
+              {leaveFormData.type !== 'early' && (
               <div style={{ marginBottom: '20px' }}>
                 <label htmlFor="leave-end-date" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
                   End Date
@@ -2640,7 +2654,31 @@ const OperationDepartment = () => {
                   </div>
                 )}
               </div>
+              )}
               
+              {leaveFormData.type === 'early' && (
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="leave-hours" style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                  Leave Hours
+                </label>
+                <input
+                  id="leave-hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={leaveFormData.leave_hour}
+                  onChange={(e) => handleLeaveFormChange('leave_hour', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: `1px solid ${leaveFormErrors.leave_hour ? '#ef4444' : '#d1d5db'}`,
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              )}
+
               <div style={{
                 display: 'flex',
                 gap: '12px',

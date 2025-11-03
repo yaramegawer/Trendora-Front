@@ -49,11 +49,11 @@ const LeaveStatus = {
 };
 
 const LeaveType = {
-  SICK: 'Sick',
-  VACATION: 'Vacation',
-  PERSONAL: 'Personal',
-  MATERNITY: 'Maternity',
-  PATERNITY: 'Paternity'
+  ANNUAL: 'annual',
+  SICK: 'sick',
+  UNPAID: 'unpaid',
+  EARLY: 'early',
+  EMERGENCY: 'emrgency'
 };
 
 const LeaveManagement = () => {
@@ -116,7 +116,8 @@ const LeaveManagement = () => {
     leaveType: '',
     startDate: '',
     endDate: '',
-    reason: ''
+    reason: '',
+    leave_hour: ''
   });
 
   
@@ -144,12 +145,15 @@ const LeaveManagement = () => {
       
       const leaveData = {
         employeeId: leaveForm.employeeId,
-        leaveType: leaveForm.leaveType,
+        type: leaveForm.leaveType,
         startDate: leaveForm.startDate,
         endDate: leaveForm.endDate,
         reason: leaveForm.reason || '',
-        status: 'pending' // Default status for new leaves
+        status: 'pending'
       };
+      if (leaveForm.leave_hour !== '' && !isNaN(leaveForm.leave_hour)) {
+        leaveData.leave_hours = Math.max(0, Number(leaveForm.leave_hour));
+      }
       
 ('Frontend: Adding leave with data:', leaveData);
       await addLeave(leaveData);
@@ -420,6 +424,7 @@ const LeaveManagement = () => {
                 <TableCell>Leave Type</TableCell>
                 <TableCell>Start Date</TableCell>
                 <TableCell>End Date</TableCell>
+                <TableCell>Leave Hours</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
@@ -442,6 +447,7 @@ const LeaveManagement = () => {
                   <TableCell>{leave.leaveType || leave.type}</TableCell>
                   <TableCell>{new Date(leave.startDate).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(leave.endDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{(leave.leave_hours ?? leave.leave_hour) ?? '-'}</TableCell>
                   <TableCell>
                     <Chip
                       label={leave.status}
@@ -603,11 +609,11 @@ const LeaveManagement = () => {
               onChange={(e) => setLeaveForm({...leaveForm, leaveType: e.target.value})}
               label="Leave Type *"
             >
+                <MenuItem value={LeaveType.ANNUAL}>Annual</MenuItem>
                 <MenuItem value={LeaveType.SICK}>Sick</MenuItem>
-                <MenuItem value={LeaveType.VACATION}>Vacation</MenuItem>
-                <MenuItem value={LeaveType.PERSONAL}>Personal</MenuItem>
-                <MenuItem value={LeaveType.MATERNITY}>Maternity</MenuItem>
-                <MenuItem value={LeaveType.PATERNITY}>Paternity</MenuItem>
+                <MenuItem value={LeaveType.UNPAID}>Unpaid</MenuItem>
+                <MenuItem value={LeaveType.EARLY}>Early</MenuItem>
+                <MenuItem value={LeaveType.EMERGENCY}>Emergency</MenuItem>
               </Select>
             </FormControl>
 
@@ -633,6 +639,15 @@ const LeaveManagement = () => {
                 />
               </Grid>
             </Grid>
+
+            <TextField
+              fullWidth
+              label="Leave Hours (Optional)"
+              type="number"
+              inputProps={{ min: 0, step: 0.5 }}
+              value={leaveForm.leave_hour}
+              onChange={(e) => setLeaveForm({...leaveForm, leave_hour: e.target.value})}
+            />
 
             <TextField
               fullWidth

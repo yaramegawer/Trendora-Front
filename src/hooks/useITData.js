@@ -160,10 +160,19 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
   const applyFiltersAndPagination = () => {
     let filteredProjects = allProjects;
     
+    // Apply client-side status filtering to be robust if backend ignores status
+    if (currentStatusFilter && currentStatusFilter !== 'all') {
+      const desired = String(currentStatusFilter).toLowerCase();
+      filteredProjects = (filteredProjects || []).filter(project => {
+        const statusVal = (project?.status ?? '').toString().toLowerCase();
+        return statusVal === desired;
+      });
+    }
+
     // Apply client-side search filtering
     if (currentSearchTerm && currentSearchTerm.trim() !== '') {
       const searchLower = currentSearchTerm.toLowerCase().trim();
-      filteredProjects = allProjects.filter(project => {
+      filteredProjects = (filteredProjects || []).filter(project => {
         const nameMatch = project.name?.toLowerCase().includes(searchLower);
         const descMatch = project.description?.toLowerCase().includes(searchLower);
         const notesMatch = project.notes?.toLowerCase().includes(searchLower);
@@ -226,7 +235,7 @@ export const useITProjects = (page = 1, limit = 10, searchTerm = '', statusFilte
         ('🔄 useITProjects applying client-side filters:', { currentPage, currentSearchTerm });
       applyFiltersAndPagination();
     }
-  }, [currentPage, currentSearchTerm, pageSize, allProjects]);
+  }, [currentPage, currentSearchTerm, currentStatusFilter, pageSize, allProjects]);
 
   // Pagination functions (client-side only, no backend call)
   const goToPage = (pageNum) => {
