@@ -1,16 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { userApiService } from '../services/userApi';
-import api from '../api/axios';
-import { API_CONFIG } from '../config/api';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { userApiService } from "../services/userApi";
+import api from "../api/axios";
+import { API_CONFIG } from "../config/api";
 
 // Department ID mapping (same as in departmentAuth.jsx)
 const DEPARTMENT_ID_MAP = {
-  '68da376594328b3a175633a7': 'IT',
-  '68da377194328b3a175633ad': 'HR',
-  '68da378594328b3a175633b3': 'Operation',
-  '68da378d94328b3a175633b9': 'Sales',
-  '68da379894328b3a175633bf': 'Accounting',
-  '68da6e0813fe176e91aefd59': 'Digital Marketing'
+  "68da376594328b3a175633a7": "IT",
+  "68da377194328b3a175633ad": "HR",
+  "68da378594328b3a175633b3": "Operation",
+  "68da378d94328b3a175633b9": "Sales",
+  "68da379894328b3a175633bf": "Accounting",
+  "68da6e0813fe176e91aefd59": "Digital Marketing",
 };
 
 const AuthContext = createContext();
@@ -18,47 +18,47 @@ const AuthContext = createContext();
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
-   ('AuthProvider: Component starting to render');
-  
+  ("AuthProvider: Component starting to render");
+
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-   ('AuthProvider: Initial state:', { user, isAuthenticated, loading });
+
+  "AuthProvider: Initial state:", { user, isAuthenticated, loading };
 
   useEffect(() => {
-     ('AuthProvider: useEffect running');
-    
+    ("AuthProvider: useEffect running");
+
     // Check if user is already logged in (from localStorage)
     const checkAuth = () => {
       try {
-         ('AuthProvider: Checking authentication from localStorage');
-        
-        const storedUser = localStorage.getItem('user');
-        const storedAuth = localStorage.getItem('isAuthenticated');
-        
-         ('AuthProvider: Stored data:', { storedUser: !!storedUser, storedAuth });
-        
-        if (storedUser && storedAuth === 'true') {
-           ('AuthProvider: User found in localStorage, setting authenticated state');
+        ("AuthProvider: Checking authentication from localStorage");
+
+        const storedUser = localStorage.getItem("user");
+        const storedAuth = localStorage.getItem("isAuthenticated");
+
+        "AuthProvider: Stored data:", { storedUser: !!storedUser, storedAuth };
+
+        if (storedUser && storedAuth === "true") {
+          ("AuthProvider: User found in localStorage, setting authenticated state");
           setUser(JSON.parse(storedUser));
           setIsAuthenticated(true);
         } else {
-           ('AuthProvider: No valid user data in localStorage');
+          ("AuthProvider: No valid user data in localStorage");
         }
       } catch (error) {
-         ('AuthProvider: Error checking authentication:', error);
+        "AuthProvider: Error checking authentication:", error;
         // Clear invalid data
-        localStorage.removeItem('user');
-        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem("user");
+        localStorage.removeItem("isAuthenticated");
       } finally {
-         ('AuthProvider: Setting loading to false');
+        ("AuthProvider: Setting loading to false");
         setLoading(false);
       }
     };
@@ -69,140 +69,161 @@ export const AuthProvider = ({ children }) => {
   const login = async ({ email, password }) => {
     try {
       setLoading(true);
-      
+
       // Validate input according to Joi schema
       if (!email || !password) {
-        throw new Error('Email and password are required');
+        throw new Error("Email and password are required");
       }
-      
+
       // Trim email to remove whitespace
       const trimmedEmail = email.trim();
-      
+
       // Enhanced Email validation
       // Check for basic format first
       if (!trimmedEmail || trimmedEmail.length === 0) {
-        throw new Error('Email address is required');
+        throw new Error("Email address is required");
       }
-      
+
       // Check if email starts with @ (no local part)
-      if (trimmedEmail.startsWith('@')) {
-        throw new Error('Invalid email format. Email cannot start with @');
+      if (trimmedEmail.startsWith("@")) {
+        throw new Error("Invalid email format. Email cannot start with @");
       }
-      
+
       // More comprehensive email validation
-      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-      
+      const emailRegex =
+        /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
       if (!emailRegex.test(trimmedEmail)) {
-        throw new Error('Invalid email format. Please enter a valid email address (e.g., user@example.com).');
+        throw new Error(
+          "Invalid email format. Please enter a valid email address (e.g., user@example.com)."
+        );
       }
-      
+
       // Additional validation: Check if email has proper structure (local@domain.tld)
-      const emailParts = trimmedEmail.split('@');
+      const emailParts = trimmedEmail.split("@");
       if (emailParts.length !== 2 || !emailParts[0] || !emailParts[1]) {
-        throw new Error('Invalid email format. Please enter a valid email address (e.g., user@example.com).');
+        throw new Error(
+          "Invalid email format. Please enter a valid email address (e.g., user@example.com)."
+        );
       }
-      
+
       // Check if domain has at least one dot and valid TLD
-      const domainParts = emailParts[1].split('.');
-      if (domainParts.length < 2 || !domainParts[domainParts.length - 1] || domainParts[domainParts.length - 1].length < 2) {
-        throw new Error('Invalid email domain. Please use a valid domain (e.g., gmail.com, company.com).');
+      const domainParts = emailParts[1].split(".");
+      if (
+        domainParts.length < 2 ||
+        !domainParts[domainParts.length - 1] ||
+        domainParts[domainParts.length - 1].length < 2
+      ) {
+        throw new Error(
+          "Invalid email domain. Please use a valid domain (e.g., gmail.com, company.com)."
+        );
       }
-      
+
       // Password validation (minimum length check)
       if (password.length < 1) {
-        throw new Error('The password cannot be empty');
+        throw new Error("The password cannot be empty");
       }
-      
+
       const requestData = {
         email: email.trim(),
-        password: password
+        password: password,
       };
-      
-      
-      const response = await api.post(API_CONFIG.ENDPOINTS.USER.LOGIN, requestData);
 
-      
+      const response = await api.post(
+        API_CONFIG.ENDPOINTS.USER.LOGIN,
+        requestData
+      );
+
       const data = response.data;
-      
+
       // Debug logging
-       ('Login response data:', data);
-       ('Response success field:', data.success);
-       ('Response message:', data.message);
-       ('Data keys:', Object.keys(data));
-       ('Data.user:', data.user);
-       ('Data.id:', data.id);
-       ('Data.token:', data.token);
-      
+      "Login response data:", data;
+      "Response success field:", data.success;
+      "Response message:", data.message;
+      "Data keys:", Object.keys(data);
+      "Data.user:", data.user;
+      "Data.id:", data.id;
+      "Data.token:", data.token;
+
       // Validate that we have a valid response
       if (!data) {
-        throw new Error('No data received from server');
+        throw new Error("No data received from server");
       }
-      console.log(data)
-      
+
       // If backend returned an explicit error field, handle it immediately
-      if (typeof data.error === 'string' && data.error.trim()) {
+      if (typeof data.error === "string" && data.error.trim()) {
         const errText = data.error.trim();
-        if (errText.toLowerCase().includes('inactive')) {
-          throw new Error('Your account is inactive, please contact admin.');
+        if (errText.toLowerCase().includes("inactive")) {
+          throw new Error("Your account is inactive, please contact admin.");
         }
         throw new Error(errText);
       }
-      
+
       // Check if the response indicates authentication failure (backend returns success: false)
       if (data.success === false) {
-         ('Login failed - success is false');
-        const errorMessage = data.error || 'Invalid credentials';
-        
+        ("Login failed - success is false");
+        const errorMessage = data.error || "Invalid credentials";
+
         // Inactive account handling
-        if (errorMessage.includes('inactive')) {
-          throw new Error('Your account is inactive, please contact admin.');
+        if (errorMessage.includes("inactive")) {
+          throw new Error("Your account is inactive, please contact admin.");
         }
         // Provide more helpful error message for invalid credentials
-        if (errorMessage.includes('invalid credentials')) {
-          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        if (errorMessage.includes("invalid credentials")) {
+          throw new Error(
+            "Invalid email or password. Please check your credentials and try again."
+          );
         }
         throw new Error(errorMessage);
       }
-      
+
       // Check if the response indicates authentication failure by message content
-      if (data.message && (data.message.toLowerCase().includes('inactive'))) {
-        throw new Error('Your account is inactive, please contact admin.');
+      if (data.message && data.message.toLowerCase().includes("inactive")) {
+        throw new Error("Your account is inactive, please contact admin.");
       }
-      if (data.message && (data.message.includes('invalid') || data.message.includes('wrong') || data.message.includes('incorrect'))) {
-        throw new Error(data.message || 'Invalid credentials');
+      if (
+        data.message &&
+        (data.message.includes("invalid") ||
+          data.message.includes("wrong") ||
+          data.message.includes("incorrect"))
+      ) {
+        throw new Error(data.message || "Invalid credentials");
       }
-      
+
       // Check if we have a token in the response
-      const token = data.token || data.accessToken || data.access_token || data.jwt;
+      const token =
+        data.token || data.accessToken || data.access_token || data.jwt;
       if (!token) {
-         ('No token found in response. Available fields:', Object.keys(data));
-        throw new Error('No authentication token received from server. Please check your credentials.');
+        "No token found in response. Available fields:", Object.keys(data);
+        throw new Error(
+          "No authentication token received from server. Please check your credentials."
+        );
       }
-      
+
       // Debug: Log the token to see its structure
-       ('🔍 Token received:', token.substring(0, 50) + '...');
-       ('🔍 Full response data:', data);
-      
+      "🔍 Token received:", token.substring(0, 50) + "...";
+      "🔍 Full response data:", data;
+
       // Try to decode token immediately to see its structure
       try {
-        const tokenParts = token.split('.');
+        const tokenParts = token.split(".");
         if (tokenParts.length === 3) {
           const header = JSON.parse(atob(tokenParts[0]));
           const payload = JSON.parse(atob(tokenParts[1]));
-           ('🔍 Token header:', header);
-           ('🔍 Token payload (raw):', payload);
-           ('🔍 Token payload keys:', Object.keys(payload));
+          "🔍 Token header:", header;
+          "🔍 Token payload (raw):", payload;
+          "🔍 Token payload keys:", Object.keys(payload);
         } else {
-           ('❌ Token is not a valid JWT format');
+          ("❌ Token is not a valid JWT format");
         }
       } catch (e) {
-         ('❌ Could not decode token for debugging:', e);
+        "❌ Could not decode token for debugging:", e;
       }
-      
+
       // Check if user data exists and is valid
       // The backend might return user data in different structures
       const hasUserData = data.user || data.id || data.userId || data._id;
-      
+
       // Always try to extract from JWT token first (regardless of user data in response)
       let userIdFromToken = null;
       let roleFromToken = null;
@@ -210,152 +231,214 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           // Decode JWT token to extract user ID, role, and department
-          const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-          
-          
+          const tokenPayload = JSON.parse(atob(token.split(".")[1]));
+
           // Extract user ID from various possible field names
-          userIdFromToken = tokenPayload.user_id || tokenPayload.sub || tokenPayload.id || 
-                           tokenPayload.userId || tokenPayload._id || tokenPayload.user?.id;
-          
+          userIdFromToken =
+            tokenPayload.user_id ||
+            tokenPayload.sub ||
+            tokenPayload.id ||
+            tokenPayload.userId ||
+            tokenPayload._id ||
+            tokenPayload.user?.id;
+
           // Extract role from various possible field names (case-insensitive)
           const roleFields = [
-            'role', 'user_role', 'userRole', 'role_name', 'roleName', 
-            'userType', 'user_type', 'userRole', 'permissions', 'access_level',
-            'user.role', 'profile.role', 'data.role'
+            "role",
+            "user_role",
+            "userRole",
+            "role_name",
+            "roleName",
+            "userType",
+            "user_type",
+            "userRole",
+            "permissions",
+            "access_level",
+            "user.role",
+            "profile.role",
+            "data.role",
           ];
-          
+
           for (const field of roleFields) {
             if (tokenPayload[field]) {
               roleFromToken = tokenPayload[field];
               break;
             }
           }
-          
+
           // Extract department from various possible field names
           const departmentFields = [
-            'department', 'department_id', 'departmentId', 'dept', 'dept_id',
-            'departmentId', 'departmentName', 'deptName', 'department_name',
-            'userDepartment', 'user_department', 'userDepartmentId', 'user_department_id'
+            "department",
+            "department_id",
+            "departmentId",
+            "dept",
+            "dept_id",
+            "departmentId",
+            "departmentName",
+            "deptName",
+            "department_name",
+            "userDepartment",
+            "user_department",
+            "userDepartmentId",
+            "user_department_id",
           ];
-          
+
           for (const field of departmentFields) {
             if (tokenPayload[field]) {
               departmentFromToken = tokenPayload[field];
               break;
             }
           }
-          
+
           // If not found in direct fields, check if it's an object with name/id
           if (!departmentFromToken) {
-            const departmentObjFields = ['department', 'dept', 'userDepartment'];
+            const departmentObjFields = [
+              "department",
+              "dept",
+              "userDepartment",
+            ];
             for (const field of departmentObjFields) {
-              if (tokenPayload[field] && typeof tokenPayload[field] === 'object') {
+              if (
+                tokenPayload[field] &&
+                typeof tokenPayload[field] === "object"
+              ) {
                 const deptObj = tokenPayload[field];
-                departmentFromToken = deptObj.id || deptObj._id || deptObj.name || deptObj.departmentName;
+                departmentFromToken =
+                  deptObj.id ||
+                  deptObj._id ||
+                  deptObj.name ||
+                  deptObj.departmentName;
                 if (departmentFromToken) {
                   break;
                 }
               }
             }
           }
-          
+
           // If still not found, check all fields for department-like values (IDs that match our department mapping)
           if (!departmentFromToken) {
             const departmentIds = Object.keys(DEPARTMENT_ID_MAP);
-            
+
             for (const [key, value] of Object.entries(tokenPayload)) {
               if (departmentIds.includes(value)) {
                 departmentFromToken = value;
                 break;
               }
             }
-            
           }
-          
+
           // Also check nested objects
           if (!roleFromToken && tokenPayload.user && tokenPayload.user.role) {
             roleFromToken = tokenPayload.user.role;
           }
-          
-          if (!departmentFromToken && tokenPayload.user && tokenPayload.user.department) {
+
+          if (
+            !departmentFromToken &&
+            tokenPayload.user &&
+            tokenPayload.user.department
+          ) {
             departmentFromToken = tokenPayload.user.department;
           }
-          
+
           // Check if user.department is an object
-          if (!departmentFromToken && tokenPayload.user && tokenPayload.user.department && typeof tokenPayload.user.department === 'object') {
+          if (
+            !departmentFromToken &&
+            tokenPayload.user &&
+            tokenPayload.user.department &&
+            typeof tokenPayload.user.department === "object"
+          ) {
             const userDept = tokenPayload.user.department;
             departmentFromToken = userDept.id || userDept._id || userDept.name;
           }
-          
+
           // Check profile object
-          if (!roleFromToken && tokenPayload.profile && tokenPayload.profile.role) {
+          if (
+            !roleFromToken &&
+            tokenPayload.profile &&
+            tokenPayload.profile.role
+          ) {
             roleFromToken = tokenPayload.profile.role;
           }
-          
-          if (!departmentFromToken && tokenPayload.profile && tokenPayload.profile.department) {
+
+          if (
+            !departmentFromToken &&
+            tokenPayload.profile &&
+            tokenPayload.profile.department
+          ) {
             departmentFromToken = tokenPayload.profile.department;
           }
-          
+
           // Check data object
           if (!roleFromToken && tokenPayload.data && tokenPayload.data.role) {
             roleFromToken = tokenPayload.data.role;
           }
-          
-          if (!departmentFromToken && tokenPayload.data && tokenPayload.data.department) {
+
+          if (
+            !departmentFromToken &&
+            tokenPayload.data &&
+            tokenPayload.data.department
+          ) {
             departmentFromToken = tokenPayload.data.department;
           }
-          
-          
-        } catch (error) {
-        }
+        } catch (error) {}
       }
-      
+
       if (!hasUserData && !userIdFromToken) {
-        throw new Error('Invalid user data received from server');
+        throw new Error("Invalid user data received from server");
       }
-      
+
       // Store user data and token
       const userData = {
         email: email.trim(),
-        id: data.user?._id || data.user?.id || data.id || data.userId || data._id || userIdFromToken,
-        role: roleFromToken || data.user?.role || data.role || 'User', // Prioritize role from token
-        department: departmentFromToken || 
-                   data.user?.is_user_exists?.department || 
-                   data.user?.department || 
-                   data.department || 
-                   null, // Include department from nested structure
-        name: data.user?.name || data.name || email.trim().split('@')[0], // Use email prefix as name if not provided
-        subscription_status: data.user?.subscription_status || data.subscription_status,
+        id:
+          data.user?._id ||
+          data.user?.id ||
+          data.id ||
+          data.userId ||
+          data._id ||
+          userIdFromToken,
+        role: roleFromToken || data.user?.role || data.role || "User", // Prioritize role from token
+        department:
+          departmentFromToken ||
+          data.user?.is_user_exists?.department ||
+          data.user?.department ||
+          data.department ||
+          null, // Include department from nested structure
+        name: data.user?.name || data.name || email.trim().split("@")[0], // Use email prefix as name if not provided
+        subscription_status:
+          data.user?.subscription_status || data.subscription_status,
         ...data.user, // Include any additional user data from API response
-        ...data // Include any additional data from API response
+        ...data, // Include any additional data from API response
       };
-      
+
       // Override role with token role if found (highest priority)
       if (roleFromToken) {
         userData.role = roleFromToken;
       }
-      
+
       // Override department with token department if found (highest priority)
       if (departmentFromToken) {
         userData.department = departmentFromToken;
       }
-      
-      
-      
+
       // If we still don't have a role, try fallback methods
-      if (!userData.role || userData.role === 'User') {
-        
+      if (!userData.role || userData.role === "User") {
         // Fallback: Check if this is a known admin user by email or ID
-        const adminEmails = ['admin@trendora.com', 'admin@example.com'];
-        const adminIds = ['68d7c56edf7fdc2e353c5e6b']; // Add known admin IDs here
-        
-        if (adminEmails.includes(userData.email) || adminIds.includes(userData.id)) {
-          userData.role = 'Admin';
+        const adminEmails = ["admin@trendora.com", "admin@example.com"];
+        const adminIds = ["68d7c56edf7fdc2e353c5e6b"]; // Add known admin IDs here
+
+        if (
+          adminEmails.includes(userData.email) ||
+          adminIds.includes(userData.id)
+        ) {
+          userData.role = "Admin";
         } else {
           // Try to fetch from database if endpoint exists
           try {
-            const userDetails = await userApiService.getUserDetails(userData.id);
-            
+            const userDetails = await userApiService.getUserDetails(
+              userData.id
+            );
+
             if (userDetails && userDetails.role) {
               userData.role = userDetails.role;
             }
@@ -364,202 +447,263 @@ export const AuthProvider = ({ children }) => {
             }
           } catch (error) {
             // Keep default role if we can't determine it
-            userData.role = 'Employee';
+            userData.role = "Employee";
           }
         }
       }
-      
+
       // If we still don't have department, try to fetch it from API
       if (!userData.department && userData.id) {
         try {
           const userDetails = await userApiService.getUserDetails(userData.id);
-          
+
           if (userDetails && userDetails.department) {
             userData.department = userDetails.department;
           }
-        } catch (error) {
-        }
+        } catch (error) {}
       }
-      
+
       setUser(userData);
       setIsAuthenticated(true);
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('isAuthenticated', 'true');
-      
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("isAuthenticated", "true");
+
       // Store token (already extracted above)
-      localStorage.setItem('token', token);
-      
-       ('Login successful. Token stored:', token?.substring(0, 20) + '...');
-       ('Token verification - stored token:', localStorage.getItem('token')?.substring(0, 20) + '...');
-       ('Final user data with role:', userData);
-      
+      localStorage.setItem("token", token);
+
+      "Login successful. Token stored:", token?.substring(0, 20) + "...";
+      "Token verification - stored token:",
+        localStorage.getItem("token")?.substring(0, 20) + "...";
+      "Final user data with role:", userData;
+
       return data;
     } catch (error) {
-      
-       ('=== Login Error Details ===');
-       ('Full error object:', error);
-       ('Error response:', error.response);
-       ('Error response data:', error.response?.data);
-       ('Error response status:', error.response?.status);
-       ('Error message:', error.message);
-       ('=========================');
-      
+      ("=== Login Error Details ===");
+      "Full error object:", error;
+      "Error response:", error.response;
+      "Error response data:", error.response?.data;
+      "Error response status:", error.response?.status;
+      "Error message:", error.message;
+      ("=========================");
+
       // Handle different types of errors
-      let errorMessage = 'Login failed. Please try again.';
-      
+      let errorMessage = "Login failed. Please try again.";
+
       // First, try to extract message from response data (prefer explicit `error` from backend)
       if (error.response?.data) {
         const responseData = error.response.data;
         // Prefer explicit backend error
-        if (typeof responseData.error === 'string' && responseData.error.trim()) {
+        if (
+          typeof responseData.error === "string" &&
+          responseData.error.trim()
+        ) {
           errorMessage = responseData.error;
         } else {
           // Try other possible fields (without 'error' since we checked it already)
           const possibleMessageFields = [
-            'message', 'msg', 'errorMessage', 'error_message',
-            'detail', 'details', 'description'
+            "message",
+            "msg",
+            "errorMessage",
+            "error_message",
+            "detail",
+            "details",
+            "description",
           ];
           for (const field of possibleMessageFields) {
-            if (responseData[field] && typeof responseData[field] === 'string') {
+            if (
+              responseData[field] &&
+              typeof responseData[field] === "string"
+            ) {
               errorMessage = responseData[field];
-               (`Found error message in field '${field}':`, errorMessage);
+              `Found error message in field '${field}':`, errorMessage;
               break;
             }
           }
         }
       }
-      
+
       // If this is an app-thrown Error (no Axios response), prefer its message
-      if (!error.response && typeof error.message === 'string' && error.message.trim()) {
+      if (
+        !error.response &&
+        typeof error.message === "string" &&
+        error.message.trim()
+      ) {
         errorMessage = error.message.trim();
       }
-      
+
       // Detect inactive account early and set a friendly, specific message
-      const rawBackendError = String(error.response?.data?.error || '');
-      const isInactiveAccount = (error.response?.status === 403)
-        || String(errorMessage || '').toLowerCase().includes('inactive')
-        || rawBackendError.toLowerCase().includes('inactive');
+      const rawBackendError = String(error.response?.data?.error || "");
+      const isInactiveAccount =
+        error.response?.status === 403 ||
+        String(errorMessage || "")
+          .toLowerCase()
+          .includes("inactive") ||
+        rawBackendError.toLowerCase().includes("inactive");
       if (isInactiveAccount) {
-        errorMessage = 'Your account is inactive, please contact admin.';
+        errorMessage = "Your account is inactive, please contact admin.";
       }
-      
+
       // Replace generic backend error messages with user-friendly ones
       const genericErrors = [
-        'internal server error',
-        'Internal server error',
-        'Internal Server Error',
-        'INTERNAL_SERVER_ERROR',
-        'server error',
-        'Server error',
-        '500'
+        "internal server error",
+        "Internal server error",
+        "Internal Server Error",
+        "INTERNAL_SERVER_ERROR",
+        "server error",
+        "Server error",
+        "500",
       ];
-      
-      if (!isInactiveAccount && genericErrors.some(msg => errorMessage.toLowerCase().includes(msg.toLowerCase()))) {
-         ('Replacing generic backend error with user-friendly message');
+
+      if (
+        !isInactiveAccount &&
+        genericErrors.some((msg) =>
+          errorMessage.toLowerCase().includes(msg.toLowerCase())
+        )
+      ) {
+        ("Replacing generic backend error with user-friendly message");
         // Check if this is a credential error first
-        const isCredentialError = errorMessage.toLowerCase().includes('invalid credentials') || 
-                                  errorMessage.toLowerCase().includes('wrong password') ||
-                                  errorMessage.toLowerCase().includes('incorrect password') ||
-                                  errorMessage.toLowerCase().includes('authentication failed') ||
-                                  errorMessage.toLowerCase().includes('invalid email or password');
-        
-                              
+        const isCredentialError =
+          errorMessage.toLowerCase().includes("invalid credentials") ||
+          errorMessage.toLowerCase().includes("wrong password") ||
+          errorMessage.toLowerCase().includes("incorrect password") ||
+          errorMessage.toLowerCase().includes("authentication failed") ||
+          errorMessage.toLowerCase().includes("invalid email or password");
+
         if (isCredentialError) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          errorMessage =
+            "Invalid email or password. Please check your credentials and try again.";
         }
         // For 400 status, assume it's a credential error (not email format)
         else if (error.response?.status === 400) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } 
+          errorMessage =
+            "Invalid email or password. Please check your credentials and try again.";
+        }
         // For 500 status, could be server error
         else if (error.response?.status === 500) {
-          errorMessage = 'Server error. Please try again later or contact support.';
-        } 
-        else {
-          errorMessage = 'Server error. Please try again later or contact support.';
+          errorMessage =
+            "Server error. Please try again later or contact support.";
+        } else {
+          errorMessage =
+            "Server error. Please try again later or contact support.";
         }
       }
-      
+
       // Check for credential errors FIRST before any format errors
       const credentialErrorKeywords = [
-        'invalid credentials', 'wrong password', 'incorrect password', 'authentication failed',
-        'invalid email or password', 'invalid password', 'wrong email', 'incorrect email',
-        'login failed', 'authentication error', 'user not found', 'no user found',
-        'password incorrect', 'email not found', 'invalid login', 'failed to authenticate',
-        'user does not exist', 'account not found', 'no account', 'email or password'
+        "invalid credentials",
+        "wrong password",
+        "incorrect password",
+        "authentication failed",
+        "invalid email or password",
+        "invalid password",
+        "wrong email",
+        "incorrect email",
+        "login failed",
+        "authentication error",
+        "user not found",
+        "no user found",
+        "password incorrect",
+        "email not found",
+        "invalid login",
+        "failed to authenticate",
+        "user does not exist",
+        "account not found",
+        "no account",
+        "email or password",
       ];
-      
+
       // Check if it's an email format error (very specific)
-      const emailFormatKeywords = ['email format', 'invalid email format', 'email is not valid', 'invalid email address', 'malformed email', 'email validation'];
-      const isEmailFormatError = emailFormatKeywords.some(keyword => 
+      const emailFormatKeywords = [
+        "email format",
+        "invalid email format",
+        "email is not valid",
+        "invalid email address",
+        "malformed email",
+        "email validation",
+      ];
+      const isEmailFormatError = emailFormatKeywords.some((keyword) =>
         errorMessage.toLowerCase().includes(keyword)
       );
-      
-      const isCredentialError = credentialErrorKeywords.some(keyword => 
+
+      const isCredentialError = credentialErrorKeywords.some((keyword) =>
         errorMessage.toLowerCase().includes(keyword)
       );
-      
-       ('🔍 ERROR DEBUG:', {
-        status: error.response?.status,
-        errorMessage,
-        isEmailFormatError,
-        isCredentialError
-      });
-      
+
+      "🔍 ERROR DEBUG:",
+        {
+          status: error.response?.status,
+          errorMessage,
+          isEmailFormatError,
+          isCredentialError,
+        };
+
       // If it's SPECIFICALLY an email format error, show format error
       if (isEmailFormatError && !isCredentialError) {
-         ('📧 Showing email format error');
-        errorMessage = 'Please enter a valid email address in the format: example@domain.com';
+        ("📧 Showing email format error");
+        errorMessage =
+          "Please enter a valid email address in the format: example@domain.com";
       }
       // If it's a credential error OR 400/401 error (assume credential issue)
-      else if (!isInactiveAccount && (isCredentialError || error.response?.status === 401 || error.response?.status === 400)) {
-         ('🔐 Showing credential error');
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      else if (
+        !isInactiveAccount &&
+        (isCredentialError ||
+          error.response?.status === 401 ||
+          error.response?.status === 400)
+      ) {
+        ("🔐 Showing credential error");
+        errorMessage =
+          "Invalid email or password. Please check your credentials and try again.";
       }
-      
+
       // If no message found in response, handle by status code
-      if (errorMessage === 'Login failed. Please try again.') {
+      if (errorMessage === "Login failed. Please try again.") {
         // 401 always means credential error
         if (!isInactiveAccount && error.response?.status === 401) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        }
-        else if (error.response?.status === 400) {
+          errorMessage =
+            "Invalid email or password. Please check your credentials and try again.";
+        } else if (error.response?.status === 400) {
           // Handle validation errors from the server
           const errorData = error.response.data;
-          
+
           if (errorData.errors) {
             // Handle Joi validation errors
             const errors = errorData.errors;
             if (errors.email) {
-              errorMessage = 'Please enter a valid email address';
+              errorMessage = "Please enter a valid email address";
             } else if (errors.password) {
-              errorMessage = 'The password cannot be empty';
+              errorMessage = "The password cannot be empty";
             } else {
-              errorMessage = Object.values(errors)[0] || 'Please check your input';
+              errorMessage =
+                Object.values(errors)[0] || "Please check your input";
             }
           } else {
             // For 400 errors without specific errors, assume it's a credential issue
-            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            errorMessage =
+              "Invalid email or password. Please check your credentials and try again.";
           }
         } else if (error.response?.status === 404) {
-          errorMessage = 'Login service not found';
+          errorMessage = "Login service not found";
         } else if (error.response?.status === 500) {
-          errorMessage = 'Server error. Please try again later';
-        } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-          errorMessage = 'Unable to connect to the server. Please check your internet connection';
-        } else if (error.message && !error.message.includes('Request failed')) {
+          errorMessage = "Server error. Please try again later";
+        } else if (
+          error.code === "NETWORK_ERROR" ||
+          error.message.includes("Network Error")
+        ) {
+          errorMessage =
+            "Unable to connect to the server. Please check your internet connection";
+        } else if (error.message && !error.message.includes("Request failed")) {
           // Use the error message from our validation or other sources (but not generic axios messages)
           errorMessage = error.message;
         }
       }
-      
+
       // Clear any partial data on error
       setUser(null);
       setIsAuthenticated(false);
-      localStorage.removeItem('user');
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('token');
-      
+      localStorage.removeItem("user");
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("token");
+
       throw new Error(errorMessage); // bubble up to LoginPage
     } finally {
       setLoading(false);
@@ -569,9 +713,9 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('user');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('token');
+    localStorage.removeItem("user");
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("token");
   };
 
   const value = {
@@ -579,12 +723,8 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     loading,
     login,
-    logout
+    logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

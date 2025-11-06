@@ -149,7 +149,7 @@ const LoginPage = () => {
       // Create more user-friendly error messages
      // Prefer server-provided message if available
      
-     console.log(err);
+
 let errorMessage =
 
   err?.response?.data?.message ||
