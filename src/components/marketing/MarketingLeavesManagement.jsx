@@ -565,24 +565,20 @@ const MarketingLeavesManagement = ({ departmentId = null }) => {
                               )}
                             </td>
                             <td style={{ padding: "12px 16px" }}>
-                              <div
-                                style={{ fontWeight: "500", color: "#1f2937" }}
-                              >
+                              <div style={{ fontWeight: "500", color: "#1f2937" }}>
                                 {calculateDuration(
                                   leave.startDate,
                                   leave.endDate
                                 )}{" "}
                                 days
                               </div>
-                              <div
-                                style={{
-                                  fontSize: "12px",
-                                  color: "#6b7280",
-                                  marginTop: "2px",
-                                }}
-                              >
-                                {formatDate(leave.startDate)} -{" "}
-                                {formatDate(leave.endDate)}
+                              <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                                {formatDate(leave.startDate)} - {formatDate(leave.endDate)}
+                                {(leave.type === 'early' || leave.type === 'late' || leave.leaveType === 'early' || leave.leaveType === 'late') && (
+                                  <div style={{ marginTop: '4px' }}>
+                                    {leave.leave_hours ? `${leave.leave_hours} hours` : ''}
+                                  </div>
+                                )}
                               </div>
                             </td>
                             <td style={{ padding: "12px 16px" }}>
