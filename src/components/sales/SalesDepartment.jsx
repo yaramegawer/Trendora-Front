@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Joi from 'joi-browser';
 import SimplePagination from '../common/SimplePagination';
 
@@ -34,9 +34,30 @@ const customerSchema = {
     .label('Company Name'),
     
   phone_number: Joi.string()
+    .regex(/^[0-9]{10,15}$/)
     .trim()
     .required()
-    .label('Phone Number'),
+    .options({
+      language: {
+        string: {
+          regex: {
+            base: 'must be 10-15 digits',
+          }
+        }
+      }
+    })
+    .label('Phone Number')
+    .error(errors => {
+      return errors.map(error => {
+        if (error.type === 'string.regex.base') {
+          return new Error('Phone number must be 10-15 digits');
+        }
+        if (error.type === 'any.empty') {
+          return new Error('Phone number is required');
+        }
+        return error;
+      });
+    }),
     
   email: Joi.string()
     .email()
@@ -593,14 +614,13 @@ const SalesDepartment = () => {
     }
   }, [activeTab, pageSize, debouncedSearchTerm, statusFilter, assignedToFilter]);
 
-  // Fetch customers when page changes or filters are updated
+  // Fetch all customers once when component mounts or when tab changes to customer list
   useEffect(() => {
     if (activeTab === 0) {
-      // Always fetch from page 1 when filters change, otherwise respect current page
-      const pageToFetch = (statusFilter !== '' || assignedToFilter !== '' || debouncedSearchTerm !== '') ? 1 : currentPage;
-      fetchCustomers(pageToFetch, pageSize, debouncedSearchTerm, statusFilter, assignedToFilter);
+      // Fetch all customers without any filters since we'll handle filtering client-side
+      fetchCustomers(1, 1000); // Fetch a large number to get all customers
     }
-  }, [currentPage, pageSize, activeTab, debouncedSearchTerm, statusFilter, assignedToFilter]);
+  }, [activeTab]);
 
   // Reset to page 1 when search or filters change
   useEffect(() => {
@@ -611,8 +631,37 @@ const SalesDepartment = () => {
 
     
     
-  // Backend handles filtering, so use customers directly
-  const displayCustomers = customers || [];
+  // Client-side search and filtering
+  const filteredCustomers = useMemo(() => {
+    if (!customers || !Array.isArray(customers)) return [];
+    
+    return customers.filter(customer => {
+      // If search term exists, check if it matches any relevant field
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        (customer.customer_name && customer.customer_name.toLowerCase().includes(searchLower)) ||
+        (customer.company_name && customer.company_name.toLowerCase().includes(searchLower)) ||
+        (customer.phone_number && customer.phone_number.includes(searchTerm)) ||
+        (customer.email && customer.email.toLowerCase().includes(searchLower));
+      
+      // Apply status filter if set
+      const matchesStatus = !statusFilter || customer.status === statusFilter;
+      
+      // Apply assigned to filter if set
+      const matchesAssignedTo = !assignedToFilter || customer.assigned_to === assignedToFilter;
+      
+      return matchesSearch && matchesStatus && matchesAssignedTo;
+    });
+  }, [customers, searchTerm, statusFilter, assignedToFilter]);
+  
+  // Paginate the filtered customers
+  const paginatedCustomers = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredCustomers.slice(startIndex, startIndex + pageSize);
+  }, [filteredCustomers, currentPage, pageSize]);
+
+  // Use paginated customers for display
+  const displayCustomers = paginatedCustomers || [];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -702,11 +751,29 @@ const SalesDepartment = () => {
   const handleSaveCustomer = async (e) => {
     if (e) e.preventDefault();
     
-    // Validate the entire form
+    // First validate phone number format
+    const phoneNumber = formData.phone_number;
+    const phoneNumberError = validateProperty({ 
+      name: 'phone_number', 
+      value: phoneNumber 
+    });
+    
+    if (phoneNumberError) {
+      setErrors(prev => ({
+        ...prev,
+        phone_number: phoneNumberError
+      }));
+      const element = document.querySelector('[name="phone_number"]');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    
+    // Then validate the rest of the form
     const validationErrors = validate();
     if (validationErrors) {
       setErrors(validationErrors);
-      // Scroll to the first error
       const firstErrorField = Object.keys(validationErrors)[0];
       const element = document.querySelector(`[name="${firstErrorField}"]`);
       if (element) {
@@ -995,8 +1062,8 @@ const SalesDepartment = () => {
         </Box>
       )}
       
-      {/* Pagination - Show when there are total pages */}
-      {!loading && totalPages > 1 && (
+      {/* Pagination - Only show if we have more than one page of results */}
+      {!loading && filteredCustomers.length > pageSize && (
         <Box sx={{ 
           mt: 3, 
           display: 'flex', 
@@ -1005,12 +1072,11 @@ const SalesDepartment = () => {
         }}>
           <SimplePagination
             currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalCustomers}
+            totalPages={Math.ceil(filteredCustomers.length / pageSize)}
+            totalItems={filteredCustomers.length}
             pageSize={pageSize}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchCustomers(page, pageSize, debouncedSearchTerm, statusFilter, assignedToFilter);
             }}
             itemLabel="customers"
           />
@@ -1799,10 +1865,25 @@ const SalesDepartment = () => {
               label="Phone Number"
               name="phone_number"
               value={formData.phone_number}
-              onChange={handleChange}
+              onChange={(e) => {
+                // Only allow numbers and limit to 15 digits
+                const value = e.target.value.replace(/\D/g, '').slice(0, 15);
+                const event = {
+                  target: {
+                    name: 'phone_number',
+                    value: value
+                  }
+                };
+                handleChange(event);
+              }}
               error={!!errors.phone_number}
-              helperText={errors.phone_number}
+              helperText={errors.phone_number || "Enter 10-15 digits"}
               required
+              inputProps={{
+                inputMode: 'numeric',
+                pattern: '[0-9]*',
+                maxLength: 15
+              }}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '8px',
@@ -1814,7 +1895,6 @@ const SalesDepartment = () => {
                   },
                 },
               }}
-              
             />
             <TextField
               fullWidth
@@ -1888,7 +1968,7 @@ const SalesDepartment = () => {
               helperText={errors.Budget}
               disabled={loading}
               InputProps={{
-                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                startAdornment: <InputAdornment position="start"></InputAdornment>,
               }}
               sx={textFieldStyle}
             />
