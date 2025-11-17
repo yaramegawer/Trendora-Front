@@ -23,7 +23,8 @@ const Roles = [
   'Employee', 
   'HR',
   'IT Staff',
-  'Accountant'
+  'Accountant',
+  'Sales Representative'
 ];
 
 const DocumentTypes = [
