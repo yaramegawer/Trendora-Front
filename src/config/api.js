@@ -68,6 +68,21 @@ export const API_CONFIG = {
       TICKETS: "/dashboard/tickets",
       ADVANCES: "/dashboard/advance",
     },
+    SALES: {
+      
+      ADD_CUSTOMER: "/sales/add",
+      GET_ALL_CUSTOMERS: "/sales/get_all",
+      GET_CUSTOMER: "/sales/get_one",
+      UPDATE_CUSTOMER: "/sales/update",
+      DELETE_CUSTOMER: "/sales/delete",
+      GET_SALES_EMPLOYEES: "/sales/employees/salesDept",
+      GET_FOLLOW_UPS: "/sales/followUps",
+      UPDATE_FOLLOW_UP_STATUS: "/sales/updateFollowUpStatus",
+      RESCHEDULE_FOLLOW_UP: "/sales/resecduleFollowUp",
+      GET_MY_CUSTOMERS_REPORT: "/sales/MyCustomers",
+      TEAM_PERFORMANCE: '/sales/team_performance',
+      SERVICES_DEMAND: '/sales/demand',
+    },
   },
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -60,6 +60,28 @@ import SimplePagination from '../common/SimplePagination';
 const AccountingDepartment = () => {
   const { user } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useNotification();
+  
+  // Add global CSS to prevent list-style issues
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .accounting-department ul,
+      .accounting-department ol,
+      .accounting-department li {
+        list-style: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .accounting-department * {
+        list-style: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   
   // Check if user has access to Accounting department
   // Since department info is not available in the user object, allow access
@@ -409,8 +431,11 @@ const AccountingDepartment = () => {
   };
 
   const handleDeleteTransaction = async () => {
+    // Close menu immediately
+    handleMenuClose();
     if (selectedTransaction && window.confirm('Are you sure you want to delete this transaction?')) {
       const result = await deleteTransaction(selectedTransaction._id);
+     
       if (result.success) {
         // Clear search and refresh transactions
         setTransactionSearchTerm('');
@@ -419,7 +444,6 @@ const AccountingDepartment = () => {
         showError('Failed to delete transaction: ' + result.error);
       }
     }
-    handleMenuClose();
   };
 
   const handlePrintTransaction = () => {
@@ -431,12 +455,15 @@ const AccountingDepartment = () => {
         <head>
           <title>Transaction - ${transaction.description}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
+            * { box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; margin: 20px; list-style: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body * { list-style: none !important; }
+            ul, ol, li { list-style: none !important; margin: 0; padding: 0; }
             .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
             .company-name { font-size: 28px; font-weight: bold; color: #333; }
             .transaction-title { font-size: 18px; color: #666; margin-top: 10px; }
             .transaction-info { margin: 30px 0; }
-            .detail-row { margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+            .detail-row { margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; list-style: none !important; }
             .label { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
             .value { font-size: 16px; color: #333; }
             .amount { font-size: 24px; font-weight: bold; }
@@ -444,8 +471,11 @@ const AccountingDepartment = () => {
             .amount.expense { color: #c62828; }
             .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px; }
             @media print { 
-              body { margin: 0; } 
+              body { margin: 0; list-style: none; } 
+              body * { list-style: none !important; }
+              ul, ol, li { list-style: none !important; margin: 0; padding: 0; }
               .no-print { display: none; }
+              .detail-row { list-style: none !important; }
             }
           </style>
         </head>
@@ -519,13 +549,30 @@ const AccountingDepartment = () => {
       
       // Wait for content to load, then print
       iframe.contentWindow.onload = () => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        
-        // Remove iframe after printing
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 1000);
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          
+          // Remove iframe immediately after print dialog closes
+          iframe.contentWindow.onafterprint = () => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          };
+          
+          // Fallback: Remove iframe after 3 seconds as backup
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          }, 3000);
+        } catch (error) {
+          console.error('Error during print:', error);
+          // Clean up iframe on error
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }
       };
     }
     handleMenuClose();
@@ -753,7 +800,9 @@ const AccountingDepartment = () => {
       backgroundColor: 'grey.50',
       p: 3,
       fontSize: '13px'
-    }}>
+    }}
+    className="accounting-department"
+    >
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
