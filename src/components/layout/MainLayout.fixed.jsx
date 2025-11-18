@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback, useMemo } from 'react';
 import { Stack, Box, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Button, IconButton, CircularProgress, Skeleton, Tooltip } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -167,9 +167,20 @@ const renderContent = (activeSection, userRole) => {
 };
 
 const MainLayout = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  // Get initial section from localStorage or default to 'dashboard'
+  const getInitialSection = () => {
+    const savedSection = localStorage.getItem('activeSection');
+    return savedSection || 'dashboard';
+  };
+  
+  const [activeSection, setActiveSection] = useState(getInitialSection());
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { logout, user } = useAuth();
+  
+  // Save activeSection to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('activeSection', activeSection);
+  }, [activeSection]);
   
   const userRole = user?.role || 'Employee';
   const menuItems = useMemo(() => getMenuItems(user), [user]);

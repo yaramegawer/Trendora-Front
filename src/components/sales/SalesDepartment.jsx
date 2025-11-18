@@ -171,8 +171,8 @@ const SalesDepartment = () => {
   const [pageSize] = useState(10);
   const [totalCustomers, setTotalCustomers] = useState(0);
 
+  // Search term state for instant client-side search
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [assignedToFilter, setAssignedToFilter] = useState('');
   const searchTimeoutRef = useRef(null);
@@ -383,7 +383,7 @@ const SalesDepartment = () => {
       setReportError('');
       
       const response = await salesApi.getMyCustomersReport();
-       ('My Customers report response:', response);
+      ('My Customers report response:', response);
       
       // Handle different response formats
       let reportData = [];
@@ -416,7 +416,7 @@ const SalesDepartment = () => {
       setTeamPerformanceError('');
       
       const response = await salesApi.getTeamPerformance();
-       ('Team Performance response:', response);
+      ('Team Performance response:', response);
       
       setTeamPerformanceData(response);
     } catch (error) {
@@ -438,7 +438,7 @@ const SalesDepartment = () => {
       setServicesDemandError('');
       
       const response = await salesApi.getServicesDemand();
-       ('Services Demand response:', response);
+      ('Services Demand response:', response);
       
       setServicesDemandData(response);
     } catch (error) {
@@ -454,28 +454,14 @@ const SalesDepartment = () => {
     }
   };
 
-  const fetchCustomers = useCallback(async (page = 1, limit = pageSize, search = '', status = '', assignedTo = '') => {
+  const fetchCustomers = useCallback(async (page = 1, limit = pageSize) => {
     try {
       setLoading(true);
       
-      // Build query parameters for pagination, search and filters
+      // Build query parameters for pagination only
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('limit', limit.toString());
-      
-      // Add search parameter if provided
-      if (search.trim()) {
-        params.append('query', search.trim());
-      }
-      
-      // Add filter parameters if provided
-      if (status) {
-        params.append('status', status);
-      }
-      
-      if (assignedTo) {
-        params.append('assigned_to', assignedTo);
-      }
       
       const response = await salesApi.getAllCustomers(params);
       
@@ -528,44 +514,44 @@ const SalesDepartment = () => {
       setCustomers(customersData);
       
       // Update pagination states
-       ('Customers data length:', customersData.length);
-       ('Page:', page, 'Limit:', limit);
-       ('Pagination data from backend:', paginationData);
+      ('Customers data length:', customersData.length);
+      ('Page:', page, 'Limit:', limit);
+      ('Pagination data from backend:', paginationData);
       
       if (paginationData.totalPages) {
         setTotalPages(paginationData.totalPages);
         setTotalCustomers(paginationData.totalCount || paginationData.total || customersData.length);
-         ('Using backend pagination - totalPages:', paginationData.totalPages, 'totalCustomers:', paginationData.totalCount || paginationData.total || customersData.length);
+        ('Using backend pagination - totalPages:', paginationData.totalPages, 'totalCustomers:', paginationData.totalCount || paginationData.total || customersData.length);
       } else if (paginationData.totalCount || paginationData.total) {
         const totalCount = paginationData.totalCount || paginationData.total;
         setTotalPages(Math.ceil(totalCount / limit));
         setTotalCustomers(totalCount);
-         ('Using backend count - totalPages:', Math.ceil(totalCount / limit), 'totalCustomers:', totalCount);
+        ('Using backend count - totalPages:', Math.ceil(totalCount / limit), 'totalCustomers:', totalCount);
       } else {
         // No pagination data from backend - be more conservative with estimates
         const currentPageItems = customersData.length;
-         ('No backend pagination data, calculating from current page items:', currentPageItems);
+        ('No backend pagination data, calculating from current page items:', currentPageItems);
         
         if (currentPageItems === limit && page === 1) {
           // We got a full page on first request, there might be more but don't overestimate
           setTotalPages(2); // Will be updated when user navigates
           setTotalCustomers(currentPageItems); // Start with what we know
-           ('Full page on first request - setting totalPages: 2, totalCustomers:', currentPageItems);
+          ('Full page on first request - setting totalPages: 2, totalCustomers:', currentPageItems);
         } else if (currentPageItems === limit) {
           // Full page but not first page, there might be more
           setTotalPages(page + 1);
           setTotalCustomers(page * limit); // Conservative estimate
-           ('Full page on page', page, '- setting totalPages:', page + 1, 'totalCustomers:', page * limit);
+          ('Full page on page', page, '- setting totalPages:', page + 1, 'totalCustomers:', page * limit);
         } else if (currentPageItems < limit) {
           // Less than full page, we're at the end
           setTotalPages(page);
           setTotalCustomers((page - 1) * limit + currentPageItems);
-           ('Partial page - setting totalPages:', page, 'totalCustomers:', (page - 1) * limit + currentPageItems);
+          ('Partial page - setting totalPages:', page, 'totalCustomers:', (page - 1) * limit + currentPageItems);
         } else {
           // Default case - just use what we have
           setTotalPages(1);
           setTotalCustomers(currentPageItems);
-           ('Default case - setting totalPages: 1, totalCustomers:', currentPageItems);
+          ('Default case - setting totalPages: 1, totalCustomers:', currentPageItems);
         }
       }
       
@@ -582,27 +568,6 @@ const SalesDepartment = () => {
     }
   }, [pageSize]);
 
-  // Debounce search term with 1000ms delay
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    // Only set the debounced search term if the search term is not empty
-    // or if it's empty but we previously had a search term (to clear results)
-    if (searchTerm.trim() !== '' || (searchTerm === '' && debouncedSearchTerm !== '')) {
-      searchTimeoutRef.current = setTimeout(() => {
-        setDebouncedSearchTerm(searchTerm.trim());
-      }, 1000); // Increased to 1000ms for better typing experience
-    }
-    
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchTerm, debouncedSearchTerm]);
-
   useEffect(() => {
     fetchSalesEmployees();
   }, []);
@@ -610,15 +575,15 @@ const SalesDepartment = () => {
   // Initial fetch of customers when component mounts or when tab changes to customer list
   useEffect(() => {
     if (activeTab === 0) {
-      fetchCustomers(1, pageSize, debouncedSearchTerm, statusFilter, assignedToFilter);
+      fetchCustomers(1, pageSize);
     }
-  }, [activeTab, pageSize, debouncedSearchTerm, statusFilter, assignedToFilter]);
+  }, [activeTab, pageSize]);
 
-  // Fetch all customers once when component mounts or when tab changes to customer list
+  // Fetch all customers once for client-side search and filtering
   useEffect(() => {
     if (activeTab === 0) {
-      // Fetch all customers without any filters since we'll handle filtering client-side
-      fetchCustomers(1, 1000); // Fetch a large number to get all customers
+      // Fetch all customers without pagination for client-side filtering
+      fetchCustomers(1, 1000);
     }
   }, [activeTab]);
 
@@ -627,7 +592,7 @@ const SalesDepartment = () => {
     if (activeTab === 0) {
       setCurrentPage(1);
     }
-  }, [debouncedSearchTerm, statusFilter, assignedToFilter, activeTab]);
+  }, [searchTerm, statusFilter, assignedToFilter, activeTab]);
 
     
     
@@ -654,14 +619,14 @@ const SalesDepartment = () => {
     });
   }, [customers, searchTerm, statusFilter, assignedToFilter]);
   
-  // Paginate the filtered customers
+  // Paginate the filtered customers for display
   const paginatedCustomers = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return filteredCustomers.slice(startIndex, startIndex + pageSize);
   }, [filteredCustomers, currentPage, pageSize]);
 
-  // Use paginated customers for display
-  const displayCustomers = paginatedCustomers || [];
+  // Use paginated filtered customers for display
+  const displayCustomers = paginatedCustomers;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -700,7 +665,7 @@ const SalesDepartment = () => {
   };
 
   const handleEditCustomer = (customer) => {
-     ('Edit customer clicked:', customer);
+    ('Edit customer clicked:', customer);
     setIsEditing(true);
     setSelectedCustomer(customer);
     setFormData({
@@ -716,7 +681,7 @@ const SalesDepartment = () => {
       assigned_to: customer.assigned_to || ''
     });
     setErrors({}); // Clear any previous errors
-     ('Form data set:', {
+    ('Form data set:', {
       customer_name: customer.customer_name || '',
       company_name: customer.company_name || '',
       phone_number: customer.phone_number || '',
@@ -728,8 +693,8 @@ const SalesDepartment = () => {
       notes: customer.notes || '',
       assigned_to: customer.assigned_to || ''
     });
-     ('Is editing set to:', true);
-     ('Opening form dialog...');
+    ('Is editing set to:', true);
+    ('Opening form dialog...');
     setIsFormOpen(true);
   };
 
@@ -813,7 +778,7 @@ const SalesDepartment = () => {
         delete normalizedData.Next_Followup_Date;
       }
       
-       ('Submitting customer data:', normalizedData);
+      ('Submitting customer data:', normalizedData);
       
       if (isEditing && selectedCustomer) {
         const response = await salesApi.updateCustomer(
@@ -838,14 +803,8 @@ const SalesDepartment = () => {
         setIsFormOpen(false);
       }
       
-      // Refresh the list with current filters and search term
-      await fetchCustomers(
-        currentPage, 
-        pageSize, 
-        debouncedSearchTerm, 
-        statusFilter, 
-        assignedToFilter
-      );
+      // Refresh the list
+      await fetchCustomers(1, pageSize);
     } catch (error) {
       console.error('Error saving customer:', error);
       const errorMessage = error.response?.data?.message || 
