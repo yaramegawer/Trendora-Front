@@ -22,6 +22,8 @@ const textFieldStyle = {
 };
 
 // Validation schema
+const REQUIRED_FIELDS = ['customer_name', 'company_name', 'phone_number', 'services'];
+
 const customerSchema = {
   customer_name: Joi.string()
     .trim()
@@ -77,7 +79,8 @@ const customerSchema = {
         "Digital Advertising"
       )
     )
-    .default([])
+    .min(1)
+    .required()
     .label('Services'),
     
   Budget: Joi.number()
@@ -115,13 +118,13 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  FormHelperText,
   Chip,
   IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Snackbar,
   Alert,
   Checkbox,
   ToggleButtonGroup,
@@ -157,6 +160,7 @@ import {
 } from '@mui/icons-material';
 import { salesApi } from '../../api/sales.js';
 import { API_CONFIG } from '../../config/api.js';
+import Toast from '../common/Toast';
 
 const SalesDepartment = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -170,6 +174,8 @@ const SalesDepartment = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize] = useState(10);
   const [totalCustomers, setTotalCustomers] = useState(0);
+  const [isServerPaginated, setIsServerPaginated] = useState(false);
+  const [paginationModeDetermined, setPaginationModeDetermined] = useState(false);
 
   // Search term state for instant client-side search
   const [searchTerm, setSearchTerm] = useState('');
@@ -193,6 +199,7 @@ const SalesDepartment = () => {
   });
   
   const [errors, setErrors] = useState({});
+  const [formSubmitted, setFormSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
@@ -238,17 +245,39 @@ const SalesDepartment = () => {
   const availableServices = ['Influencer Marketing', 'Event Management', 'Social Media Management', 'Professional Photography', 'Lighting Services', 'Screens & Displays', 'Digital Advertising'];
   
   // Validation functions
+  const formatFieldLabel = (field) =>
+    field
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+  const isFieldEmpty = (field) => {
+    const value = formData[field];
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === 'string') return value.trim() === '';
+    return value === undefined || value === null || value === '';
+  };
+
+  const getFieldError = (field) => {
+    if (errors[field]) return errors[field];
+    if (formSubmitted && REQUIRED_FIELDS.includes(field) && isFieldEmpty(field)) {
+      if (field === 'services') {
+        return 'Select at least one service';
+      }
+      return `${formatFieldLabel(field)} is required`;
+    }
+    return '';
+  };
+
   const validate = () => {
     const errors = {};
     
     // Required fields that should not be empty in edit mode
-    const requiredFields = ['customer_name', 'company_name', 'phone_number', 'services', 'status'];
-    
-    requiredFields.forEach(field => {
+    REQUIRED_FIELDS.forEach(field => {
       if (!formData[field] || 
           (Array.isArray(formData[field]) && formData[field].length === 0) ||
           (typeof formData[field] === 'string' && formData[field].trim() === '')) {
-        errors[field] = `${field.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} is required`;
+        errors[field] = `${formatFieldLabel(field)} is required`;
       }
     });
     
@@ -454,7 +483,10 @@ const SalesDepartment = () => {
     }
   };
 
-  const fetchCustomers = useCallback(async (page = 1, limit = pageSize) => {
+  const fetchCustomers = useCallback(async (page = 1, limit = pageSize, options = {}) => {
+    const { forceClientPagination = false } = options;
+    let detectedBackendPagination = false;
+    
     try {
       setLoading(true);
       
@@ -517,43 +549,63 @@ const SalesDepartment = () => {
       ('Customers data length:', customersData.length);
       ('Page:', page, 'Limit:', limit);
       ('Pagination data from backend:', paginationData);
-      
-      if (paginationData.totalPages) {
-        setTotalPages(paginationData.totalPages);
-        setTotalCustomers(paginationData.totalCount || paginationData.total || customersData.length);
-        ('Using backend pagination - totalPages:', paginationData.totalPages, 'totalCustomers:', paginationData.totalCount || paginationData.total || customersData.length);
-      } else if (paginationData.totalCount || paginationData.total) {
-        const totalCount = paginationData.totalCount || paginationData.total;
-        setTotalPages(Math.ceil(totalCount / limit));
-        setTotalCustomers(totalCount);
-        ('Using backend count - totalPages:', Math.ceil(totalCount / limit), 'totalCustomers:', totalCount);
+
+      detectedBackendPagination = !forceClientPagination && Boolean(
+        paginationData &&
+        (paginationData.totalPages || paginationData.totalCount || paginationData.total)
+      );
+
+      if (detectedBackendPagination) {
+        if (paginationData.totalPages) {
+          setTotalPages(paginationData.totalPages);
+          setTotalCustomers(
+            paginationData.totalCount ||
+            paginationData.total ||
+            paginationData.totalPages * limit
+          );
+          ('Using backend totalPages - totalPages:', paginationData.totalPages, 'totalCustomers:', paginationData.totalCount || paginationData.total || paginationData.totalPages * limit);
+        } else {
+          const totalCount = paginationData.totalCount || paginationData.total || customersData.length;
+          setTotalPages(Math.max(1, Math.ceil(totalCount / limit)));
+          setTotalCustomers(totalCount);
+          ('Using backend totalCount - totalPages:', Math.max(1, Math.ceil(totalCount / limit)), 'totalCustomers:', totalCount);
+        }
+        setIsServerPaginated(true);
       } else {
         // No pagination data from backend - be more conservative with estimates
         const currentPageItems = customersData.length;
         ('No backend pagination data, calculating from current page items:', currentPageItems);
         
-        if (currentPageItems === limit && page === 1) {
-          // We got a full page on first request, there might be more but don't overestimate
-          setTotalPages(2); // Will be updated when user navigates
-          setTotalCustomers(currentPageItems); // Start with what we know
-          ('Full page on first request - setting totalPages: 2, totalCustomers:', currentPageItems);
-        } else if (currentPageItems === limit) {
-          // Full page but not first page, there might be more
-          setTotalPages(page + 1);
-          setTotalCustomers(page * limit); // Conservative estimate
-          ('Full page on page', page, '- setting totalPages:', page + 1, 'totalCustomers:', page * limit);
-        } else if (currentPageItems < limit) {
-          // Less than full page, we're at the end
-          setTotalPages(page);
-          setTotalCustomers((page - 1) * limit + currentPageItems);
-          ('Partial page - setting totalPages:', page, 'totalCustomers:', (page - 1) * limit + currentPageItems);
-        } else {
-          // Default case - just use what we have
-          setTotalPages(1);
+        if (forceClientPagination) {
+          setTotalPages(Math.max(1, Math.ceil(currentPageItems / pageSize)));
           setTotalCustomers(currentPageItems);
-          ('Default case - setting totalPages: 1, totalCustomers:', currentPageItems);
+          ('Force client pagination - totalPages:', Math.max(1, Math.ceil(currentPageItems / pageSize)), 'totalCustomers:', currentPageItems);
+        } else {
+          if (currentPageItems === limit && page === 1) {
+            // We got a full page on first request, there might be more but don't overestimate
+            setTotalPages(2); // Will be updated when user navigates
+            setTotalCustomers(currentPageItems); // Start with what we know
+            ('Full page on first request - setting totalPages: 2, totalCustomers:', currentPageItems);
+          } else if (currentPageItems === limit) {
+            // Full page but not first page, there might be more
+            setTotalPages(page + 1);
+            setTotalCustomers(page * limit); // Conservative estimate
+            ('Full page on page', page, '- setting totalPages:', page + 1, 'totalCustomers:', page * limit);
+          } else if (currentPageItems < limit) {
+            // Less than full page, we're at the end
+            setTotalPages(page);
+            setTotalCustomers((page - 1) * limit + currentPageItems);
+            ('Partial page - setting totalPages:', page, 'totalCustomers:', (page - 1) * limit + currentPageItems);
+          } else {
+            // Default case - just use what we have
+            setTotalPages(1);
+            setTotalCustomers(currentPageItems);
+            ('Default case - setting totalPages: 1, totalCustomers:', currentPageItems);
+          }
         }
+        setIsServerPaginated(false);
       }
+      setPaginationModeDetermined(true);
       
       setCurrentPage(page);
       setError('');
@@ -563,10 +615,29 @@ const SalesDepartment = () => {
       setCustomers([]);
       setTotalPages(1);
       setTotalCustomers(0);
+      detectedBackendPagination = false;
     } finally {
       setLoading(false);
     }
+    
+    return detectedBackendPagination;
   }, [pageSize]);
+
+  const refreshCustomers = useCallback(async () => {
+    if (paginationModeDetermined) {
+      if (isServerPaginated) {
+        await fetchCustomers(1, pageSize);
+      } else {
+        await fetchCustomers(1, 1000, { forceClientPagination: true });
+      }
+      return;
+    }
+
+    const hasBackendPagination = await fetchCustomers(1, pageSize);
+    if (!hasBackendPagination) {
+      await fetchCustomers(1, 1000, { forceClientPagination: true });
+    }
+  }, [fetchCustomers, isServerPaginated, paginationModeDetermined, pageSize]);
 
   useEffect(() => {
     fetchSalesEmployees();
@@ -575,17 +646,9 @@ const SalesDepartment = () => {
   // Initial fetch of customers when component mounts or when tab changes to customer list
   useEffect(() => {
     if (activeTab === 0) {
-      fetchCustomers(1, pageSize);
+      refreshCustomers();
     }
-  }, [activeTab, pageSize]);
-
-  // Fetch all customers once for client-side search and filtering
-  useEffect(() => {
-    if (activeTab === 0) {
-      // Fetch all customers without pagination for client-side filtering
-      fetchCustomers(1, 1000);
-    }
-  }, [activeTab]);
+  }, [activeTab, refreshCustomers]);
 
   // Reset to page 1 when search or filters change
   useEffect(() => {
@@ -621,9 +684,12 @@ const SalesDepartment = () => {
   
   // Paginate the filtered customers for display
   const paginatedCustomers = useMemo(() => {
+    if (isServerPaginated) {
+      return filteredCustomers;
+    }
     const startIndex = (currentPage - 1) * pageSize;
     return filteredCustomers.slice(startIndex, startIndex + pageSize);
-  }, [filteredCustomers, currentPage, pageSize]);
+  }, [filteredCustomers, currentPage, pageSize, isServerPaginated]);
 
   // Use paginated filtered customers for display
   const displayCustomers = paginatedCustomers;
@@ -656,6 +722,7 @@ const SalesDepartment = () => {
       assigned_to: ''
     });
     setErrors({}); // Clear any previous errors
+    setFormSubmitted(false);
     setIsFormOpen(true);
   };
 
@@ -681,6 +748,7 @@ const SalesDepartment = () => {
       assigned_to: customer.assigned_to || ''
     });
     setErrors({}); // Clear any previous errors
+    setFormSubmitted(false);
     ('Form data set:', {
       customer_name: customer.customer_name || '',
       company_name: customer.company_name || '',
@@ -701,7 +769,7 @@ const SalesDepartment = () => {
   const handleDeleteCustomer = async (customerId) => {
     try {
       await salesApi.deleteCustomer(customerId);
-      await fetchCustomers(1); // Refresh list from page 1
+      await refreshCustomers(); // Refresh list from page 1
       setSnackbar({
         open: true,
         message: 'Customer deleted successfully',
@@ -711,10 +779,19 @@ const SalesDepartment = () => {
       // Error already handled in handleDeleteCustomer
     }
     setIsFormOpen(false);
+    setFormSubmitted(false);
+  };
+
+  const handleCloseForm = () => {
+    if (loading) return;
+    setIsFormOpen(false);
+    setFormSubmitted(false);
+    setErrors({});
   };
 
   const handleSaveCustomer = async (e) => {
     if (e) e.preventDefault();
+    setFormSubmitted(true);
     
     // First validate phone number format
     const phoneNumber = formData.phone_number;
@@ -728,6 +805,11 @@ const SalesDepartment = () => {
         ...prev,
         phone_number: phoneNumberError
       }));
+      setSnackbar({
+        open: true,
+        message: 'Please correct the highlighted errors before submitting.',
+        severity: 'error'
+      });
       const element = document.querySelector('[name="phone_number"]');
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -739,6 +821,11 @@ const SalesDepartment = () => {
     const validationErrors = validate();
     if (validationErrors) {
       setErrors(validationErrors);
+      setSnackbar({
+        open: true,
+        message: 'Please fill in all required fields highlighted below.',
+        severity: 'error'
+      });
       const firstErrorField = Object.keys(validationErrors)[0];
       const element = document.querySelector(`[name="${firstErrorField}"]`);
       if (element) {
@@ -792,6 +879,7 @@ const SalesDepartment = () => {
           severity: 'success'
         });
         setIsFormOpen(false);
+        setFormSubmitted(false);
       } else {
         const response = await salesApi.addCustomer(normalizedData);
         
@@ -801,10 +889,11 @@ const SalesDepartment = () => {
           severity: 'success'
         });
         setIsFormOpen(false);
+        setFormSubmitted(false);
       }
       
       // Refresh the list
-      await fetchCustomers(1, pageSize);
+      await refreshCustomers();
     } catch (error) {
       console.error('Error saving customer:', error);
       const errorMessage = error.response?.data?.message || 
@@ -821,231 +910,262 @@ const SalesDepartment = () => {
     }
   };
 
-  const renderCustomerList = () => (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6">Customer Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleAddCustomer}
-          sx={{ background: 'linear-gradient(135deg, #1c242e 0%, #334155 100%)' }}
-        >
-          Add New Customer
-        </Button>
-      </Box>
+  const renderCustomerList = () => {
+    const clientTotalPages = Math.max(1, Math.ceil(filteredCustomers.length / pageSize));
+    const paginationTotalPages = isServerPaginated ? Math.max(1, totalPages) : clientTotalPages;
+    const paginationTotalItems = isServerPaginated ? totalCustomers : filteredCustomers.length;
+    const shouldShowCustomerPagination = !loading && paginationTotalPages > 1;
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-          <Button onClick={() => fetchCustomers(1)} sx={{ ml: 2 }}>Retry</Button>
-        </Alert>
-      )}
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <Typography>Loading customers...</Typography>
+    return (
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">Customer Management</Typography>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleAddCustomer}
+            sx={{ background: 'linear-gradient(135deg, #1c242e 0%, #334155 100%)' }}
+          >
+            Add New Customer
+          </Button>
         </Box>
-      ) : (
-        <Box>
-      <Box sx={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        border: '1px solid #f3f4f6',
-        padding: '16px',
-        marginBottom: '16px'
-      }}>
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', marginBottom: 2 }}>
-        <TextField
-          placeholder="Search by name, company, phone, or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{ 
-            startAdornment: <Search sx={{ mr: 1, color: 'action.active' }} />,
-            endAdornment: searchTerm && (
-              <IconButton
-                size="small"
-                onClick={() => setSearchTerm('')}
-                sx={{ visibility: searchTerm ? 'visible' : 'hidden' }}
-              >
-                <Close fontSize="small" />
-              </IconButton>
-            )
-          }}
-          sx={{ 
-            flex: 1, 
-            minWidth: 250,
-            '& .MuiOutlinedInput-root': {
-              paddingRight: 1,
-              '&.Mui-focused fieldset': {
-                borderColor: 'primary.main',
-              },
-            },
-          }}
-        />
-        
-        <FormControl sx={{ minWidth: 180 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            label="Status"
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <MenuItem value="">All Status</MenuItem>
-            <MenuItem value="New">New</MenuItem>
-            <MenuItem value="Contacted">Contacted</MenuItem>
-            <MenuItem value="Proposal Sent">Proposal Sent</MenuItem>
-            <MenuItem value="Negotiating">Negotiating</MenuItem>
-            <MenuItem value="Won">Won</MenuItem>
-            <MenuItem value="Lost">Lost</MenuItem>
-          </Select>
-        </FormControl>
-        
-        <FormControl sx={{ minWidth: 180 }}>
-          <InputLabel>Assigned To</InputLabel>
-          <Select
-            value={assignedToFilter}
-            label="Assigned To"
-            onChange={(e) => setAssignedToFilter(e.target.value)}
-          >
-            <MenuItem value="">All Reps</MenuItem>
-            {salesEmployees.map(emp => (
-              <MenuItem key={emp._id || emp.id} value={emp._id || emp.id}>{emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : emp.firstName || emp.lastName || emp.name || emp.employee_name || emp.fullName || emp.full_name || 'Unknown'}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          <Button onClick={() => refreshCustomers()} sx={{ ml: 2 }}>Retry</Button>
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <Typography>Loading customers...</Typography>
+          </Box>
+        ) : (
+          <Box>
+            <Box
+              sx={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                border: '1px solid #f3f4f6',
+                padding: '16px',
+                marginBottom: '16px'
+              }}
+            >
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', marginBottom: 2 }}>
+                <TextField
+                  placeholder="Search by name, company, phone, or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: <Search sx={{ mr: 1, color: 'action.active' }} />,
+                    endAdornment: searchTerm && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearchTerm('')}
+                        sx={{ visibility: searchTerm ? 'visible' : 'hidden' }}
+                      >
+                        <Close fontSize="small" />
+                      </IconButton>
+                    )
+                  }}
+                  sx={{
+                    flex: 1,
+                    minWidth: 250,
+                    '& .MuiOutlinedInput-root': {
+                      paddingRight: 1,
+                      '&.Mui-focused fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    },
+                  }}
+                />
+
+                <FormControl sx={{ minWidth: 180 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Status"
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <MenuItem value="">All Status</MenuItem>
+                    <MenuItem value="New">New</MenuItem>
+                    <MenuItem value="Contacted">Contacted</MenuItem>
+                    <MenuItem value="Proposal Sent">Proposal Sent</MenuItem>
+                    <MenuItem value="Negotiating">Negotiating</MenuItem>
+                    <MenuItem value="Won">Won</MenuItem>
+                    <MenuItem value="Lost">Lost</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl sx={{ minWidth: 180 }}>
+                  <InputLabel>Assigned To</InputLabel>
+                  <Select
+                    value={assignedToFilter}
+                    label="Assigned To"
+                    onChange={(e) => setAssignedToFilter(e.target.value)}
+                  >
+                    <MenuItem value="">All Reps</MenuItem>
+                    {salesEmployees.map(emp => (
+                      <MenuItem key={emp._id || emp.id} value={emp._id || emp.id}>
+                        {emp.firstName && emp.lastName
+                          ? `${emp.firstName} ${emp.lastName}`
+                          : emp.firstName || emp.lastName || emp.name || emp.employee_name || emp.fullName || emp.full_name || 'Unknown'}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
-      </Box>
+            </Box>
 
-      <Box sx={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        border: '1px solid #f3f4f6',
-        padding: '16px'
-      }}>
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: '1.5fr 1.2fr 1fr 1.8fr 0.9fr 1.1fr 1.2fr 0.8fr',
-        gap: '16px',
-        padding: '16px',
-        backgroundColor: '#f8fafc',
-        borderBottom: '2px solid #e2e8f0',
-        fontWeight: 600,
-        color: '#374151',
-        fontSize: '14px'
-      }}>
-        <Box>Customer Name</Box>
-        <Box>Company</Box>
-        <Box>Phone</Box>
-        <Box>Services</Box>
-        <Box>Status</Box>
-        <Box>Next Follow-up</Box>
-        <Box>Assigned To</Box>
-        <Box>Actions</Box>
-      </Box>
+            <Box
+              sx={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                border: '1px solid #f3f4f6',
+                padding: '16px'
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.5fr 1.2fr 1fr 1.8fr 0.9fr 1.1fr 1.2fr 0.8fr',
+                  gap: '16px',
+                  padding: '16px',
+                  backgroundColor: '#f8fafc',
+                  borderBottom: '2px solid #e2e8f0',
+                  fontWeight: 600,
+                  color: '#374151',
+                  fontSize: '14px'
+                }}
+              >
+                <Box>Customer Name</Box>
+                <Box>Company</Box>
+                <Box>Phone</Box>
+                <Box>Services</Box>
+                <Box>Status</Box>
+                <Box>Next Follow-up</Box>
+                <Box>Assigned To</Box>
+                <Box>Actions</Box>
+              </Box>
 
-      {displayCustomers.map((customer) => (
-        <Box key={customer._id || customer.id} sx={{
-          display: 'grid',
-          gridTemplateColumns: '1.5fr 1.2fr 1fr 1.8fr 0.9fr 1.1fr 1.2fr 0.8fr',
-          gap: '16px',
-          padding: '16px',
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          alignItems: 'center',
-          minHeight: '60px',
-          transition: 'all 0.2s',
-          '&:hover': { backgroundColor: '#f8fafc' }
-        }}>
-          <Box sx={{ fontWeight: 500, color: '#111827', wordBreak: 'break-word' }}>{customer.customer_name || 'N/A'}</Box>
-          <Box sx={{ fontSize: '14px', color: '#374151', wordBreak: 'break-word' }}>{customer.company_name || 'N/A'}</Box>
-          <Box sx={{ fontSize: '14px', color: '#374151' }}>{customer.phone_number || 'N/A'}</Box>
-          <Box sx={{ fontSize: '14px', color: '#374151', lineHeight: '1.4', wordBreak: 'break-word' }}>
-            {Array.isArray(customer.services) ? customer.services.join(', ') : customer.services || 'N/A'}
+              {displayCustomers.map((customer) => (
+                <Box
+                  key={customer._id || customer.id}
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.5fr 1.2fr 1fr 1.8fr 0.9fr 1.1fr 1.2fr 0.8fr',
+                    gap: '16px',
+                    padding: '16px',
+                    backgroundColor: '#ffffff',
+                    borderBottom: '1px solid #e2e8f0',
+                    alignItems: 'center',
+                    minHeight: '60px',
+                    transition: 'all 0.2s',
+                    '&:hover': { backgroundColor: '#f8fafc' }
+                  }}
+                >
+                  <Box sx={{ fontWeight: 500, color: '#111827', wordBreak: 'break-word' }}>{customer.customer_name || 'N/A'}</Box>
+                  <Box sx={{ fontSize: '14px', color: '#374151', wordBreak: 'break-word' }}>{customer.company_name || 'N/A'}</Box>
+                  <Box sx={{ fontSize: '14px', color: '#374151' }}>{customer.phone_number || 'N/A'}</Box>
+                  <Box sx={{ fontSize: '14px', color: '#374151', lineHeight: '1.4', wordBreak: 'break-word' }}>
+                    {Array.isArray(customer.services) ? customer.services.join(', ') : customer.services || 'N/A'}
+                  </Box>
+                  <Box
+                    sx={{
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: getStatusColor(customer.status),
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {customer.status || 'N/A'}
+                  </Box>
+                  <Box sx={{ fontSize: '14px', color: '#374151', whiteSpace: 'nowrap' }}>{formatDate(customer.Next_Followup_Date)}</Box>
+                  <Box sx={{ fontSize: '14px', color: '#374151', wordBreak: 'break-word' }}>
+                    {(() => {
+                      const assignedEmployee = salesEmployees.find(emp => (emp._id || emp.id) === customer.assigned_to);
+                      return assignedEmployee
+                        ? (assignedEmployee.firstName && assignedEmployee.lastName
+                            ? `${assignedEmployee.firstName} ${assignedEmployee.lastName}`
+                            : assignedEmployee.firstName || assignedEmployee.lastName || assignedEmployee.name || assignedEmployee.employee_name || assignedEmployee.fullName || assignedEmployee.full_name)
+                        : customer.assigned_to || 'N/A';
+                    })()}
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleViewDetails(customer)}
+                      sx={{
+                        color: '#3b82f6',
+                        '&:hover': { backgroundColor: '#eff6ff' }
+                      }}
+                    >
+                      <Visibility fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleEditCustomer(customer)}
+                      sx={{
+                        color: '#3b82f6',
+                        '&:hover': { backgroundColor: '#eff6ff' }
+                      }}
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteCustomer(customer._id || customer.id)}
+                      sx={{
+                        color: '#ef4444',
+                        '&:hover': { backgroundColor: '#fef2f2' }
+                      }}
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+
+              {!loading && displayCustomers.length === 0 && (
+                <Box sx={{ textAlign: 'center', p: 4, color: '#6b7280' }}>
+                  No customers found
+                </Box>
+              )}
+
+              {shouldShowCustomerPagination && (
+                <Box
+                  sx={{
+                    mt: 3,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                >
+                  <SimplePagination
+                    currentPage={currentPage}
+                    totalPages={paginationTotalPages}
+                    totalItems={paginationTotalItems}
+                    pageSize={pageSize}
+                    onPageChange={(page) => {
+                      if (isServerPaginated) {
+                        fetchCustomers(page, pageSize);
+                      } else {
+                        setCurrentPage(page);
+                      }
+                    }}
+                    itemLabel="customers"
+                  />
+                </Box>
+              )}
+            </Box>
           </Box>
-          <Box sx={{ 
-            fontSize: '14px', 
-            fontWeight: 500,
-            color: getStatusColor(customer.status),
-            whiteSpace: 'nowrap'
-          }}>
-            {customer.status || 'N/A'}
-          </Box>
-          <Box sx={{ fontSize: '14px', color: '#374151', whiteSpace: 'nowrap' }}>{formatDate(customer.Next_Followup_Date)}</Box>
-          <Box sx={{ fontSize: '14px', color: '#374151', wordBreak: 'break-word' }}>
-            {(() => {
-              const assignedEmployee = salesEmployees.find(emp => (emp._id || emp.id) === customer.assigned_to);
-              return assignedEmployee ? (assignedEmployee.firstName && assignedEmployee.lastName ? `${assignedEmployee.firstName} ${assignedEmployee.lastName}` : assignedEmployee.firstName || assignedEmployee.lastName || assignedEmployee.name || assignedEmployee.employee_name || assignedEmployee.fullName || assignedEmployee.full_name) : customer.assigned_to || 'N/A';
-            })()}
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton 
-              size="small" 
-              onClick={() => handleViewDetails(customer)}
-              sx={{ 
-                color: '#3b82f6',
-                '&:hover': { backgroundColor: '#eff6ff' }
-              }}
-            >
-              <Visibility fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
-              onClick={() => handleEditCustomer(customer)}
-              sx={{ 
-                color: '#3b82f6',
-                '&:hover': { backgroundColor: '#eff6ff' }
-              }}
-            >
-              <Edit fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
-              onClick={() => handleDeleteCustomer(customer._id || customer.id)}
-              sx={{ 
-                color: '#ef4444',
-                '&:hover': { backgroundColor: '#fef2f2' }
-              }}
-            >
-              <Delete fontSize="small" />
-            </IconButton>
-          </Box>
-        </Box>
-      ))}
-      {!loading && displayCustomers.length === 0 && (
-        <Box sx={{ textAlign: 'center', p: 4, color: '#6b7280' }}>
-          No customers found
-        </Box>
-      )}
-      
-      {/* Pagination - Only show if we have more than one page of results */}
-      {!loading && filteredCustomers.length > pageSize && (
-        <Box sx={{ 
-          mt: 3, 
-          display: 'flex', 
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <SimplePagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(filteredCustomers.length / pageSize)}
-            totalItems={filteredCustomers.length}
-            pageSize={pageSize}
-            onPageChange={(page) => {
-              setCurrentPage(page);
-            }}
-            itemLabel="customers"
-          />
-        </Box>
-      )}
-    </Box>
-    </Box>
-      )}
-    </Box>
-  );
+        )}
+      </Box>
+    );
+  };
 
   const handleServiceChange = (service) => {
     setFormData(prev => ({
@@ -1111,7 +1231,7 @@ const SalesDepartment = () => {
       // Refresh follow-ups list
       fetchFollowUps();
       // Also refresh customers list to update status
-      fetchCustomers();
+      refreshCustomers();
     } catch {
       // Error already handled in handleMarkAsContacted
     }
@@ -1129,7 +1249,7 @@ const SalesDepartment = () => {
       // Refresh follow-ups list
       fetchFollowUps();
       // Also refresh customers list to update date
-      fetchCustomers();
+      refreshCustomers();
     } catch {
       // Error already handled in handleRescheduleFollowUp
     }
@@ -1771,7 +1891,7 @@ const SalesDepartment = () => {
       {activeTab === 2 && renderReports()}
 
       {/* Add/Edit Customer Dialog */}
-      <Dialog open={isFormOpen} onClose={() => !loading && setIsFormOpen(false)} maxWidth="md" fullWidth component="form" onSubmit={handleSaveCustomer} noValidate>
+      <Dialog open={isFormOpen} onClose={handleCloseForm} maxWidth="md" fullWidth component="form" onSubmit={handleSaveCustomer} noValidate>
         <DialogTitle>
           {isEditing ? 'Edit Customer' : 'Add New Customer'}
         </DialogTitle>
@@ -1783,10 +1903,11 @@ const SalesDepartment = () => {
               name="customer_name"
               value={formData.customer_name}
               onChange={handleChange}
-              error={!!errors.customer_name}
-              helperText={errors.customer_name}
+              error={!!getFieldError('customer_name')}
+              helperText={getFieldError('customer_name')}
               required
               sx={{
+                mt: 2,
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '8px',
                   '&:hover fieldset': {
@@ -1804,8 +1925,8 @@ const SalesDepartment = () => {
               name="company_name"
               value={formData.company_name}
               onChange={handleChange}
-              error={!!errors.company_name}
-              helperText={errors.company_name}
+              error={!!getFieldError('company_name')}
+              helperText={getFieldError('company_name')}
               required
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -1835,8 +1956,8 @@ const SalesDepartment = () => {
                 };
                 handleChange(event);
               }}
-              error={!!errors.phone_number}
-              helperText={errors.phone_number || "Enter 10-15 digits"}
+              error={!!getFieldError('phone_number')}
+              helperText={getFieldError('phone_number') || "Enter 10-15 digits"}
               required
               inputProps={{
                 inputMode: 'numeric',
@@ -1877,25 +1998,29 @@ const SalesDepartment = () => {
                 },
               }}
             />
-            <FormControl fullWidth error={!!errors.services}>
-              <InputLabel>Services </InputLabel>
+            <FormControl fullWidth error={!!getFieldError('services')} required>
+              <InputLabel id="services-label">Services</InputLabel>
               <Select
+                labelId="services-label"
+                id="services-select"
                 multiple
                 name="services"
                 value={formData.services}
                 onChange={handleServicesChange}
-                error={!!errors.services}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.length > 0 ? (
-                      selected.map((value) => (
+                error={!!getFieldError('services')}
+                label="Services"
+                displayEmpty
+                renderValue={(selected) => {
+                  const servicesError = getFieldError('services');
+                  
+                  return (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => (
                         <Chip key={value} label={value} />
-                      ))
-                    ) : (
-                      <em>Select at least one service</em>
-                    )}
-                  </Box>
-                )}
+                      ))}
+                    </Box>
+                  );
+                }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '8px',
@@ -1915,12 +2040,15 @@ const SalesDepartment = () => {
                   </MenuItem>
                 ))}
               </Select>
+              {getFieldError('services') && (
+                <FormHelperText>{getFieldError('services')}</FormHelperText>
+              )}
             </FormControl>
             <TextField
               fullWidth
               label="Estimated Budget"
               name="Budget"
-              type="number"
+              
               value={formData.Budget}
               onChange={handleChange}
               error={!!errors.Budget}
@@ -1931,13 +2059,15 @@ const SalesDepartment = () => {
               }}
               sx={textFieldStyle}
             />
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
+            <FormControl fullWidth error={!!errors.status}>
+              <InputLabel id="status-label">Status</InputLabel>
               <Select
+                labelId="status-label"
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
                 label="Status"
+                error={!!errors.status}
               >
                 {statuses.map((status) => (
                   <MenuItem key={status} value={status}>
@@ -1945,6 +2075,9 @@ const SalesDepartment = () => {
                   </MenuItem>
                 ))}
               </Select>
+              {errors.status && (
+                <FormHelperText>{errors.status}</FormHelperText>
+              )}
             </FormControl>
             <TextField
               fullWidth
@@ -1993,7 +2126,7 @@ const SalesDepartment = () => {
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
           <Button 
-            onClick={() => setIsFormOpen(false)} 
+            onClick={handleCloseForm} 
             disabled={loading}
             sx={{ minWidth: 100 }}
           >
@@ -2075,12 +2208,12 @@ const SalesDepartment = () => {
               </Box>
 
               {/* Additional Information */}
-              {viewingCustomer.notes && (
-                <>
+              
+                <> 
                   <Typography variant="h6" gutterBottom>Notes</Typography>
                   <Typography variant="body1" sx={{ mb: 3 }}>{viewingCustomer.notes}</Typography>
                 </>
-              )}
+              
             </Box>
           )}
         </DialogContent>
@@ -2151,6 +2284,12 @@ const SalesDepartment = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <Toast
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.severity}
+        onClose={handleCloseSnackbar}
+      />
     </Box>
   );
 };
