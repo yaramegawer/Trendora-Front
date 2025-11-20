@@ -83,8 +83,9 @@ const customerSchema = {
     .required()
     .label('Services'),
     
-  Budget: Joi.number()
+  Budget: Joi.string()
     .optional()
+    .allow('')
     .label('Budget'),
     
   status: Joi.string()
@@ -1031,14 +1032,15 @@ const SalesDepartment = () => {
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: '1.5fr 1.2fr 1fr 1.8fr 0.9fr 1.1fr 1.2fr 0.8fr',
+                  gridTemplateColumns: '1.2fr 1.2fr 1fr 1.8fr 0.6fr 1.2fr 1.5fr 0.8fr',
                   gap: '16px',
                   padding: '16px',
                   backgroundColor: '#f8fafc',
                   borderBottom: '2px solid #e2e8f0',
                   fontWeight: 600,
                   color: '#374151',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  
                 }}
               >
                 <Box>Customer Name</Box>
@@ -1056,12 +1058,13 @@ const SalesDepartment = () => {
                   key={customer._id || customer.id}
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: '1.5fr 1.2fr 1fr 1.8fr 0.9fr 1.1fr 1.2fr 0.8fr',
+                    gridTemplateColumns: '1.2fr 1.2fr 1fr 1.8fr 0.9fr 1.1fr 1.2fr 0.8fr',
                     gap: '16px',
                     padding: '16px',
                     backgroundColor: '#ffffff',
                     borderBottom: '1px solid #e2e8f0',
                     alignItems: 'center',
+                    
                     minHeight: '60px',
                     transition: 'all 0.2s',
                     '&:hover': { backgroundColor: '#f8fafc' }
@@ -1656,7 +1659,7 @@ const SalesDepartment = () => {
           ) : (
             <Box sx={{ textAlign: 'center', py: 4, color: '#6b7280' }}>
               <Typography variant="body1">
-                No customer data available. Please check your connection and try again.
+                No customer data available. 
               </Typography>
             </Box>
           )}
@@ -2048,7 +2051,6 @@ const SalesDepartment = () => {
               fullWidth
               label="Estimated Budget"
               name="Budget"
-              
               value={formData.Budget}
               onChange={handleChange}
               error={!!errors.Budget}
